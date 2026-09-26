@@ -12,6 +12,10 @@ import com.store.api.service.email.client.GmailApiClient;
 import com.store.api.service.email.client.ImapEmailClient;
 import com.store.api.service.email.parser.BankEmailParserDispatcher;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import com.store.api.config.security.UserContext;
+import com.store.api.model.entity.User;
+import org.springframework.web.server.ResponseStatusException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -53,7 +57,21 @@ class EmailIngestionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Mockito injected mocks
+        UserContext.setCurrentUser(User.builder().id(42L).build());
+    }
+
+    @AfterEach
+    void clearContext() {
+        UserContext.clear();
+    }
+
+    @Test
+    void anonymousSyncDoesNotSelectAnotherAccountOrAccessEmail() {
+        UserContext.clear();
+        assertEquals(401, assertThrows(ResponseStatusException.class,
+                () -> emailIngestionService.syncEmails()).getStatusCode().value());
+        verifyNoInteractions(googleOAuthService, gmailApiClient, imapEmailClient,
+                parserDispatcher, transactionService, processedEmailRepository);
     }
 
     @Test
