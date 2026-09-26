@@ -9,7 +9,6 @@ import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
-import com.store.api.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +29,10 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final RawNotificationRepository rawNotificationRepository;
-    private final UserRepository userRepository;
 
     @Transactional
     public TransactionResponse processAndSave(TransactionSyncRequest request) {
+        User currentUser = UserContext.requireCurrentUser();
         String channel = (request.getChannel() != null && !request.getChannel().isBlank())
                 ? request.getChannel().trim()
                 : "UNKNOWN";
@@ -47,20 +46,12 @@ public class TransactionService {
             rawNotificationRepository.save(rawLog);
         }
 
-        User currentUser = UserContext.getCurrentUser();
-        if (currentUser == null) {
-            currentUser = userRepository.findById(1L).orElse(null);
-        }
-        boolean exists = (currentUser != null)
-                ? transactionRepository.existsByTransactionHashAndUser(request.getTransactionHash(), currentUser)
-                : transactionRepository.existsByTransactionHash(request.getTransactionHash());
+        boolean exists = transactionRepository.existsByTransactionHashAndUser(request.getTransactionHash(), currentUser);
 
         if (exists) {
             log.warn("Transaction with hash [{}] already exists for user [{}]. Skipping duplicate.",
-                    request.getTransactionHash(), (currentUser != null ? currentUser.getEmail() : "anonymous"));
-            Transaction existing = (currentUser != null)
-                    ? transactionRepository.findByTransactionHashAndUser(request.getTransactionHash(), currentUser).orElseThrow()
-                    : transactionRepository.findByTransactionHash(request.getTransactionHash()).orElseThrow();
+                    request.getTransactionHash(), currentUser.getEmail());
+            Transaction existing = transactionRepository.findByTransactionHashAndUser(request.getTransactionHash(), currentUser).orElseThrow();
             return mapToResponse(existing);
         }
 
@@ -78,12 +69,13 @@ public class TransactionService {
         Transaction saved = transactionRepository.save(transaction);
         log.info("Transaction saved successfully: ID={}, Amount={}, FlowType={}, Channel={}, User={}",
                 saved.getId(), saved.getAmount(), saved.getFlowType(), saved.getChannel(),
-                (currentUser != null ? currentUser.getEmail() : "anonymous"));
+                currentUser.getEmail());
         return mapToResponse(saved);
     }
 
     @Transactional
     public List<TransactionResponse> processBatch(List<TransactionSyncRequest> requests) {
+        UserContext.requireCurrentUser();
         List<TransactionResponse> responses = new ArrayList<>();
         for (TransactionSyncRequest req : requests) {
             responses.add(processAndSave(req));
@@ -93,13 +85,11 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Pageable pageable) {
-        User currentUser = UserContext.getCurrentUser();
+        User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (currentUser != null) {
-                predicates.add(cb.equal(root.get("user"), currentUser));
-            }
+            predicates.add(cb.equal(root.get("user"), currentUser));
             if (startDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("transactionDate"), startDate));
             }

@@ -51,10 +51,8 @@ public class GoogleOAuthService {
     private final RestClient restClient = RestClient.create();
 
     private Optional<GoogleOAuthToken> findTokenForCurrentContext() {
-        User currentUser = UserContext.getCurrentUser();
-        return currentUser == null
-                ? tokenRepository.findFirstByOrderByUpdatedAtDesc()
-                : tokenRepository.findByUserId(currentUser.getId());
+        User currentUser = UserContext.requireCurrentUser();
+        return tokenRepository.findByUserId(currentUser.getId());
     }
 
     public String buildAuthorizationUrl() {
@@ -235,12 +233,6 @@ public class GoogleOAuthService {
                 .connected(false)
                 .email(null)
                 .build();
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<User> getConnectedUser() {
-        return tokenRepository.findFirstByOrderByUpdatedAtDesc()
-                .map(GoogleOAuthToken::getUser);
     }
 
     @Transactional(readOnly = true)

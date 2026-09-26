@@ -11,7 +11,6 @@ import com.store.api.model.entity.User;
 
 @Repository
 public interface GoogleOAuthTokenRepository extends JpaRepository<GoogleOAuthToken, Long> {
-    Optional<GoogleOAuthToken> findFirstByOrderByUpdatedAtDesc();
     Optional<GoogleOAuthToken> findByEmail(String email);
     Optional<GoogleOAuthToken> findByUserId(Long userId);
 

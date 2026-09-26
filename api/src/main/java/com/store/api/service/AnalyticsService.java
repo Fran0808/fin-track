@@ -33,8 +33,8 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public FinancialSummaryResponse getSummary() {
-        User currentUser = UserContext.getCurrentUser();
-        Long userId = (currentUser != null) ? currentUser.getId() : null;
+        User currentUser = UserContext.requireCurrentUser();
+        Long userId = currentUser.getId();
 
         BigDecimal totalIncome = transactionRepository.sumAmountByFlowType(FlowType.INCOME, userId);
         BigDecimal totalExpense = transactionRepository.sumAmountByFlowType(FlowType.EXPENSE, userId);
@@ -51,8 +51,8 @@ public class AnalyticsService {
 
     @Transactional(readOnly = true)
     public PeriodAnalyticsResponse getPeriodAnalytics(Integer year, Integer month) {
-        User currentUser = UserContext.getCurrentUser();
-        Long userId = (currentUser != null) ? currentUser.getId() : null;
+        User currentUser = UserContext.requireCurrentUser();
+        Long userId = currentUser.getId();
 
         LocalDate now = LocalDate.now();
         int targetYear = (year != null && year > 2000) ? year : now.getYear();

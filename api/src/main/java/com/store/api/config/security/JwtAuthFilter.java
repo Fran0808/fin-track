@@ -13,6 +13,7 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.cors.CorsUtils;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -35,19 +36,33 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        String authHeader = request.getHeader(AUTH_HEADER);
-
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            String token = authHeader.substring(BEARER_PREFIX.length()).trim();
-            Optional<Long> userIdOpt = jwtService.extractUserId(token);
-
-            if (userIdOpt.isPresent()) {
-                Optional<User> userOpt = userRepository.findById(userIdOpt.get());
-                userOpt.ifPresent(UserContext::setCurrentUser);
-            }
-        }
-
+        UserContext.clear();
         try {
+            String path = request.getRequestURI().substring(request.getContextPath().length());
+            boolean publicAuthEndpoint = "GET".equals(request.getMethod())
+                    && ("/api/v1/auth/google/url".equals(path)
+                    || "/api/v1/auth/google/callback".equals(path));
+            if (publicAuthEndpoint || CorsUtils.isPreFlightRequest(request)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String authHeader = request.getHeader(AUTH_HEADER);
+            Optional<User> user = Optional.empty();
+            if (authHeader != null && authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+                String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+                if (!token.isEmpty()) {
+                    user = jwtService.extractUserId(token).flatMap(userRepository::findById);
+                }
+            }
+            if (user.isEmpty()) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setHeader("WWW-Authenticate", "Bearer");
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Authentication required\"}");
+                return;
+            }
+            UserContext.setCurrentUser(user.get());
             filterChain.doFilter(request, response);
         } finally {
             UserContext.clear();

@@ -1,6 +1,8 @@
 package com.store.api.config.security;
 
 import com.store.api.model.entity.User;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 public final class UserContext {
 
@@ -14,6 +16,14 @@ public final class UserContext {
 
     public static User getCurrentUser() {
         return CURRENT_USER.get();
+    }
+
+    public static User requireCurrentUser() {
+        User user = CURRENT_USER.get();
+        if (user == null || user.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        return user;
     }
 
     public static void clear() {

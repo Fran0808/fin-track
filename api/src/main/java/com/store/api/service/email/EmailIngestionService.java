@@ -7,7 +7,6 @@ import com.store.api.model.dto.email.EmailMessageDto;
 import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 import com.store.api.config.security.UserContext;
-import com.store.api.model.entity.User;
 import com.store.api.model.entity.ProcessedEmailMessage;
 import com.store.api.repository.ProcessedEmailMessageRepository;
 import com.store.api.service.TransactionService;
@@ -58,16 +57,7 @@ public class EmailIngestionService {
     }
 
     public EmailSyncResponse syncEmails() {
-        User previousUser = UserContext.getCurrentUser();
-        boolean contextSetBySync = false;
-        if (previousUser == null) {
-            Optional<User> connectedUser = googleOAuthService.getConnectedUser();
-            if (connectedUser.isPresent()) {
-                UserContext.setCurrentUser(connectedUser.get());
-                contextSetBySync = true;
-                log.info("Assigned User [{}] to UserContext for background email synchronization", connectedUser.get().getEmail());
-            }
-        }
+        UserContext.requireCurrentUser();
 
         try {
             List<EmailMessageDto> messages;
@@ -159,10 +149,6 @@ public class EmailIngestionService {
         } catch (RuntimeException ex) {
             googleOAuthService.recordSyncResult(false);
             throw ex;
-        } finally {
-            if (contextSetBySync) {
-                UserContext.clear();
-            }
         }
     }
 }

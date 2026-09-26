@@ -17,18 +17,14 @@ import java.util.Optional;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
 
-    boolean existsByTransactionHash(String transactionHash);
-
     boolean existsByTransactionHashAndUser(String transactionHash, User user);
-
-    Optional<Transaction> findByTransactionHash(String transactionHash);
 
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND (:userId IS NULL OR t.user.id = :userId)")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.user.id = :userId")
     BigDecimal sumAmountByFlowType(@Param("flowType") FlowType flowType, @Param("userId") Long userId);
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.transactionDate >= :start AND t.transactionDate <= :end AND (:userId IS NULL OR t.user.id = :userId)")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId")
     BigDecimal sumAmountByFlowTypeAndDateRange(
             @Param("flowType") FlowType flowType,
             @Param("start") LocalDateTime start,
@@ -36,30 +32,30 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND (:userId IS NULL OR t.user.id = :userId) ORDER BY t.transactionDate DESC LIMIT 1")
+    @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.user.id = :userId ORDER BY t.transactionDate DESC LIMIT 1")
     Optional<Transaction> findLatestExpense(@Param("userId") Long userId);
 
-    @Query("SELECT t.channel, t.cardLast4, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND (:userId IS NULL OR t.user.id = :userId) GROUP BY t.channel, t.cardLast4 ORDER BY SUM(t.amount) DESC")
+    @Query("SELECT t.channel, t.cardLast4, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.channel, t.cardLast4 ORDER BY SUM(t.amount) DESC")
     List<Object[]> findExpenseBreakdownByChannel(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT t.contactName, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND (:userId IS NULL OR t.user.id = :userId) GROUP BY t.contactName ORDER BY COUNT(t) DESC, SUM(t.amount) DESC LIMIT 5")
+    @Query("SELECT t.contactName, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.contactName ORDER BY COUNT(t) DESC, SUM(t.amount) DESC LIMIT 5")
     List<Object[]> findTopMerchants(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT t.transactionDate, t.amount FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND (:userId IS NULL OR t.user.id = :userId) ORDER BY t.transactionDate")
+    @Query("SELECT t.transactionDate, t.amount FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId ORDER BY t.transactionDate")
     List<Object[]> findExpenseAmountsByDateRange(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT COUNT(t) FROM Transaction t WHERE (:userId IS NULL OR t.user.id = :userId)")
+    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.user.id = :userId")
     long countByUserId(@Param("userId") Long userId);
 }
