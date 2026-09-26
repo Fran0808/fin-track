@@ -14,25 +14,25 @@ open class YapeNotificationParser : NotificationParser {
 
     // 1. Incomes with explicit sender name
     private val incomeWithSenderRegex = Regex(
-        """(?:confirmaci[oó]n de pago!?\s*)?(?:¡?te yape(?:ó|aron|aste)?!?)?\s*([A-Za-zÀ-ÿ0-9\s.*'-]+?)\s+te\s+(?:envi[oó]|yape[oó])(?:\s+un\s+pago)?(?:\s+(?:por|de))?\s+S/\.?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)""",
+        """(?:confirmaci[oó]n de pago!?\s*)?(?:¡?te yape(?:ó|aron|aste)?!?)?\s*([A-Za-zÀ-ÿ0-9\s.*'-]+?)\s+te\s+(?:envi[oó]|yape[oó])(?:\s+un\s+pago)?(?:\s+(?:por|de))?\s+S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
     // 2. Incomes without explicit sender
     private val incomeGeneralRegex = Regex(
-        """(?:¡?te yape(?:ó|aron|aste)?!?\s*)?(?:te\s+(?:enviaron|yapearon)|recibiste\s+un\s+yape(?:\s+de)?)(?:\s+un\s+pago)?(?:\s+(?:por|de))?\s+S/\.?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)""",
+        """(?:¡?te yape(?:ó|aron|aste)?!?\s*)?(?:te\s+(?:enviaron|yapearon)|recibiste\s+un\s+yape(?:\s+de)?)(?:\s+un\s+pago)?(?:\s+(?:por|de))?\s+S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
     // 3. Fallback for minimal income notifications
     private val incomeFallbackRegex = Regex(
-        """(?:¡?te yape(?:ó|aron)?!?)\s*(?:a tu yape)?(?:\s+(?:por|de))?\s*S/\.?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)""",
+        """(?:¡?te yape(?:ó|aron)?!?)\s*(?:a tu yape)?(?:\s+(?:por|de))?\s*S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)""",
         RegexOption.IGNORE_CASE
     )
 
     // 4. Outgoing expenses
     private val expenseRegex = Regex(
-        """(?:¡?yapeaste!?\s*)?(?:enviaste|pagaste)?\s*S/\.?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)\s+a\s+([A-Za-zÀ-ÿ0-9\s.*'-]+)""",
+        """(?:¡?yapeaste!?\s*)?(?:enviaste|pagaste)?\s*S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)\s+a\s+([A-Za-zÀ-ÿ0-9\s.*'-]+)""",
         RegexOption.IGNORE_CASE
     )
 

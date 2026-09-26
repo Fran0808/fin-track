@@ -31,8 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 public class YapeEmailParser implements BankEmailParser {
 
     private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "(?:(?:monto\\s+total|monto|importe)\\s*(?::|es\\s+de|por)?\\s*(?:S/\\.?|PEN)?\\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?))|" +
-            "(?:(?:S/\\.?|PEN)\\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?))",
+            "(?:(?:monto\\s+total|monto|importe)\\s*(?::|es\\s+de|por)?\\s*(?:S/\\.?|PEN)?\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))|" +
+            "(?:(?:S/\\.?|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))",
             Pattern.CASE_INSENSITIVE
     );
 

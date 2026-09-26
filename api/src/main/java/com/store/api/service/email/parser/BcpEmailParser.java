@@ -22,8 +22,8 @@ import org.springframework.core.annotation.Order;
 public class BcpEmailParser implements BankEmailParser {
 
     private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "(?:(?:importe|monto|total)\\s*(?::|es\\s+de|por)?\\s*(S/\\.?|US\\$|\\$|USD|PEN)?\\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?))|" +
-            "(?:(S/\\.?|US\\$|\\$|USD|PEN)\\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\\.[0-9]{1,2})?|[0-9]+(?:\\.[0-9]{1,2})?))",
+            "(?:(?:importe|monto|total)\\s*(?::|es\\s+de|por)?\\s*(S/\\.?|US\\$|\\$|USD|PEN)?\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))|" +
+            "(?:(S/\\.?|US\\$|\\$|USD|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -106,7 +106,9 @@ public class BcpEmailParser implements BankEmailParser {
         // 3. Extract Merchant / Recipient
         String merchant = "Consumo BCP";
 
-        if (lowerCombined.contains("recibiste un yapeo") || lowerCombined.contains("yapeo a celular")) {
+        if (lowerCombined.contains("pago de tarjeta propia") || lowerCombined.contains("pago a tu tarjeta") || lowerCombined.contains("pago de tarjeta de crédito propia") || lowerCombined.contains("pago de tarjeta de credito propia")) {
+            merchant = "Pago Tarjeta Crédito BCP";
+        } else if (lowerCombined.contains("recibiste un yapeo") || lowerCombined.contains("yapeo a celular")) {
             Matcher yapeoDeMatcher = Pattern.compile("(?:recibiste un yapeo de\\s+[^\\s]+\\s+[0-9.,]+\\s+de|enviado por):?\\s*([A-Za-z0-9À-ÿ\\s.,&'-]+?)(?=\\s*(?:\\.|por tu seguridad|¿no reconoces|$))", Pattern.CASE_INSENSITIVE).matcher(cleanText);
             if (yapeoDeMatcher.find()) {
                 merchant = yapeoDeMatcher.group(1).trim();

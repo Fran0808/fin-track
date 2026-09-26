@@ -101,4 +101,29 @@ class BcpEmailParserTest {
         assertEquals("1234", tx.getCardLast4());
         assertEquals("123456", tx.getOperationNumber());
     }
+
+    @Test
+    void shouldParseCreditCardOwnPaymentExpenseSuccessfully() {
+        String subject = "Constancia de Pago de Tarjeta de Crédito Propia - Servicio de Notificaciones BCP";
+        String body = """
+                Hola Francisco Javier,
+                Realizaste un pago a tu tarjeta de S/ 1068.87 desde tu Cuenta yape.
+                A continuación, te enviamos los datos de tu operación.
+                Montos
+                Monto pagado S/ 1068.87
+                Datos de la operación
+                Operación realizada Pago de tarjeta propia BCP
+                Fecha y hora 26 de Septiembre de 2026 - 08:19 AM
+                Pagado a VISA Light **** 3127
+                """;
+
+        ParsedEmailTransaction tx = parser.parse(subject, body, LocalDateTime.of(2026, 9, 26, 8, 19));
+
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("1068.87"), tx.getAmount());
+        assertEquals("PEN", tx.getCurrency());
+        assertEquals(FlowType.EXPENSE, tx.getFlowType());
+        assertEquals("Pago Tarjeta Crédito BCP", tx.getMerchantName());
+        assertEquals("3127", tx.getCardLast4());
+    }
 }
