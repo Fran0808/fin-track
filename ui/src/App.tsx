@@ -6,7 +6,7 @@ import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { useAuth } from './contexts';
 import { useFinance } from './hooks';
-import type { Transaction } from './types';
+import type { Transaction, UserProfile } from './types';
 import { LogOut, Menu, X, Loader2 } from 'lucide-react';
 import { SyncStatus } from './components/layout/SyncStatus';
 
@@ -21,6 +21,22 @@ const VIEW_LABELS: Record<NavView, string> = {
 
 export function App() {
   const { user, loading: loadingAuth, logout } = useAuth();
+
+  if (loadingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center gap-3 bg-canvas text-muted">
+        <Loader2 className="h-5 w-5 animate-spin text-brand" />
+        <p className="text-sm">Verificando sesión...</p>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginView />;
+
+  return <AuthenticatedDashboard key={user.id} user={user} logout={logout} />;
+}
+
+function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: () => void }) {
   const {
     periodAnalytics,
     transactionsPage,
@@ -36,23 +52,12 @@ export function App() {
     setSelectedPeriod,
     handlePageChange,
     handleFilterChange,
-  } = useFinance(user?.id);
+  } = useFinance(user.id);
 
   const [activeView, setActiveView] = useState<NavView>('inicio');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
-
-  if (loadingAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center gap-3 bg-canvas text-muted">
-        <Loader2 className="h-5 w-5 animate-spin text-brand" />
-        <p className="text-sm">Verificando sesión...</p>
-      </div>
-    );
-  }
-
-  if (!user) return <LoginView />;
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">

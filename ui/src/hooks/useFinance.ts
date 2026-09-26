@@ -12,7 +12,7 @@ function getPeriodDateRange(year: number, month: number) {
   };
 }
 
-export function useFinance(userId?: number) {
+export function useFinance(userId: number) {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [periodAnalytics, setPeriodAnalytics] = useState<PeriodAnalytics | null>(null);
   const [transactionsPage, setTransactionsPage] = useState<PageResponse<Transaction> | null>(null);

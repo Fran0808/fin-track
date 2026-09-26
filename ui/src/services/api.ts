@@ -25,7 +25,8 @@ async function fetchWithAuth(url: string, init?: RequestInit): Promise<Response>
     headers,
   });
 
-  if (response.status === 401) {
+  // A delayed response must not invalidate a newer session or an OAuth callback.
+  if (response.status === 401 && token && localStorage.getItem('auth_token') === token) {
     localStorage.removeItem('auth_token');
     window.dispatchEvent(new CustomEvent('auth:unauthorized'));
   }

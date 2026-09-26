@@ -34,13 +34,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const profile = await api.getCurrentUser();
-      setUser(profile);
-      setError(null);
+      if (localStorage.getItem('auth_token') === token) {
+        setUser(profile);
+        setError(null);
+      }
     } catch (err) {
       console.warn('Failed to fetch authenticated user profile:', err);
-      logout();
+      if (localStorage.getItem('auth_token') === token) logout();
     } finally {
-      setLoading(false);
+      const currentToken = localStorage.getItem('auth_token');
+      if (!currentToken || currentToken === token) setLoading(false);
     }
   }, [logout]);
 
