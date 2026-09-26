@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts';
+import { LoginWaves } from '../effects/LoginWaves';
 
 export function LoginView() {
   const { loginWithGoogle, error } = useAuth();
@@ -23,7 +24,8 @@ export function LoginView() {
       </header>
 
       <main className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-12 px-6 py-12 sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
-        <div className="max-w-2xl">
+        <div className="relative isolate max-w-2xl">
+          <LoginWaves />
           <p className="eyebrow">Tu flujo de dinero, más claro</p>
           <h1 className="font-display mt-5 text-[clamp(3rem,7vw,6rem)] font-semibold leading-[1.02] tracking-tight">
             Entiende<br />cómo se mueve<br /><span className="text-brand">tu dinero.</span>

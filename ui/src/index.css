@@ -57,6 +57,27 @@
   text-transform: uppercase;
 }
 
+.login-waves {
+  position: absolute;
+  inset: -32px 0;
+  z-index: -1;
+  width: 100%;
+  height: calc(100% + 64px);
+  pointer-events: none;
+  color: var(--color-brand);
+  opacity: 0.13;
+  mask-image: radial-gradient(ellipse at 72% 48%, black 5%, transparent 72%);
+}
+
+@keyframes summary-arrive {
+  from { opacity: 0.65; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.summary-intro {
+  animation: summary-arrive 280ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -64,5 +85,9 @@
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .summary-intro {
+    animation-name: none;
   }
 }

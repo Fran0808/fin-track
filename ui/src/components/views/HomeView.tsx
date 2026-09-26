@@ -10,6 +10,8 @@ interface HomeViewProps {
   onSelectTransaction: (transaction: Transaction) => void;
   selectedYear: number;
   selectedMonth: number;
+  animateIntro: boolean;
+  onIntroComplete: () => void;
 }
 
 const MONTHS = [
@@ -25,6 +27,8 @@ export function HomeView({
   onSelectTransaction,
   selectedYear,
   selectedMonth,
+  animateIntro,
+  onIntroComplete,
 }: HomeViewProps) {
   const expense = analytics?.monthlyExpense ?? 0;
   const income = analytics?.monthlyIncome ?? 0;
@@ -47,7 +51,13 @@ export function HomeView({
         <p className="mt-2 text-sm text-muted">Movimientos registrados en {period}. Las transferencias propias no cuentan como gastos.</p>
       </div>
 
-      <section className="surface overflow-hidden" aria-label="Resumen financiero mensual">
+      <section
+        className={`surface overflow-hidden${animateIntro && !loading ? ' summary-intro' : ''}`}
+        aria-label="Resumen financiero mensual"
+        onAnimationEnd={(event) => {
+          if (event.target === event.currentTarget) onIntroComplete();
+        }}
+      >
         <div className="grid lg:grid-cols-[1.15fr_1fr]">
           <div className="border-b border-line p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
             <p className="eyebrow">Gastos de {period}</p>

@@ -41,6 +41,7 @@ export function App() {
   const [activeView, setActiveView] = useState<NavView>('inicio');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
 
   if (loadingAuth) {
     return (
@@ -128,6 +129,8 @@ export function App() {
               onSelectTransaction={setSelectedTransaction}
               selectedYear={selectedPeriod.year}
               selectedMonth={selectedPeriod.month}
+              animateIntro={introCompletedFor !== user.id}
+              onIntroComplete={() => setIntroCompletedFor(user.id)}
             />
           )}
           {activeView === 'mi-dinero' && (
