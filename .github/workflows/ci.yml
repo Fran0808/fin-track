@@ -54,10 +54,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
           cache-dependency-path: ui/package-lock.json
 
@@ -66,28 +66,11 @@ jobs:
           cd ui
           npm ci
 
+      - name: Test Frontend Authentication
+        working-directory: ui
+        run: npm test
+
       - name: Build Frontend Application
         run: |
           cd ui
           npm run build
-
-  # Note: android-ci is paused as per AGENTS.md (Section 2.2).
-  # To reactivate when mobile development resumes, uncomment this block:
-  # android-ci:
-  #   name: Android App (Kotlin / Gradle)
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout source code
-  #       uses: actions/checkout@v4
-  #     - name: Set up JDK 21
-  #       uses: actions/setup-java@v4
-  #       with:
-  #         java-version: '21'
-  #         distribution: 'temurin'
-  #         cache: 'gradle'
-  #     - name: Make Gradlew executable
-  #       run: chmod +x android/gradlew
-  #     - name: Run Android Unit Tests and Assemble Debug APK
-  #       run: |
-  #         cd android
-  #         ./gradlew testDebugUnitTest assembleDebug --no-daemon
