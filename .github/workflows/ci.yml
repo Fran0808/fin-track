@@ -17,6 +17,26 @@ on:
       - '.gitignore'
 
 jobs:
+  docker-ci:
+    name: Docker Backend Image
+    runs-on: ubuntu-latest
+    env:
+      DB_PASSWORD: ci-only-unused-password
+      JWT_SECRET: ci-only-unused-signing-key-at-least-32-bytes
+      GOOGLE_CLIENT_ID: ci-placeholder
+      GOOGLE_CLIENT_SECRET: ci-placeholder
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose --profile tools config --quiet
+
+      - name: Build backend image
+        run: docker compose build api
+
   backend-ci:
     name: Backend API (Java 21 / Maven)
     runs-on: ubuntu-latest
