@@ -40,7 +40,7 @@ export function TransactionsView({
     const url = URL.createObjectURL(new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `walletpulse_movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `fintrack_movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();

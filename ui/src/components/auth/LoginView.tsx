@@ -20,7 +20,7 @@ export function LoginView() {
     <div className="flex min-h-screen flex-col bg-canvas text-ink">
       <header className="mx-auto flex w-full max-w-7xl items-center px-6 py-7 sm:px-10">
         <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white" aria-hidden="true">W</span>
-        <span className="font-display text-lg font-bold tracking-tight">WalletPulse</span>
+        <span className="font-display text-lg font-bold tracking-tight">FinTrack</span>
       </header>
 
       <main className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-12 px-6 py-12 sm:px-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-20">
@@ -41,7 +41,7 @@ export function LoginView() {
         </div>
 
         <section className="surface w-full max-w-md p-7 sm:p-9 lg:justify-self-end" aria-labelledby="login-heading">
-          <p className="eyebrow">Acceso a WalletPulse</p>
+          <p className="eyebrow">Acceso a FinTrack</p>
           <h2 id="login-heading" className="font-display mt-3 text-2xl font-semibold">Entra a tu panel</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">Usa tu cuenta de Google para acceder a tus movimientos y conectar Gmail.</p>
 
@@ -60,7 +60,7 @@ export function LoginView() {
         </section>
       </main>
 
-      <footer className="mx-auto w-full max-w-7xl border-t border-line px-6 py-5 text-xs text-muted sm:px-10">WalletPulse · Finanzas basadas en movimientos</footer>
+      <footer className="mx-auto w-full max-w-7xl border-t border-line px-6 py-5 text-xs text-muted sm:px-10">FinTrack · Finanzas basadas en movimientos</footer>
     </div>
   );
 }

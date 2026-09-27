@@ -1,12 +1,12 @@
 param (
-    [string]$OutputPath = "$([Environment]::GetFolderPath('Desktop'))\WalletPulse.apk",
+    [string]$OutputPath = "$([Environment]::GetFolderPath('Desktop'))\FinTrack.apk",
     [switch]$Install = $false
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " WalletPulse Android APK Build Tool" -ForegroundColor Cyan
+Write-Host " FinTrack Android APK Build Tool" -ForegroundColor Cyan
 Write-Host " Target Output: $OutputPath" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 

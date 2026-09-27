@@ -5,7 +5,7 @@ param (
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " WalletPulse Full Monorepo Verification" -ForegroundColor Cyan
+Write-Host " FinTrack Full Monorepo Verification" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

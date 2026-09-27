@@ -95,7 +95,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
               <div>
-                <p className="eyebrow">WalletPulse</p>
+                <p className="eyebrow">FinTrack</p>
                 <p className="font-display text-lg font-semibold leading-tight">{VIEW_LABELS[activeView]}</p>
               </div>
             </div>

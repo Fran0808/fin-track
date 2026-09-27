@@ -4,7 +4,7 @@ param (
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " WalletPulse REST API Smoke Tests" -ForegroundColor Cyan
+Write-Host " FinTrack REST API Smoke Tests" -ForegroundColor Cyan
 Write-Host " Target: $BaseUrl" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 

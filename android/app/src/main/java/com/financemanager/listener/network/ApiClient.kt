@@ -1,7 +1,7 @@
 package com.financemanager.listener.network
 
 import com.financemanager.listener.BuildConfig
-import com.financemanager.listener.WalletPulseApplication
+import com.financemanager.listener.FinTrackApplication
 import com.financemanager.listener.data.PairingPreferences
 import okhttp3.OkHttpClient
 import retrofit2.Response
@@ -33,7 +33,7 @@ object ApiClient {
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                 try {
-                    val app = WalletPulseApplication.instance
+                    val app = FinTrackApplication.instance
                     val token = PairingPreferences.getPairingToken(app)
                     if (!token.isNullOrBlank()) {
                         requestBuilder.addHeader("X-Device-Token", token)
@@ -48,7 +48,7 @@ object ApiClient {
 
     private fun resolveBaseUrl(): String {
         return try {
-            val app = WalletPulseApplication.instance
+            val app = FinTrackApplication.instance
             PairingPreferences.getServerUrl(app)
         } catch (e: Exception) {
             val defaultUrl = BuildConfig.BASE_URL

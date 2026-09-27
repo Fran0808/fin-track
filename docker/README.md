@@ -1,4 +1,4 @@
-# Local Docker environment
+# FinTrack local Docker environment
 
 The root `docker-compose.yml` is the only Compose entry point. It runs
 PostgreSQL 17 and the Java 21 API. Adminer is optional. React runs locally
@@ -6,6 +6,17 @@ with Vite; Android runs on a device or emulator.
 
 This configuration is for local development. Public deployment requires
 HTTPS, public OAuth URLs, and separate frontend hosting configuration.
+
+## Branding and compatibility
+
+FinTrack is the product name. Existing Docker container and volume identifiers
+are retained for compatibility. Android also retains its application ID,
+`wallet_pulse_db` database, and `wallet_pulse_pairing_prefs` preferences. Device
+tokens keep the `wp_dev_` prefix. These internal names do not affect the displayed
+brand and must not be replaced without planning a migration.
+
+The Google OAuth consent screen name is managed separately in Google Cloud.
+Changing the displayed brand does not require rotating OAuth credentials.
 
 ## Setup
 

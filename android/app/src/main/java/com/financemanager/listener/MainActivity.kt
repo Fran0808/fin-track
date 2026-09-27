@@ -30,7 +30,7 @@ import com.financemanager.listener.data.LocalTransactionEntity
 import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.network.ApiClient
 import com.financemanager.listener.service.YapeNotificationListenerService
-import com.financemanager.listener.ui.theme.ListenServiceTheme
+import com.financemanager.listener.ui.theme.FinTrackTheme
 import com.financemanager.listener.worker.TransactionSyncWorker
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            ListenServiceTheme {
+            FinTrackTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     DashboardScreen(modifier = Modifier.padding(innerPadding))
                 }
@@ -90,7 +90,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     ) {
         // App Header
         Text(
-            text = "Wallet Pulse",
+            text = "FinTrack",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
@@ -303,7 +303,7 @@ fun PairingDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Abre WalletPulse en tu navegador web y toca 'Vincular Celular' para obtener tu código QR.",
+                    text = "Abre FinTrack en tu navegador web y toca 'Vincular Celular' para obtener tu código QR.",
                     fontSize = 13.sp,
                     color = Color.DarkGray
                 )

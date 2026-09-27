@@ -2,14 +2,14 @@ package com.financemanager.listener
 
 import android.app.Application
 
-class WalletPulseApplication : Application() {
+class FinTrackApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
     }
 
     companion object {
-        lateinit var instance: WalletPulseApplication
+        lateinit var instance: FinTrackApplication
             private set
     }
 }

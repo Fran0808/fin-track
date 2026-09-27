@@ -31,7 +31,7 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white" aria-hidden="true">W</span>
           <div>
-            <p className="font-display text-lg font-bold leading-tight tracking-tight text-ink">WalletPulse</p>
+            <p className="font-display text-lg font-bold leading-tight tracking-tight text-ink">FinTrack</p>
             <p className="text-xs text-muted">Tu dinero en movimiento</p>
           </div>
         </div>

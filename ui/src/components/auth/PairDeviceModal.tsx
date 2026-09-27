@@ -169,7 +169,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
                   Pasos de vinculación
                 </h4>
                 <ol className="text-xs text-slate-600 space-y-1.5 list-decimal list-inside font-medium">
-                  <li>Abre la aplicación <strong>WalletPulse</strong> en tu teléfono Android.</li>
+                  <li>Abre la aplicación <strong>FinTrack</strong> en tu teléfono Android.</li>
                   <li>Toca el botón <strong>"Vincular Cuenta"</strong> en la pantalla principal.</li>
                   <li>Escanea este código QR con la cámara de la app (o ingresa el token manual).</li>
                 </ol>
