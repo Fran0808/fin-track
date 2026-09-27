@@ -29,10 +29,14 @@ export function formatRelativeDate(isoString: string): string {
   try {
     const date = new Date(isoString);
     const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (Number.isNaN(date.getTime())) return isoString;
+    // Compare local calendar dates without daylight-saving or time-of-day offsets.
+    const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const transactionDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = (today - transactionDay) / (1000 * 60 * 60 * 24);
     if (diffDays === 0) return 'Hoy';
     if (diffDays === 1) return 'Ayer';
-    if (diffDays < 7) return `Hace ${diffDays} días`;
+    if (diffDays > 1 && diffDays < 7) return `Hace ${diffDays} días`;
     return formatDate(isoString);
   } catch {
     return isoString;
