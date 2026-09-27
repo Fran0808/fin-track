@@ -108,7 +108,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
-                Vincular celular
+                Vinculación móvil
               </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
               <PeriodSelector
