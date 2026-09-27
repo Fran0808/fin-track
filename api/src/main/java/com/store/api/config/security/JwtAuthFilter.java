@@ -26,6 +26,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String DEVICE_TOKEN_HEADER = "X-Device-Token";
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -42,34 +43,43 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             boolean publicAuthEndpoint = "GET".equals(request.getMethod())
                     && ("/api/v1/auth/google/url".equals(path)
                     || "/api/v1/auth/google/callback".equals(path));
-            if (publicAuthEndpoint || CorsUtils.isPreFlightRequest(request)) {
+            boolean isVerifyEndpoint = "POST".equals(request.getMethod())
+                    && "/api/v1/user/pairing-info/verify".equals(path);
+
+            if (publicAuthEndpoint || isVerifyEndpoint || CorsUtils.isPreFlightRequest(request)) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String authHeader = request.getHeader(AUTH_HEADER);
             Optional<User> user = Optional.empty();
-            if (authHeader != null && authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
-                String token = authHeader.substring(BEARER_PREFIX.length()).trim();
-                if (!token.isEmpty()) {
-                    user = jwtService.extractUserId(token).flatMap(userRepository::findById);
+
+            // 1. Check for Mobile Device Pairing Token header
+            String deviceToken = request.getHeader(DEVICE_TOKEN_HEADER);
+            if (deviceToken != null && !deviceToken.isBlank()) {
+                user = userRepository.findByDevicePairingToken(deviceToken.trim());
+                if (user.isEmpty()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\":\"Invalid or revoked device pairing token\"}");
+                    return;
                 }
             }
-            boolean isMobileSyncEndpoint = "POST".equals(request.getMethod())
-                    && path.startsWith("/api/v1/transactions/sync");
+
+            // 2. Check for Web JWT Bearer Token if not authenticated via device token
+            if (user.isEmpty()) {
+                String authHeader = request.getHeader(AUTH_HEADER);
+                if (authHeader != null && authHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+                    String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+                    if (!token.isEmpty()) {
+                        user = jwtService.extractUserId(token).flatMap(userRepository::findById);
+                    }
+                }
+            }
+
             boolean isAppUpdateEndpoint = "GET".equals(request.getMethod())
                     && path.startsWith("/api/v1/app/");
 
             if (user.isEmpty()) {
-                if (isMobileSyncEndpoint) {
-                    User defaultUser = userRepository.findById(1L)
-                            .orElseGet(() -> userRepository.findAll().stream().findFirst().orElse(null));
-                    if (defaultUser != null) {
-                        UserContext.setCurrentUser(defaultUser);
-                    }
-                    filterChain.doFilter(request, response);
-                    return;
-                }
                 if (isAppUpdateEndpoint) {
                     filterChain.doFilter(request, response);
                     return;

@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users", indexes = {
-        @Index(name = "idx_user_email", columnList = "email", unique = true)
+        @Index(name = "idx_user_email", columnList = "email", unique = true),
+        @Index(name = "idx_user_pairing_token", columnList = "device_pairing_token", unique = true)
 })
 @Getter
 @Setter
@@ -32,6 +33,9 @@ public class User {
     @Column(name = "google_sub_id", length = 100)
     private String googleSubId;
 
+    @Column(name = "device_pairing_token", unique = true, length = 64)
+    private String devicePairingToken;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -42,5 +46,13 @@ public class User {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.lastLoginAt = LocalDateTime.now();
+        if (this.devicePairingToken == null || this.devicePairingToken.isBlank()) {
+            this.devicePairingToken = generateNewDevicePairingToken();
+        }
+    }
+
+    public static String generateNewDevicePairingToken() {
+        return "wp_dev_" + java.util.UUID.randomUUID().toString().replace("-", "")
+                + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 }

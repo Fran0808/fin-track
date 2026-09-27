@@ -129,6 +129,39 @@ class JwtAuthFilterTest {
         assertEquals("http://localhost:5173", response.getHeader("Access-Control-Allow-Origin"));
     }
 
+    @Test
+    void authenticatesWithValidDevicePairingToken() throws Exception {
+        when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/transactions/sync");
+        request.addHeader("X-Device-Token", "wp_dev_valid_token_123");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean();
+
+        filter.doFilter(request, response, (req, res) -> {
+            called.set(true);
+            assertSame(user, UserContext.requireCurrentUser());
+        });
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
+        assertNull(UserContext.getCurrentUser());
+        verify(users).findByDevicePairingToken("wp_dev_valid_token_123");
+    }
+
+    @Test
+    void rejectsInvalidDevicePairingToken() throws Exception {
+        when(users.findByDevicePairingToken("wp_dev_invalid")).thenReturn(Optional.empty());
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/transactions/sync");
+        request.addHeader("X-Device-Token", "wp_dev_invalid");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (req, res) -> fail("Invalid device token reached application"));
+
+        assertEquals(401, response.getStatus());
+        assertTrue(response.getContentAsString().contains("Invalid or revoked device pairing token"));
+        assertNull(UserContext.getCurrentUser());
+    }
+
     private void assertRejected(String authorization) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/transactions");
         request.addHeader("Authorization", authorization);
