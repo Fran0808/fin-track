@@ -52,6 +52,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             Optional<User> user = Optional.empty();
+            boolean isAppUpdateEndpoint = "GET".equals(request.getMethod())
+                    && path.startsWith("/api/v1/app/");
 
             // 1. Check for Mobile Device Pairing Token header
             String deviceToken = request.getHeader(DEVICE_TOKEN_HEADER);
@@ -61,6 +63,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"message\":\"Invalid or revoked device pairing token\"}");
+                    return;
+                }
+                boolean isTransactionSync = "POST".equals(request.getMethod())
+                        && ("/api/v1/transactions/sync".equals(path)
+                        || "/api/v1/transactions/sync/batch".equals(path));
+                if (!isTransactionSync && !isAppUpdateEndpoint) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"message\":\"Device credentials cannot access this endpoint\"}");
                     return;
                 }
             }
@@ -75,9 +86,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     }
                 }
             }
-
-            boolean isAppUpdateEndpoint = "GET".equals(request.getMethod())
-                    && path.startsWith("/api/v1/app/");
 
             if (user.isEmpty()) {
                 if (isAppUpdateEndpoint) {

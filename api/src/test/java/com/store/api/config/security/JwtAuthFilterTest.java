@@ -129,10 +129,11 @@ class JwtAuthFilterTest {
         assertEquals("http://localhost:5173", response.getHeader("Access-Control-Allow-Origin"));
     }
 
-    @Test
-    void authenticatesWithValidDevicePairingToken() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/v1/transactions/sync", "/api/v1/transactions/sync/batch"})
+    void authenticatesWithValidDevicePairingToken(String path) throws Exception {
         when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/transactions/sync");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
         request.addHeader("X-Device-Token", "wp_dev_valid_token_123");
         MockHttpServletResponse response = new MockHttpServletResponse();
         AtomicBoolean called = new AtomicBoolean();
@@ -159,6 +160,69 @@ class JwtAuthFilterTest {
 
         assertEquals(401, response.getStatus());
         assertTrue(response.getContentAsString().contains("Invalid or revoked device pairing token"));
+        assertNull(UserContext.getCurrentUser());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
+            "POST,/api/v1/auth/google/disconnect", "POST,/api/v1/emails/sync",
+            "GET,/api/v1/user/pairing-info", "POST,/api/v1/user/pairing-info/regenerate",
+            "GET,/api/v1/transactions/sync", "GET,/api/v1/transactions/sync/batch",
+            "POST,/api/v1/transactions/sync/extra", "POST,/api/v1/app/update"
+    })
+    void rejectsDeviceCredentialsOutsideAllowedEndpoints(String method, String path) throws Exception {
+        when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
+        MockHttpServletRequest request = new MockHttpServletRequest(method, path);
+        request.addHeader("X-Device-Token", "wp_dev_valid_token_123");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response,
+                (req, res) -> fail("Device accessed a forbidden endpoint"));
+
+        assertEquals(403, response.getStatus());
+        assertEquals("application/json", response.getContentType());
+        assertNull(UserContext.getCurrentUser());
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
+            "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/pairing-info",
+            "POST,/api/v1/user/pairing-info/regenerate"
+    })
+    void permitsWebCredentialsOnDeviceRestrictedEndpoints(String method, String path) throws Exception {
+        when(users.findById(42L)).thenReturn(Optional.of(user));
+        MockHttpServletRequest request = new MockHttpServletRequest(method, path);
+        request.addHeader("Authorization", "Bearer " + jwt.generateToken(user));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean();
+
+        filter.doFilter(request, response, (req, res) -> {
+            called.set(true);
+            assertSame(user, UserContext.requireCurrentUser());
+        });
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
+        assertNull(UserContext.getCurrentUser());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void permitsPublicAppUpdatesWithOrWithoutDeviceCredentials(boolean withDeviceToken) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/app/update");
+        if (withDeviceToken) {
+            when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
+            request.addHeader("X-Device-Token", "wp_dev_valid_token_123");
+        }
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean called = new AtomicBoolean();
+
+        filter.doFilter(request, response, (req, res) -> called.set(true));
+
+        assertTrue(called.get());
+        assertEquals(200, response.getStatus());
         assertNull(UserContext.getCurrentUser());
     }
 
