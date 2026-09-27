@@ -4,10 +4,11 @@ import type { NavView } from './components/layout';
 import { HomeView, MyMoneyView, TransactionsView, PlaceholderView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
+import { PairDeviceModal } from './components/auth/PairDeviceModal';
 import { useAuth } from './contexts';
 import { useFinance } from './hooks';
 import type { Transaction, UserProfile } from './types';
-import { LogOut, Menu, X, Loader2 } from 'lucide-react';
+import { LogOut, Menu, X, Loader2, Smartphone } from 'lucide-react';
 import { SyncStatus } from './components/layout/SyncStatus';
 
 const VIEW_LABELS: Record<NavView, string> = {
@@ -57,6 +58,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const [activeView, setActiveView] = useState<NavView>('inicio');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
 
   return (
@@ -99,6 +101,15 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
             </div>
 
             <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+              <button
+                type="button"
+                onClick={() => setPairingOpen(true)}
+                aria-haspopup="dialog"
+                className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
+                Vincular celular
+              </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
               <PeriodSelector
                 year={selectedPeriod.year}
@@ -164,6 +175,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
       </div>
 
       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
+      <PairDeviceModal isOpen={pairingOpen} onClose={() => setPairingOpen(false)} />
     </div>
   );
 }

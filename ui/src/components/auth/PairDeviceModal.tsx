@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useId } from 'react';
+import React, { useEffect, useState, useId, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Smartphone, Copy, Check, RefreshCw, X, AlertTriangle, Globe } from 'lucide-react';
 import { api } from '../../services';
@@ -17,6 +17,8 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
   const [copiedToken, setCopiedToken] = useState<boolean>(false);
   const [regenerating, setRegenerating] = useState<boolean>(false);
   const titleId = useId();
+  const serverUrlId = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,14 +47,11 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
   }, [isOpen]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen && !dialog.open) dialog.showModal();
+    if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -94,11 +93,12 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
     : '';
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      onClose={onClose}
+      onCancel={onClose}
       aria-labelledby={titleId}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-transparent p-0 text-ink backdrop:bg-ink/40"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -124,6 +124,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
             onClick={onClose}
             className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
             title="Cerrar modal"
+            aria-label="Cerrar vinculación"
           >
             <X className="w-5 h-5" />
           </button>
@@ -134,10 +135,10 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
               <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-medium">Generando credenciales seguras...</span>
+              <span className="text-xs font-medium">Cargando código de vinculación...</span>
             </div>
           ) : error ? (
-            <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+            <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -176,13 +177,14 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
 
               {/* Server URL Input (Editable in case WiFi IP changed) */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <label htmlFor={serverUrlId} className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-slate-500" />
                   <span>Dirección del Servidor (IP local / Host)</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <input
-                    type="text"
+                    id={serverUrlId}
+                    type="url"
                     value={serverUrl}
                     onChange={(e) => setServerUrl(e.target.value)}
                     placeholder="http://192.168.1.5:8080"
@@ -190,7 +192,8 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  El celular y tu computadora deben estar conectados a la misma red WiFi.
+                  Si usas una IP local, conecta el celular y la computadora a la misma red WiFi.
+                  Usa la dirección del backend accesible desde el celular; localhost apunta al propio teléfono.
                 </p>
               </div>
 
@@ -251,6 +254,6 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
