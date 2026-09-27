@@ -8,6 +8,7 @@ import type {
   GoogleAuthStatus,
   UserProfile,
   FlowType,
+  DevicePairingInfo,
 } from '../types';
 
 const BASE_URL = '/api/v1';
@@ -132,5 +133,17 @@ export const api = {
     if (!response.ok) {
       throw new Error(`Error al desvincular Google: ${response.statusText}`);
     }
+  },
+
+  async getPairingInfo(): Promise<DevicePairingInfo> {
+    const response = await fetchWithAuth(`${BASE_URL}/user/pairing-info`);
+    return handleResponse<DevicePairingInfo>(response);
+  },
+
+  async regeneratePairingToken(): Promise<DevicePairingInfo> {
+    const response = await fetchWithAuth(`${BASE_URL}/user/pairing-info/regenerate`, {
+      method: 'POST',
+    });
+    return handleResponse<DevicePairingInfo>(response);
   },
 };

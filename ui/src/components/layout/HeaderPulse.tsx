@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { LogOut, AlertCircle, CheckCircle2, Smartphone } from 'lucide-react';
 import { api } from '../../services';
 import type { GoogleAuthStatus } from '../../types';
+import { PairDeviceModal } from '../auth/PairDeviceModal';
 
 interface HeaderPulseProps {
   error?: string | null;
@@ -12,6 +13,7 @@ export const HeaderPulse: React.FC<HeaderPulseProps> = ({ error }) => {
   const [isConnectingGoogle, setIsConnectingGoogle] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [isPairModalOpen, setIsPairModalOpen] = useState(false);
 
   useEffect(() => {
     // Check URL parameters for OAuth redirect notifications
@@ -89,8 +91,19 @@ export const HeaderPulse: React.FC<HeaderPulseProps> = ({ error }) => {
             </div>
           </div>
 
-          {/* Action Bar / Google Status (One-time connection) */}
+          {/* Action Bar / Google Status & Mobile Pairing */}
           <div className="flex items-center gap-2.5">
+            {/* Mobile App Pairing Button */}
+            <button
+              type="button"
+              onClick={() => setIsPairModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-2xs transition-all active:scale-[0.98]"
+              title="Vincular aplicación móvil Android"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+              <span className="hidden sm:inline">Vincular Celular</span>
+            </button>
+
             {googleAuth?.connected ? (
               <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/90 rounded-xl px-3 py-2 text-xs text-slate-700 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs" />
@@ -151,6 +164,12 @@ export const HeaderPulse: React.FC<HeaderPulseProps> = ({ error }) => {
           </div>
         )}
       </div>
+
+      {/* Mobile Device QR Pairing Modal */}
+      <PairDeviceModal
+        isOpen={isPairModalOpen}
+        onClose={() => setIsPairModalOpen(false)}
+      />
     </header>
   );
 };

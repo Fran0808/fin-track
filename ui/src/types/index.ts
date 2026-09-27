@@ -113,3 +113,12 @@ export interface UserProfile {
   lastLoginAt: string;
 }
 
+export interface DevicePairingInfo {
+  userId: number;
+  userEmail: string;
+  pairingToken: string;
+  serverUrl: string;
+  qrPayload: string;
+}
+
+
