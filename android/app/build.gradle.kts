@@ -72,5 +72,5 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.gson)
-
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
 }
