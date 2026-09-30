@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, PlaceholderView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -47,6 +47,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     syncStatusUnavailable,
     isSyncing,
     triggerEmailSync,
+    refreshSyncStatus,
     error,
     filters,
     selectedPeriod,
@@ -111,11 +112,11 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 Vinculación móvil
               </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
-              <PeriodSelector
+              {activeView !== 'configuracion' && <PeriodSelector
                 year={selectedPeriod.year}
                 month={selectedPeriod.month}
                 onChange={(year, month) => setSelectedPeriod({ year, month })}
-              />
+              />}
               <div className="hidden h-8 w-px bg-line sm:block" />
               <div className="flex items-center gap-2.5">
                 {user.pictureUrl ? (
@@ -168,7 +169,17 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
           )}
-          {['tarjetas', 'presupuestos', 'configuracion'].includes(activeView) && (
+          {activeView === 'configuracion' && (
+            <SettingsView
+              googleStatus={syncStatus}
+              statusUnavailable={syncStatusUnavailable}
+              syncing={isSyncing}
+              onSync={triggerEmailSync}
+              onStatusRefresh={refreshSyncStatus}
+              onOpenPairing={() => setPairingOpen(true)}
+            />
+          )}
+          {['tarjetas', 'presupuestos'].includes(activeView) && (
             <PlaceholderView view={activeView} onNavigateHome={() => setActiveView('inicio')} />
           )}
         </main>

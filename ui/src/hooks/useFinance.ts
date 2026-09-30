@@ -157,6 +157,7 @@ export function useFinance(userId: number) {
     handlePageChange,
     handleFilterChange,
     triggerEmailSync,
+    refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {
       await Promise.all([loadSummary(), loadTransactions()]);
     },

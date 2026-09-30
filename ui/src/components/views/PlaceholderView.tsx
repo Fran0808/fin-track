@@ -15,10 +15,6 @@ const VIEW_COPY: Partial<Record<NavView, { title: string; description: string }>
     title: 'Presupuestos',
     description: 'Aquí podrás planificar límites y comparar tus gastos con ellos.',
   },
-  configuracion: {
-    title: 'Configuración',
-    description: 'Aquí encontrarás las preferencias de tu cuenta y sincronización.',
-  },
 };
 
 export function PlaceholderView({ view, onNavigateHome }: PlaceholderViewProps) {

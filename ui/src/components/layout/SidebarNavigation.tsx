@@ -21,7 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
   { id: 'tarjetas', label: 'Tarjetas y cuentas', icon: CreditCard, upcoming: true },
   { id: 'presupuestos', label: 'Presupuestos', icon: Target, upcoming: true },
-  { id: 'configuracion', label: 'Configuración', icon: Settings2, upcoming: true },
+  { id: 'configuracion', label: 'Configuración', icon: Settings2 },
 ];
 
 export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigationProps) {
