@@ -21,6 +21,97 @@ class BcpEmailParserTest {
     }
 
     @Test
+    void shouldIgnoreSurveyRewards() {
+        String body = "Te invitamos a participar de una encuesta. Si completas la encuesta "
+                + "participarás por una Gift Card por un valor de S/ 500 y otras por S/ 100.";
+        assertNull(parser.parse("Ayúdanos a saber lo que necesitas", body,
+                LocalDateTime.of(2026, 10, 1, 12, 39, 26)));
+    }
+
+    @Test
+    void shouldNotInterpretAnAmountOrBankNameAsAnOperation() {
+        assertNull(parser.parse("Beneficios BCP", "Monto: S/ 500.00. Participa por un premio.",
+                LocalDateTime.now()));
+        assertNull(parser.parse("Información sobre abonos", "Abono promocional de S/ 500.00",
+                LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldUseTheOperationAmountInsteadOfAnUnrelatedReward() {
+        ParsedEmailTransaction tx = parser.parse("Aviso de operación: Consumo con Tarjeta de Crédito",
+                "Participa por una Gift Card de S/ 500. Realizaste un consumo de S/ 25.50. "
+                        + "Monto: S/ 25.50 Establecimiento: TIENDA EJEMPLO Nro. de operación: 98765432",
+                LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("25.50"), tx.getAmount());
+    }
+
+    @Test
+    void shouldRejectConflictingOperationAmountsOrCurrencies() {
+        String subject = "Constancia de pago BCP";
+        assertNull(parser.parse(subject, "Monto: S/ 25.00 Importe: S/ 50.00", LocalDateTime.now()));
+        assertNull(parser.parse(subject, "Monto: S/ 25.00 Importe: US$ 25.00", LocalDateTime.now()));
+        assertNull(parser.parse(subject, "Realizaste una transferencia por S/ 25.00 Monto: S/ 50.00",
+                LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldRequireAnOperationAmountWithCurrency() {
+        String subject = "Constancia de pago BCP";
+        assertNull(parser.parse(subject, "Monto: 500", LocalDateTime.now()));
+        assertNull(parser.parse(subject, "Beneficios: Gift Card de S/ 500", LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldPreserveInternalTransfers() {
+        ParsedEmailTransaction tx = parser.parse("Constancia de Transferencia Entre mis Cuentas BCP",
+                "Realizaste una transferencia entre mis cuentas. Monto: S/ 500.00",
+                LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(FlowType.INTERNAL_TRANSFER, tx.getFlowType());
+    }
+
+    @Test
+    void shouldPreserveIncomingYapeThroughBcp() {
+        ParsedEmailTransaction tx = parser.parse("Recepción de yapeo BCP",
+                "Recibiste un yapeo de S/ 45.00 de Maria Perez.", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(FlowType.INCOME, tx.getFlowType());
+        assertEquals(new BigDecimal("45.00"), tx.getAmount());
+        assertEquals("YAPE", tx.getChannel());
+    }
+
+    @Test
+    void shouldRejectConflictingFlowEvidence() {
+        assertNull(parser.parse("Constancia de pago BCP",
+                "Recibiste un yapeo de S/ 45.00 Monto: S/ 45.00", LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldNotAssumeAnUnspecifiedTransferDirectionIsAnExpense() {
+        assertNull(parser.parse("Constancia de transferencia BCP", "Monto: S/ 500.00",
+                LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldRecognizeAnIncomingBankTransfer() {
+        ParsedEmailTransaction tx = parser.parse("Constancia de transferencia BCP",
+                "Recibiste una transferencia por S/ 500.00. Monto: S/ 500.00", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(FlowType.INCOME, tx.getFlowType());
+        assertEquals(new BigDecimal("500.00"), tx.getAmount());
+    }
+
+    @Test
+    void shouldTreatRepeatedEquivalentAmountsAsOneOperation() {
+        ParsedEmailTransaction tx = parser.parse("Constancia de transferencia BCP",
+                "Realizaste una transferencia por S/ 25.00 Monto: S/ 25.0 Importe: S/ 25",
+                LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("25.00"), tx.getAmount());
+    }
+
+    @Test
     void shouldParseCreditCardExpenseSuccessfully() {
         String subject = "Aviso de operación: Consumo con Tarjeta de Crédito";
         String htmlBody = """

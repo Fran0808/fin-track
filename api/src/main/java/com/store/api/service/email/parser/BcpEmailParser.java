@@ -12,6 +12,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,11 +24,23 @@ import org.springframework.core.annotation.Order;
 @Order(2)
 public class BcpEmailParser implements BankEmailParser {
 
-    private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "(?:(?:importe|monto|total)\\s*(?::|es\\s+de|por)?\\s*(S/\\.?|US\\$|\\$|USD|PEN)?\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))|" +
-            "(?:(S/\\.?|US\\$|\\$|USD|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))",
-            Pattern.CASE_INSENSITIVE
-    );
+    private static final Set<String> ALLOWED_DOMAINS = Set.of("notificacionesbcp.com.pe", "bcp.com.pe");
+    private static final int TEXT_FLAGS = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
+    private static final String MONEY = "(S/\\.?|US\\$|\\$|USD|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?)";
+    private static final Pattern LABELED_AMOUNT_PATTERN = Pattern.compile(
+            "\\b(?:importe|monto(?:\\s+(?:total(?:\\s+del\\s+consumo)?|pagado|transferido|recibido|de\\s+la\\s+operaci[oó]n))?|total\\s+del\\s+consumo)\\s*(?::|es\\s+de|por)?\\s*" + MONEY,
+            TEXT_FLAGS);
+    private static final Pattern INLINE_AMOUNT_PATTERN = Pattern.compile(
+            "(?:realizaste\\s+(?:un|una)\\s+(?:consumo|pago|transferencia)(?:\\s+(?:de|por|a\\s+tu\\s+tarjeta\\s+de))?|recibiste\\s+(?:(?:un\\s+)?yapeo|(?:una\\s+)?transferencia)(?:\\s+(?:de|por))?|te\\s+(?:envi[oó]|yape[oó])\\s+[^.!?]{1,100}?)\\s*" + MONEY,
+            TEXT_FLAGS);
+    private static final Pattern EXPENSE_CONFIRMATION_PATTERN = Pattern.compile(
+            "(?:realizaste\\s+(?:un|una)\\s+(?:consumo|pago|transferencia)|se\\s+ha\\s+realizado\\s+un\\s+consumo|aviso\\s+de\\s+operaci[oó]n:\\s*consumo\\s+con\\s+tarjeta|constancia\\s+de\\s+pago|constancia\\s+de\\s+transferencia\\s+(?:realizada|enviada|entre\\s+mis\\s+cuentas)|operaci[oó]n\\s+realizada:?\\s*(?:consumo|pago|transferencia))",
+            TEXT_FLAGS);
+    private static final Pattern INCOME_CONFIRMATION_PATTERN = Pattern.compile(
+            "(?:recibiste\\s+(?:un\\s+yapeo|(?:una\\s+)?transferencia)|transferencia\\s+recibida|te\\s+envi[oó]|te\\s+yape[oó]|recepci[oó]n\\s+de\\s+yapeo|abono\\s+recibido|se\\s+(?:ha\\s+)?(?:realizado|registrado)\\s+un\\s+abono|constancia\\s+de\\s+(?:recepci[oó]n|abono))",
+            TEXT_FLAGS);
+    private static final Pattern INTERNAL_TRANSFER_PATTERN = Pattern.compile(
+            "(?:entre\\s+mis\\s+cuentas|transferencia\\s+propia|transferencia\\s+entre\\s+cuentas)", TEXT_FLAGS);
 
     private static final Pattern MERCHANT_PATTERN = Pattern.compile(
             "(?:establecimiento|comercio|empresa|destino|beneficiario|a\\s+favor\\s+de):?\\s*([A-Za-z0-9À-ÿ\\s.,&'/*#_+-]+?)(?=\\s*(?:fecha|importe|monto|nro|número|numero|tarjeta|operaci[oó]n|$))",
@@ -49,12 +64,7 @@ public class BcpEmailParser implements BankEmailParser {
 
     @Override
     public boolean supports(String sender, String subject) {
-        String cleanSender = sender != null ? sender.toLowerCase() : "";
-        String cleanSubject = subject != null ? subject.toLowerCase() : "";
-
-        return cleanSender.contains("notificacionesbcp.com.pe") ||
-                cleanSender.contains("bcp") ||
-                cleanSubject.contains("bcp");
+        return BankEmailSenderPolicy.matchesDomain(sender, ALLOWED_DOMAINS);
     }
 
     @Override
@@ -71,35 +81,21 @@ public class BcpEmailParser implements BankEmailParser {
             return null;
         }
 
+        FlowType flowType = determineConfirmedFlow(combined);
+        if (flowType == null) {
+            return null;
+        }
+
         // 1. Determine Channel
         String channel = determineChannel(subject, combined);
 
         // 2. Extract Amount and Currency
-        BigDecimal amount = null;
-        String currency = "PEN";
-        Matcher amountMatcher = AMOUNT_PATTERN.matcher(combined);
-        while (amountMatcher.find()) {
-            String currencyGroup = amountMatcher.group(1) != null ? amountMatcher.group(1) : amountMatcher.group(3);
-            String numberGroup = amountMatcher.group(2) != null ? amountMatcher.group(2) : amountMatcher.group(4);
-
-            if (numberGroup != null && !numberGroup.isBlank()) {
-                try {
-                    String cleanNumber = numberGroup.replace(",", "").trim();
-                    BigDecimal candidate = new BigDecimal(cleanNumber);
-                    if (candidate.compareTo(BigDecimal.ZERO) > 0) {
-                        amount = candidate;
-                        if (currencyGroup != null && (currencyGroup.contains("$") || currencyGroup.equalsIgnoreCase("USD"))) {
-                            currency = "USD";
-                        }
-                        break;
-                    }
-                } catch (Exception ignored) {}
-            }
-        }
-
-        if (amount == null) {
+        ParsedAmount parsedAmount = extractOperationAmount(cleanText);
+        if (parsedAmount == null) {
             return null;
         }
+        BigDecimal amount = parsedAmount.amount();
+        String currency = parsedAmount.currency();
 
         String lowerCombined = combined.toLowerCase();
 
@@ -153,15 +149,6 @@ public class BcpEmailParser implements BankEmailParser {
             operationNumber = opMatcher.group(1);
         }
 
-        // 6. FlowType (Default is EXPENSE for cards/consumption, check if internal transfer or income)
-        FlowType flowType = FlowType.EXPENSE;
-
-        if (lowerCombined.contains("entre mis cuentas") || lowerCombined.contains("transferencia propia") || lowerCombined.contains("transferencia entre cuentas")) {
-            flowType = FlowType.INTERNAL_TRANSFER;
-        } else if (lowerCombined.contains("te envió") || lowerCombined.contains("te yapeó") || lowerCombined.contains("recibiste un yapeo") || lowerCombined.contains("recepción de yapeo") || lowerCombined.contains("abono")) {
-            flowType = FlowType.INCOME;
-        }
-
         LocalDateTime txDate = receivedDate != null ? receivedDate : LocalDateTime.now();
         String hash = generateHash(flowType, amount, merchant, operationNumber, txDate);
 
@@ -177,6 +164,44 @@ public class BcpEmailParser implements BankEmailParser {
                 .transactionHash(hash)
                 .rawBody(cleanText)
                 .build();
+    }
+
+    private FlowType determineConfirmedFlow(String text) {
+        boolean expense = EXPENSE_CONFIRMATION_PATTERN.matcher(text).find();
+        boolean income = INCOME_CONFIRMATION_PATTERN.matcher(text).find();
+        if (expense == income) {
+            return null;
+        }
+        if (INTERNAL_TRANSFER_PATTERN.matcher(text).find()) {
+            return FlowType.INTERNAL_TRANSFER;
+        }
+        return income ? FlowType.INCOME : FlowType.EXPENSE;
+    }
+
+    private ParsedAmount extractOperationAmount(String text) {
+        Map<String, ParsedAmount> amounts = new LinkedHashMap<>();
+        collectAmounts(LABELED_AMOUNT_PATTERN.matcher(text), amounts);
+        collectAmounts(INLINE_AMOUNT_PATTERN.matcher(text), amounts);
+        return amounts.size() == 1 ? amounts.values().iterator().next() : null;
+    }
+
+    private void collectAmounts(Matcher matcher, Map<String, ParsedAmount> amounts) {
+        while (matcher.find()) {
+            BigDecimal amount = new BigDecimal(matcher.group(2).replace(",", ""));
+            if (amount.signum() <= 0) {
+                continue;
+            }
+            String currency = matcher.group(1).contains("$") || matcher.group(1).equalsIgnoreCase("USD")
+                    ? "USD" : "PEN";
+            String key = currency + ":" + amount.stripTrailingZeros().toPlainString();
+            ParsedAmount existing = amounts.get(key);
+            if (existing == null || matcher.start(2) < existing.position()) {
+                amounts.put(key, new ParsedAmount(amount, currency, matcher.start(2)));
+            }
+        }
+    }
+
+    private record ParsedAmount(BigDecimal amount, String currency, int position) {
     }
 
     private String extractPlainText(String content) {
