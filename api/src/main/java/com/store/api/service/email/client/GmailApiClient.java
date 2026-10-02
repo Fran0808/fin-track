@@ -121,7 +121,7 @@ public class GmailApiClient {
         JsonNode payload = msgJson.path("payload");
 
         String subject = "";
-        String from = "BCP Notificaciones <notificaciones@notificacionesbcp.com.pe>";
+        String from = "";
         JsonNode headers = payload.path("headers");
         if (headers.isArray()) {
             for (JsonNode header : headers) {
