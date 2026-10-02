@@ -21,6 +21,51 @@ class YapeEmailParserTest {
     }
 
     @Test
+    void shouldIgnorePromotionalAmounts() {
+        assertNull(parser.parse("Beneficios Yape", "Participa por S/ 500.00", LocalDateTime.now()));
+        assertNull(parser.parse("Beneficios Yape", "Monto total S/ 500.00", LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldKeepValidReceiptsWithSecurityFooters() {
+        ParsedEmailTransaction tx = parser.parse("¡Tu pago en COMERCIO EJEMPLO fue exitoso!",
+                "Monto total S/ 25.00 Destino: COMERCIO EJEMPLO ID de operación: 123ABC. "
+                        + "Por tu seguridad, no compartas tus claves.", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("25.00"), tx.getAmount());
+    }
+
+    @Test
+    void shouldRejectConflictingFlowEvidence() {
+        assertNull(parser.parse("¡Tu pago en COMERCIO EJEMPLO fue exitoso!",
+                "Te yapeó Maria Perez S/ 45.00", LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldUseTheOperationAmountInsteadOfAnUnrelatedReward() {
+        ParsedEmailTransaction tx = parser.parse("¡Tu pago en COMERCIO EJEMPLO fue exitoso!",
+                "Participa por una Gift Card de S/ 500. Monto total S/ 25.00 "
+                        + "Destino: COMERCIO EJEMPLO ID de operación: 123ABC", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("25.00"), tx.getAmount());
+    }
+
+    @Test
+    void shouldRejectAmbiguousOrUnrelatedAmounts() {
+        String subject = "¡Tu pago en COMERCIO EJEMPLO fue exitoso!";
+        assertNull(parser.parse(subject, "Monto total S/ 25.00 Importe: S/ 50.00", LocalDateTime.now()));
+        assertNull(parser.parse(subject, "Participa por una Gift Card de S/ 500", LocalDateTime.now()));
+    }
+
+    @Test
+    void shouldPreserveTheFirstEquivalentAmountRepresentation() {
+        ParsedEmailTransaction tx = parser.parse("¡Te yapearon!",
+                "Te yapeó Maria Perez S/ 45.00 Monto total S/ 45", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(new BigDecimal("45.00"), tx.getAmount());
+    }
+
+    @Test
     void shouldParseMerchantPaymentEmail() {
         String subject = "¡Tu pago en COMERCIO EJEMPLO fue exitoso!";
         String body = """

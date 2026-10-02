@@ -7,6 +7,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,11 +33,21 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class YapeEmailParser implements BankEmailParser {
 
-    private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "(?:(?:monto\\s+total|monto|importe)\\s*(?::|es\\s+de|por)?\\s*(?:S/\\.?|PEN)?\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))|" +
-            "(?:(?:S/\\.?|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?))",
-            Pattern.CASE_INSENSITIVE
-    );
+    private static final Set<String> ALLOWED_DOMAINS = Set.of("yape.pe");
+    private static final Pattern EXPENSE_CONFIRMATION_PATTERN = Pattern.compile(
+            "(?:tu\\s+pago\\s+en\\s+.+?\\s+fue\\s+exitoso|yapeaste\\s+a|enviaste\\s+un\\s+yape\\s+a)",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern INCOME_CONFIRMATION_PATTERN = Pattern.compile(
+            "(?:te\\s+yapearon|te\\s+yape[oó]|recibiste\\s+un\\s+yape)",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
+    private static final String MONEY = "(?:S/\\.?|PEN)\\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\\.[0-9]{1,2})?)";
+    private static final Pattern LABELED_AMOUNT_PATTERN = Pattern.compile(
+            "\\b(?:monto\\s+total|monto|importe)\\s*(?::|es\\s+de|por)?\\s*" + MONEY,
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern INLINE_AMOUNT_PATTERN = Pattern.compile(
+            "(?:te\\s+yape[oó]|yapeaste\\s+a|enviaste\\s+un\\s+yape\\s+a|recibiste\\s+un\\s+yape)\\s+[^.!?]{0,100}?\\s*" + MONEY,
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
     private static final Pattern MERCHANT_HEADER_PATTERN = Pattern.compile(
             "(?:¡?tu\\s+pago\\s+en\\s+)(.+?)(?:\\s+fue\\s+exitoso)",
@@ -68,15 +81,7 @@ public class YapeEmailParser implements BankEmailParser {
 
     @Override
     public boolean supports(String sender, String subject) {
-        String s = (sender != null ? sender : "").toLowerCase();
-        String sub = (subject != null ? subject : "").toLowerCase();
-
-        return s.contains("yape.pe") ||
-                s.contains("notificaciones@yape.pe") ||
-                (s.contains("yape") && !s.contains("bcp.com.pe")) ||
-                sub.contains("yape") ||
-                sub.contains("¡tu pago en") ||
-                sub.contains("tu pago en");
+        return BankEmailSenderPolicy.matchesDomain(sender, ALLOWED_DOMAINS);
     }
 
     @Override
@@ -96,19 +101,20 @@ public class YapeEmailParser implements BankEmailParser {
         String lowerCombined = combined.toLowerCase();
         if (lowerCombined.contains("cambios en monto") ||
             lowerCombined.contains("actualizaste el monto") ||
-            lowerCombined.contains("seguridad") ||
             lowerCombined.contains("código de verificación") ||
             lowerCombined.contains("codigo de verificacion")) {
             log.info("Ignoring Yape non-financial configuration email: [{}]", subject);
             return null;
         }
 
-        FlowType flowType = FlowType.EXPENSE;
-        if (lowerCombined.contains("te yapearon") || lowerCombined.contains("te yapeó") || lowerCombined.contains("recibiste un yape")) {
-            flowType = FlowType.INCOME;
+        boolean expense = EXPENSE_CONFIRMATION_PATTERN.matcher(combined).find();
+        boolean income = INCOME_CONFIRMATION_PATTERN.matcher(combined).find();
+        if (expense == income) {
+            return null;
         }
+        FlowType flowType = income ? FlowType.INCOME : FlowType.EXPENSE;
 
-        BigDecimal amount = extractAmount(combined);
+        BigDecimal amount = extractAmount(cleanText);
         if (amount == null) {
             log.warn("Could not extract valid amount from Yape email: [{}]", subject);
             return null;
@@ -137,19 +143,27 @@ public class YapeEmailParser implements BankEmailParser {
     }
 
     private BigDecimal extractAmount(String text) {
-        Matcher m = AMOUNT_PATTERN.matcher(text);
-        while (m.find()) {
-            String num = m.group(1) != null ? m.group(1) : m.group(2);
-            if (num != null && !num.isBlank()) {
-                try {
-                    BigDecimal val = new BigDecimal(num.replace(",", "").trim());
-                    if (val.compareTo(BigDecimal.ZERO) > 0) {
-                        return val;
-                    }
-                } catch (Exception ignored) {}
+        Map<String, ParsedAmount> amounts = new LinkedHashMap<>();
+        collectAmounts(LABELED_AMOUNT_PATTERN.matcher(text), amounts);
+        collectAmounts(INLINE_AMOUNT_PATTERN.matcher(text), amounts);
+        return amounts.size() == 1 ? amounts.values().iterator().next().amount() : null;
+    }
+
+    private void collectAmounts(Matcher matcher, Map<String, ParsedAmount> amounts) {
+        while (matcher.find()) {
+            BigDecimal amount = new BigDecimal(matcher.group(1).replace(",", ""));
+            if (amount.signum() <= 0) {
+                continue;
+            }
+            String key = amount.stripTrailingZeros().toPlainString();
+            ParsedAmount existing = amounts.get(key);
+            if (existing == null || matcher.start(1) < existing.position()) {
+                amounts.put(key, new ParsedAmount(amount, matcher.start(1)));
             }
         }
-        return null;
+    }
+
+    private record ParsedAmount(BigDecimal amount, int position) {
     }
 
     private String extractMerchantOrContact(String combined, String cleanText, FlowType flowType) {
