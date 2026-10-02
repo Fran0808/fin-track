@@ -11,6 +11,9 @@ import com.store.api.service.auth.GoogleOAuthService;
 import com.store.api.service.email.client.GmailApiClient;
 import com.store.api.service.email.client.ImapEmailClient;
 import com.store.api.service.email.parser.BankEmailParserDispatcher;
+import com.store.api.service.email.parser.BcpEmailParser;
+import com.store.api.service.email.parser.YapeEmailParser;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import com.store.api.config.security.UserContext;
@@ -72,6 +75,33 @@ class EmailIngestionServiceTest {
                 () -> emailIngestionService.syncEmails()).getStatusCode().value());
         verifyNoInteractions(googleOAuthService, gmailApiClient, imapEmailClient,
                 parserDispatcher, transactionService, processedEmailRepository);
+    }
+
+    @Test
+    void shouldMarkTheSurveyProcessedWithoutSavingATransaction() {
+        ReflectionTestUtils.setField(emailIngestionService, "parserDispatcher",
+                new BankEmailParserDispatcher(List.of(new YapeEmailParser(), new BcpEmailParser())));
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("test-access-token"));
+        EmailMessageDto survey = EmailMessageDto.builder()
+                .messageId("survey-regression")
+                .from("notificaciones@notificacionesbcp.com.pe")
+                .subject("Ayúdanos a saber lo que necesitas")
+                .body("Te invitamos a participar de una encuesta. Participa por Gift Cards de S/ 500.")
+                .sentDate(LocalDateTime.of(2026, 10, 1, 12, 39, 26))
+                .internalDateMs(1790876366000L)
+                .build();
+        when(gmailApiClient.fetchFinancialEmails(anyString(), anyInt(), isNull(), any()))
+                .thenReturn(List.of(survey));
+
+        EmailSyncResponse response = emailIngestionService.syncEmails();
+
+        assertEquals("SUCCESS", response.getStatus());
+        assertEquals(1, response.getScannedCount());
+        assertEquals(0, response.getSavedCount());
+        verifyNoInteractions(transactionService);
+        verify(processedEmailRepository).save(argThat(message ->
+                "survey-regression".equals(message.getMessageId())));
+        verify(googleOAuthService).updateLastSyncedInternalDate(1790876366000L);
     }
 
     @Test
