@@ -1,32 +1,27 @@
-# React + TypeScript + Vite
+# FinTrack dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The dashboard displays personal cashflow, transactions and Android pairing.
+It uses React, TypeScript, Vite and Tailwind; exact versions live in
+[package.json](package.json) and its lockfile.
 
-Currently, two official plugins are available:
+## Setup and verification
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Follow the [local development guide](../docs/development.md) for prerequisites,
+backend configuration, startup commands and module checks. The development server
+runs on port 5173 and proxies `/api` to `localhost:8080` through
+[vite.config.ts](vite.config.ts). Keep the proxy and OAuth URLs aligned when changing ports.
 
-## React Compiler
+## Entry points
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Area | Source |
+| --- | --- |
+| Session lifecycle | [AuthContext](src/contexts/AuthContext.tsx) |
+| HTTP requests | [API service](src/services/api.ts) |
+| Response types | [Shared types](src/types/index.ts) |
+| Views | [View components](src/components/views) |
+| Financial formatting | [Formatters](src/utils/formatters.ts) |
+| Tests | [UI tests](tests) |
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Read [dashboard instructions](AGENTS.md) before changes. Use the
+[cashflow rules](../docs/domain/cashflow.md) for financial interpretation and
+[contracts](../docs/contracts.md) for changes involving backend responses.
