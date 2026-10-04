@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView, CategoriesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -16,6 +16,7 @@ const VIEW_LABELS: Record<NavView, string> = {
   'mi-dinero': 'Mi dinero',
   movimientos: 'Movimientos',
   tarjetas: 'Tarjetas y cuentas',
+  categorias: 'Categorías',
   presupuestos: 'Presupuestos',
   configuracion: 'Configuración',
 };
@@ -114,7 +115,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 Vinculación móvil
               </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
-              {activeView !== 'configuracion' && <PeriodSelector
+              {activeView !== 'configuracion' && activeView !== 'categorias' && <PeriodSelector
                 year={selectedPeriod.year}
                 month={selectedPeriod.month}
                 onChange={(year, month) => setSelectedPeriod({ year, month })}
@@ -170,6 +171,9 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               onSelectTransaction={setSelectedTransaction}
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
+          )}
+          {activeView === 'categorias' && (
+            <CategoriesView />
           )}
           {activeView === 'configuracion' && (
             <SettingsView

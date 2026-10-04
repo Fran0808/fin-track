@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
-import { ArrowLeftRight, ChartNoAxesCombined, CreditCard, LayoutDashboard, Settings2, Target } from 'lucide-react';
+import { ArrowLeftRight, ChartNoAxesCombined, CreditCard, LayoutDashboard, Settings2, Target, Tags } from 'lucide-react';
 
-export type NavView = 'inicio' | 'mi-dinero' | 'movimientos' | 'tarjetas' | 'presupuestos' | 'configuracion';
+export type NavView = 'inicio' | 'mi-dinero' | 'movimientos' | 'tarjetas' | 'categorias' | 'presupuestos' | 'configuracion';
 
 interface SidebarNavigationProps {
   activeView: NavView;
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'mi-dinero', label: 'Mi dinero', icon: ChartNoAxesCombined },
   { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
   { id: 'tarjetas', label: 'Tarjetas y cuentas', icon: CreditCard },
+  { id: 'categorias', label: 'Categorías', icon: Tags },
   { id: 'presupuestos', label: 'Presupuestos', icon: Target, upcoming: true },
   { id: 'configuracion', label: 'Configuración', icon: Settings2 },
 ];

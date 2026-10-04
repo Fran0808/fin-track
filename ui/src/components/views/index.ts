@@ -4,3 +4,4 @@ export * from './TransactionsView';
 export * from './PlaceholderView';
 export * from './SettingsView';
 export * from './InstrumentsView';
+export * from './CategoriesView';
