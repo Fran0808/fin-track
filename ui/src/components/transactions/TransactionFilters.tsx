@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Tag } from 'lucide-react';
 import type { FlowType } from '../../types';
-import { STANDARD_CATEGORIES } from '../../types';
+import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
 
 interface TransactionFiltersProps {
@@ -45,6 +45,7 @@ export function TransactionFilters({
 }: TransactionFiltersProps) {
   const [localSearch, setLocalSearch] = useState(search);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const { options: categoryOptions } = useCategories(true);
 
   useEffect(() => {
     setLocalSearch(search);
@@ -162,7 +163,10 @@ export function TransactionFilters({
                 className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-ink focus:border-brand focus:outline-none"
               >
                 <option value="">Todas las categorías</option>
-                {STANDARD_CATEGORIES.map((cat) => (
+                {category && !categoryOptions.some((o) => o.id === category) && (
+                  <option value={category}>{category}</option>
+                )}
+                {categoryOptions.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.label}
                   </option>

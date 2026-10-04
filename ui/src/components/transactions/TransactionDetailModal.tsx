@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, X, Plus, Tag, Loader2 } from 'lucide-react';
 import type { Transaction } from '../../types';
-import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 import { api } from '../../services/api';
+import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
 
 interface TransactionDetailModalProps {
@@ -15,6 +15,7 @@ interface TransactionDetailModalProps {
 export function TransactionDetailModal({ transaction, onClose, onUpdated }: TransactionDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
+  const { options: categoryOptions } = useCategories(true);
 
   // Classification state
   const [category, setCategory] = useState<string>('');
@@ -135,7 +136,10 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
                 className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-ink focus:border-brand focus:outline-none"
               >
                 <option value="">Sin categorizar</option>
-                {STANDARD_CATEGORIES.map((cat) => (
+                {category && !categoryOptions.some((o) => o.id === category) && (
+                  <option value={category}>{category}</option>
+                )}
+                {categoryOptions.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.label}
                   </option>
