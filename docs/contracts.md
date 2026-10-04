@@ -20,9 +20,11 @@ Paths below are relative to `/api/v1`.
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, search and direct product filters | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
+| `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
 | `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../api/src/main/java/com/store/api/controller/FinancialInstrumentController.java) |
 | `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
+| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/AnalyticsController.java) |
 | `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/EmailSyncController.java) |
 | `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/DevicePairingController.java) |
