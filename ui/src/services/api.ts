@@ -12,6 +12,8 @@ import type {
   DevicePairingInfo,
   FinancialInstrument,
   FinancialInstrumentRequest,
+  Category,
+  CategoryRequest,
 } from '../types';
 
 const BASE_URL = '/api/v1';
@@ -224,5 +226,45 @@ export const api = {
       method: 'POST',
     });
     return handleResponse<DevicePairingInfo>(response);
+  },
+
+  async getCategories(active?: boolean): Promise<Category[]> {
+    const query = active !== undefined ? `?active=${active}` : '';
+    const response = await fetchWithAuth(`${BASE_URL}/categories${query}`);
+    return handleResponse<Category[]>(response);
+  },
+
+  async createCategory(category: CategoryRequest): Promise<Category> {
+    const response = await fetchWithAuth(`${BASE_URL}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category),
+    });
+    return handleResponse<Category>(response);
+  },
+
+  async updateCategory(id: number, category: CategoryRequest): Promise<Category> {
+    const response = await fetchWithAuth(`${BASE_URL}/categories/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(category),
+    });
+    return handleResponse<Category>(response);
+  },
+
+  async toggleCategory(id: number): Promise<Category> {
+    const response = await fetchWithAuth(`${BASE_URL}/categories/${id}/toggle`, {
+      method: 'PATCH',
+    });
+    return handleResponse<Category>(response);
+  },
+
+  async deleteCategory(id: number): Promise<void> {
+    const response = await fetchWithAuth(`${BASE_URL}/categories/${id}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error(`Error al eliminar categoría: ${response.statusText}`);
+    }
   },
 };

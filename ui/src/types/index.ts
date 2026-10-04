@@ -30,6 +30,25 @@ export interface TransactionClassificationRequest {
   notes?: string | null;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  icon?: string;
+  color?: string;
+  system: boolean;
+  active: boolean;
+  parentId?: number | null;
+  subcategories?: Category[];
+}
+
+export interface CategoryRequest {
+  name: string;
+  icon?: string;
+  color?: string;
+  parentId?: number | null;
+  active?: boolean;
+}
+
 export const STANDARD_CATEGORIES = [
   { id: 'ALIMENTACION', label: 'Alimentación y bebidas' },
   { id: 'TRANSPORTE', label: 'Transporte y movilidad' },
