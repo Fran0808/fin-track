@@ -47,6 +47,15 @@ public class Transaction {
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
+    @Column(name = "category", length = 50)
+    private String category;
+
+    @Column(name = "tags", length = 255)
+    private String tags;
+
+    @Column(name = "notes", length = 500)
+    private String notes;
+
     @Column(name = "transaction_hash", nullable = false, length = 64)
     private String transactionHash;
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -54,5 +63,27 @@ public class Transaction {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+    }
+
+    public java.util.List<String> getTagsList() {
+        if (tags == null || tags.isBlank()) {
+            return java.util.Collections.emptyList();
+        }
+        return java.util.Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public void setTagsList(java.util.List<String> tagList) {
+        if (tagList == null || tagList.isEmpty()) {
+            this.tags = null;
+        } else {
+            this.tags = tagList.stream()
+                    .filter(s -> s != null && !s.isBlank())
+                    .map(s -> s.trim().replaceAll("^#+", "").toLowerCase())
+                    .distinct()
+                    .collect(java.util.stream.Collectors.joining(","));
+        }
     }
 }
