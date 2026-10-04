@@ -9,6 +9,8 @@ import type {
   UserProfile,
   FlowType,
   DevicePairingInfo,
+  FinancialInstrument,
+  FinancialInstrumentRequest,
 } from '../types';
 
 const BASE_URL = '/api/v1';
@@ -52,6 +54,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export interface TransactionFilterParams {
+  financialInstrumentId?: number;
   page?: number;
   size?: number;
   flowType?: FlowType | '';
@@ -61,6 +64,28 @@ export interface TransactionFilterParams {
 }
 
 export const api = {
+  async getFinancialInstruments(active?: boolean): Promise<FinancialInstrument[]> {
+    const query = active === undefined ? '' : `?active=${active}`;
+    return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/financial-instruments${query}`));
+  },
+
+  async saveFinancialInstrument(data: FinancialInstrumentRequest, id?: number): Promise<FinancialInstrument> {
+    return handleResponse<FinancialInstrument>(await fetchWithAuth(`${BASE_URL}/financial-instruments${id === undefined ? '' : '/' + id}`, {
+      method: id === undefined ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }));
+  },
+
+  async assignFinancialInstrument(transactionId: number, financialInstrumentId: number | null): Promise<Transaction> {
+    return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ financialInstrumentId }),
+    }));
+  },
+
+  async getInstrumentSuggestions(transactionId: number): Promise<FinancialInstrument[]> {
+    return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument-suggestions`));
+  },
   async getFinancialSummary(): Promise<FinancialSummary> {
     const response = await fetchWithAuth(`${BASE_URL}/analytics/summary`);
     return handleResponse<FinancialSummary>(response);
@@ -80,6 +105,7 @@ export const api = {
     const query = new URLSearchParams();
     query.set('page', String(params.page ?? 0));
     query.set('size', String(params.size ?? 10));
+    if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
 
     if (params.flowType) {
       query.set('flowType', params.flowType);

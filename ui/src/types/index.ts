@@ -10,6 +10,7 @@ export type ChannelType =
 
 export interface Transaction {
   id: number;
+  financialInstrument?: FinancialInstrument | null;
   amount: number;
   flowType: FlowType;
   contactName: string;
@@ -18,6 +19,31 @@ export interface Transaction {
   transactionDate: string;
   transactionHash: string;
   createdAt: string;
+}
+
+export type InstrumentType = 'BANK_ACCOUNT' | 'DEBIT_CARD' | 'CREDIT_CARD';
+export type Bank = 'BCP' | 'INTERBANK' | 'BBVA' | 'OTHER';
+
+export interface FinancialInstrument {
+  id: number;
+  type: InstrumentType;
+  alias: string;
+  bank: Bank;
+  institutionName?: string | null;
+  lastFour?: string | null;
+  currency: 'PEN';
+  active: boolean;
+  linkedAccountId?: number | null;
+}
+
+export interface FinancialInstrumentRequest {
+  type: InstrumentType;
+  alias: string;
+  bank: Bank;
+  institutionName: string | null;
+  lastFour: string | null;
+  active: boolean;
+  linkedAccountId: number | null;
 }
 
 export interface FinancialSummary {
