@@ -1,5 +1,6 @@
 package com.store.api.controller;
 
+import com.store.api.model.dto.TransactionClassificationRequest;
 import com.store.api.model.dto.TransactionResponse;
 import com.store.api.model.dto.TransactionSyncRequest;
 import com.store.api.model.dto.FinancialInstrumentResponse;
@@ -16,10 +17,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,6 +41,14 @@ public class TransactionController {
     public TransactionResponse assignInstrument(@PathVariable Long id,
             @Valid @RequestBody InstrumentAssignmentRequest request) {
         return assignmentService.assign(id, request.getFinancialInstrumentId());
+    }
+
+    @PatchMapping("/{id}/classification")
+    public TransactionResponse updateClassification(
+            @PathVariable Long id,
+            @Valid @RequestBody TransactionClassificationRequest request
+    ) {
+        return transactionService.updateClassification(id, request);
     }
 
     @GetMapping("/{id}/financial-instrument-suggestions")
@@ -65,6 +78,11 @@ public class TransactionController {
             @RequestParam(required = false) FlowType flowType,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long financialInstrumentId,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -72,7 +90,35 @@ public class TransactionController {
         if (financialInstrumentId != null) {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
-        Page<TransactionResponse> result = transactionService.getTransactions(startDate, endDate, flowType, search, financialInstrumentId, pageable);
+        Page<TransactionResponse> result = transactionService.getTransactions(
+                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pageable
+        );
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportTransactions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) FlowType flowType,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long financialInstrumentId,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String channel,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount
+    ) {
+        if (financialInstrumentId != null) {
+            instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
+        }
+        byte[] csvBytes = transactionService.exportTransactionsCsv(
+                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount
+        );
+        String filename = "fintrack_movimientos_" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csvBytes);
     }
 }
