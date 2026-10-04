@@ -52,7 +52,7 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
                 aria-current={active ? 'page' : undefined}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors ${active ? 'bg-brand/8 text-brand' : 'text-muted hover:bg-canvas hover:text-ink'}`}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <Icon className="h-4.5 w-4.5 shrink-0" />
                 {item.label}
               </button>
             );
@@ -70,7 +70,7 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
                 onClick={() => onViewChange(item.id)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${activeView === item.id ? 'bg-brand/8 font-medium text-brand' : 'text-muted hover:bg-canvas hover:text-ink'}`}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" />
+                <Icon className="h-4.5 w-4.5 shrink-0" />
                 {item.label}
               </button>
             );

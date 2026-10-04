@@ -29,7 +29,7 @@ class JwtAuthFilterTest {
 
     @BeforeEach
     @AfterEach
-    void clearContext() {
+    public void clearContext() {
         UserContext.clear();
     }
 
@@ -94,11 +94,11 @@ class JwtAuthFilterTest {
         when(users.findById(42L)).thenReturn(Optional.of(user));
         MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/transactions");
         request.addHeader("Authorization", "bearer " + jwt.generateToken(user));
-        assertThrows(ServletException.class, () -> filter.doFilter(request, new MockHttpServletResponse(),
+        assertNotNull(assertThrows(ServletException.class, () -> filter.doFilter(request, new MockHttpServletResponse(),
                 (req, response) -> {
                     assertSame(user, UserContext.requireCurrentUser());
                     throw new ServletException("Application failure");
-                }));
+                })));
         assertNull(UserContext.getCurrentUser());
     }
 

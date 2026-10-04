@@ -35,7 +35,7 @@ class TransactionServiceTest {
     private final TransactionService service = new TransactionService(transactions, rawNotifications);
 
     @AfterEach
-    void clearContext() {
+    public void clearContext() {
         UserContext.clear();
     }
 

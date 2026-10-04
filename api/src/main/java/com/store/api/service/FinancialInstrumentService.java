@@ -58,7 +58,7 @@ public class FinancialInstrumentService {
 
     private void apply(FinancialInstrument item, FinancialInstrumentRequest request, User user) {
         String institution = request.getBank() == Bank.OTHER ? normalized(request.getInstitutionName()) : null;
-        if (request.getBank() == Bank.OTHER && institution.isBlank()) {
+        if (request.getBank() == Bank.OTHER && (institution == null || institution.isBlank())) {
             throw badRequest("Institution name is required for Other");
         }
         FinancialInstrument account = null;

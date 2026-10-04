@@ -40,12 +40,12 @@ class AnalyticsServiceTest {
     private AnalyticsService analyticsService;
 
     @BeforeEach
-    void authenticate() {
+    public void authenticate() {
         UserContext.setCurrentUser(User.builder().id(42L).build());
     }
 
     @AfterEach
-    void clearContext() {
+    public void clearContext() {
         UserContext.clear();
     }
 

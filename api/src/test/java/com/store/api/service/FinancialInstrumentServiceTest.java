@@ -21,7 +21,7 @@ class FinancialInstrumentServiceTest {
     private final FinancialInstrumentService service = new FinancialInstrumentService(repository);
     private final User user = User.builder().id(7L).email("owner@example.test").build();
 
-    @BeforeEach void setup() {
+    @BeforeEach public void setup() {
         UserContext.setCurrentUser(user);
         when(repository.save(any())).thenAnswer(invocation -> {
             FinancialInstrument item = invocation.getArgument(0);
@@ -29,7 +29,7 @@ class FinancialInstrumentServiceTest {
             return item;
         });
     }
-    @AfterEach void clear() { UserContext.clear(); }
+    @AfterEach public void clear() { UserContext.clear(); }
 
     @Test void anonymousCannotListCreateOrEdit() {
         UserContext.clear();
@@ -86,11 +86,11 @@ class FinancialInstrumentServiceTest {
         target.setActive(false);
         assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.create(request)).getStatusCode().value());
         target.setActive(true); target.setBank(Bank.BBVA);
-        assertThrows(ResponseStatusException.class, () -> service.create(request));
+        assertNotNull(assertThrows(ResponseStatusException.class, () -> service.create(request)));
         target.setBank(Bank.BCP); target.setType(InstrumentType.CREDIT_CARD);
-        assertThrows(ResponseStatusException.class, () -> service.create(request));
+        assertNotNull(assertThrows(ResponseStatusException.class, () -> service.create(request)));
         target.setType(InstrumentType.BANK_ACCOUNT); request.setType(InstrumentType.CREDIT_CARD);
-        assertThrows(ResponseStatusException.class, () -> service.create(request));
+        assertNotNull(assertThrows(ResponseStatusException.class, () -> service.create(request)));
     }
 
     @Test void archivesAndReactivatesAccountWithoutDiscardingLinks() {
@@ -102,7 +102,7 @@ class FinancialInstrumentServiceTest {
         request.setActive(true);
         assertTrue(service.update(20L, request).isActive());
         request.setBank(Bank.BBVA);
-        assertThrows(ResponseStatusException.class, () -> service.update(20L, request));
+        assertNotNull(assertThrows(ResponseStatusException.class, () -> service.update(20L, request)));
     }
 
     @Test void archivingDebitPreservesLinkToArchivedAccountButReactivationNeedsActiveAccount() {
@@ -114,7 +114,7 @@ class FinancialInstrumentServiceTest {
         var request = request(); request.setType(InstrumentType.DEBIT_CARD); request.setLinkedAccountId(20L); request.setActive(false);
         assertEquals(20L, service.update(30L, request).getLinkedAccountId());
         request.setActive(true);
-        assertThrows(ResponseStatusException.class, () -> service.update(30L, request));
+        assertNotNull(assertThrows(ResponseStatusException.class, () -> service.update(30L, request)));
         request.setLinkedAccountId(null);
         assertTrue(service.update(30L, request).isActive());
     }

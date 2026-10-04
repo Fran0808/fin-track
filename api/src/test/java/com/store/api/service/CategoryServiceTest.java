@@ -25,7 +25,7 @@ class CategoryServiceTest {
     private final User user = User.builder().id(12L).email("tester@example.test").build();
 
     @BeforeEach
-    void setup() {
+    public void setup() {
         UserContext.setCurrentUser(user);
         when(repository.save(any(Category.class))).thenAnswer(invocation -> {
             Category cat = invocation.getArgument(0);
@@ -35,7 +35,7 @@ class CategoryServiceTest {
     }
 
     @AfterEach
-    void tearDown() {
+    public void tearDown() {
         UserContext.clear();
     }
 

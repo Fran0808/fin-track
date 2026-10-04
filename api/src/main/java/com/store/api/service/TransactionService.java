@@ -168,7 +168,7 @@ public class TransactionService {
                 predicates.add(cb.or(contactMatch, categoryMatch, tagsMatch, notesMatch));
             }
 
-            return cb.and(predicates.toArray(new Predicate[0]));
+            return cb.and(predicates.toArray(Predicate[]::new));
         };
     }
 

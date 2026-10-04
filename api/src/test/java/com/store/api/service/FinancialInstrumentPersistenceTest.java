@@ -48,14 +48,14 @@ class FinancialInstrumentPersistenceTest {
     private MockMvc mvc;
     private String token;
 
-    @BeforeEach void setup() {
+    @BeforeEach public void setup() {
         owner = users.saveAndFlush(User.builder().email("owner@example.test").build());
         other = users.saveAndFlush(User.builder().email("other@example.test").build());
         token = "Bearer " + jwt.generateToken(owner);
         mvc = MockMvcBuilders.standaloneSetup(instrumentController, transactionController)
                 .setControllerAdvice(new GlobalExceptionHandler()).addFilters(filter).build();
     }
-    @AfterEach void clear() { UserContext.clear(); }
+    @AfterEach public void clear() { UserContext.clear(); }
 
     @Test void validatesHttpRequestsAndCreatesPrivateProducts() throws Exception {
         mvc.perform(post("/api/v1/financial-instruments").header("Authorization", token)

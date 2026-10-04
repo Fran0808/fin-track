@@ -122,7 +122,7 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
 
         {/* Clasificación y Organización */}
         <div className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
-          <p className="eyebrow !text-ink">Categoría y etiquetas</p>
+          <p className="eyebrow text-ink!">Categoría y etiquetas</p>
           
           <div className="mt-3.5 space-y-4">
             <div>
