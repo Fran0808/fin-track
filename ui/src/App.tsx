@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -54,6 +54,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     setSelectedPeriod,
     handlePageChange,
     handleFilterChange,
+    refreshAll,
   } = useFinance(user.id);
 
   const [activeView, setActiveView] = useState<NavView>('inicio');
@@ -61,6 +62,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
+  const [instrumentRevision, setInstrumentRevision] = useState(0);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -179,13 +181,20 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               onOpenPairing={() => setPairingOpen(true)}
             />
           )}
-          {['tarjetas', 'presupuestos'].includes(activeView) && (
+          {activeView === 'tarjetas' && (
+            <InstrumentsView year={selectedPeriod.year} month={selectedPeriod.month} revision={instrumentRevision} onSelectTransaction={setSelectedTransaction} onProductsChanged={() => { void refreshAll(); }} />
+          )}
+          {activeView === 'presupuestos' && (
             <PlaceholderView view={activeView} onNavigateHome={() => setActiveView('inicio')} />
           )}
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} />
+      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onUpdated={transaction => {
+        setSelectedTransaction(current => current?.id === transaction.id ? transaction : current);
+        setInstrumentRevision(value => value + 1);
+        void refreshAll();
+      }} />
       <PairDeviceModal isOpen={pairingOpen} onClose={() => setPairingOpen(false)} />
     </div>
   );

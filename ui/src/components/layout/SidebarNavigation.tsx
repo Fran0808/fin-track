@@ -19,7 +19,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
   { id: 'mi-dinero', label: 'Mi dinero', icon: ChartNoAxesCombined },
   { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
-  { id: 'tarjetas', label: 'Tarjetas y cuentas', icon: CreditCard, upcoming: true },
+  { id: 'tarjetas', label: 'Tarjetas y cuentas', icon: CreditCard },
   { id: 'presupuestos', label: 'Presupuestos', icon: Target, upcoming: true },
   { id: 'configuracion', label: 'Configuración', icon: Settings2 },
 ];

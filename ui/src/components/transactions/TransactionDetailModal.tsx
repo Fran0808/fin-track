@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, X } from 'lucide-react';
 import type { Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
+import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
   onClose: () => void;
+  onUpdated?: (transaction: Transaction) => void;
 }
 
-export function TransactionDetailModal({ transaction, onClose }: TransactionDetailModalProps) {
+export function TransactionDetailModal({ transaction, onClose, onUpdated }: TransactionDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
 
@@ -38,7 +40,7 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
       onClose={onClose}
       onClick={(event) => { if (event.target === dialogRef.current) onClose(); }}
       aria-labelledby="transaction-dialog-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
+      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
     >
       <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
         <div>
@@ -59,6 +61,8 @@ export function TransactionDetailModal({ transaction, onClose }: TransactionDeta
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Medio</dt><dd className="text-right font-medium">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd></div>
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Fecha y hora</dt><dd className="text-right font-medium">{formatDate(transaction.transactionDate)}</dd></div>
         </dl>
+
+        {onUpdated && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
 
         <details className="mt-5 text-sm">
           <summary className="cursor-pointer font-medium text-brand">Información técnica</summary>
