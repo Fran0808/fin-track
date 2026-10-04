@@ -78,6 +78,10 @@ and firewall configuration. Check installed version name and code before diagnos
 
 ## Backend verification
 
+Cards and accounts have an opt-in PostgreSQL integration test. Its disposable
+database setup and schema changes are documented in
+[cards and accounts](domain/financial-instruments.md#schema-preparation-and-verification).
+
 The current `AppTests` starts a full context without a dedicated test profile.
 Default application configuration can update the database schema and enable email
 scheduling. Never assume `clean test` is isolated from the local financial database.

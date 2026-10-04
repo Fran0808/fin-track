@@ -31,6 +31,10 @@ persisted transaction contract. Multi-currency accounting is therefore not an
 implemented capability; fixing transport and display requires an explicit contract
 change. Do not add currency conversion or claim currency-aware totals incidentally.
 
+[Cards and accounts](financial-instruments.md) are registered in soles only.
+Assigning a movement to a product organizes its history without changing amounts,
+flows, identity or aggregate totals.
+
 ## Identity, tenancy and deduplication
 
 Every financial record must belong to the authenticated user. The database's

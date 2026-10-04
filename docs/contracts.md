@@ -20,7 +20,9 @@ Paths below are relative to `/api/v1`.
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow and search filters | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, search and direct product filters | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
+| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../api/src/main/java/com/store/api/controller/FinancialInstrumentController.java) |
+| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/AnalyticsController.java) |
 | `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/EmailSyncController.java) |
 | `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/DevicePairingController.java) |
@@ -43,9 +45,13 @@ hash is returned instead of a new record.
 | `transactionHash` | Required nonblank identifier; preserve it on retries. |
 | `rawNotificationText` | Optional original text; financial and personal data handling applies. |
 
-The response adds `id` and `createdAt`, and returns the transaction fields without
+The response adds `id`, `createdAt` and nullable `financialInstrument`, and returns the transaction fields without
 the original text. It has no currency field. Backend DTOs currently use mutable
 Lombok classes; immutability is not an established contract requirement.
+
+Product currency is fixed to PEN and does not add currency to captured transactions.
+See [cards and accounts](domain/financial-instruments.md) for registration fields,
+ownership checks, suggestions and schema preparation.
 
 ## Sources to update together
 
