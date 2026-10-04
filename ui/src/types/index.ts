@@ -16,10 +16,31 @@ export interface Transaction {
   contactName: string;
   channel: ChannelType | string;
   cardLast4?: string;
+  category?: string | null;
+  tags?: string[] | null;
+  notes?: string | null;
   transactionDate: string;
   transactionHash: string;
   createdAt: string;
 }
+
+export interface TransactionClassificationRequest {
+  category?: string | null;
+  tags?: string[] | null;
+  notes?: string | null;
+}
+
+export const STANDARD_CATEGORIES = [
+  { id: 'ALIMENTACION', label: 'Alimentación y bebidas' },
+  { id: 'TRANSPORTE', label: 'Transporte y movilidad' },
+  { id: 'SERVICIOS', label: 'Servicios y suscripciones' },
+  { id: 'SALIDAS', label: 'Salidas y entretenimiento' },
+  { id: 'EDUCACION', label: 'Educación' },
+  { id: 'SALUD', label: 'Salud y farmacia' },
+  { id: 'COMPRAS', label: 'Compras y hogar' },
+  { id: 'FINANZAS', label: 'Transferencias y finanzas' },
+  { id: 'OTROS', label: 'Otros gastos' },
+] as const;
 
 export type InstrumentType = 'BANK_ACCOUNT' | 'DEBIT_CARD' | 'CREDIT_CARD';
 export type Bank = 'BCP' | 'INTERBANK' | 'BBVA' | 'OTHER';

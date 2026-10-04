@@ -2,6 +2,7 @@ import type {
   FinancialSummary,
   PeriodAnalytics,
   Transaction,
+  TransactionClassificationRequest,
   PageResponse,
   EmailSyncResponse,
   EmailConnectionStatus,
@@ -61,6 +62,11 @@ export interface TransactionFilterParams {
   search?: string;
   startDate?: string;
   endDate?: string;
+  category?: string;
+  tag?: string;
+  channel?: string;
+  minAmount?: number;
+  maxAmount?: number;
 }
 
 export const api = {
@@ -80,6 +86,14 @@ export const api = {
   async assignFinancialInstrument(transactionId: number, financialInstrumentId: number | null): Promise<Transaction> {
     return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ financialInstrumentId }),
+    }));
+  },
+
+  async updateTransactionClassification(transactionId: number, data: TransactionClassificationRequest): Promise<Transaction> {
+    return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/classification`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     }));
   },
 
@@ -119,9 +133,48 @@ export const api = {
     if (params.endDate) {
       query.set('endDate', params.endDate);
     }
+    if (params.category) {
+      query.set('category', params.category);
+    }
+    if (params.tag && params.tag.trim()) {
+      query.set('tag', params.tag.trim());
+    }
+    if (params.channel) {
+      query.set('channel', params.channel);
+    }
+    if (params.minAmount !== undefined && params.minAmount !== null && !isNaN(params.minAmount)) {
+      query.set('minAmount', String(params.minAmount));
+    }
+    if (params.maxAmount !== undefined && params.maxAmount !== null && !isNaN(params.maxAmount)) {
+      query.set('maxAmount', String(params.maxAmount));
+    }
 
     const response = await fetchWithAuth(`${BASE_URL}/transactions?${query.toString()}`);
     return handleResponse<PageResponse<Transaction>>(response);
+  },
+
+  async exportTransactionsCsv(params: TransactionFilterParams = {}): Promise<Blob> {
+    const query = new URLSearchParams();
+    if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
+    if (params.flowType) query.set('flowType', params.flowType);
+    if (params.search && params.search.trim()) query.set('search', params.search.trim());
+    if (params.startDate) query.set('startDate', params.startDate);
+    if (params.endDate) query.set('endDate', params.endDate);
+    if (params.category) query.set('category', params.category);
+    if (params.tag && params.tag.trim()) query.set('tag', params.tag.trim());
+    if (params.channel) query.set('channel', params.channel);
+    if (params.minAmount !== undefined && params.minAmount !== null && !isNaN(params.minAmount)) {
+      query.set('minAmount', String(params.minAmount));
+    }
+    if (params.maxAmount !== undefined && params.maxAmount !== null && !isNaN(params.maxAmount)) {
+      query.set('maxAmount', String(params.maxAmount));
+    }
+
+    const response = await fetchWithAuth(`${BASE_URL}/transactions/export?${query.toString()}`);
+    if (!response.ok) {
+      throw new Error(`Error al exportar transacciones: ${response.statusText}`);
+    }
+    return response.blob();
   },
 
   async syncEmails(): Promise<EmailSyncResponse> {
