@@ -20,6 +20,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     boolean existsByTransactionHashAndUser(String transactionHash, User user);
 
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
+    Optional<Transaction> findByIdAndUser(Long id, User user);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.user.id = :userId")
     BigDecimal sumAmountByFlowType(@Param("flowType") FlowType flowType, @Param("userId") Long userId);

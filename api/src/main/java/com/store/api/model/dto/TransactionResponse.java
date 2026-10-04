@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 public class TransactionResponse {
     private Long id;
+    private FinancialInstrumentResponse financialInstrument;
     private BigDecimal amount;
     private FlowType flowType;
     private String contactName;

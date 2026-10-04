@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 @Table(name = "transactions", indexes = {
         @Index(name = "idx_tx_hash_user", columnList = "transaction_hash, user_id", unique = true),
         @Index(name = "idx_tx_date", columnList = "transaction_date"),
-        @Index(name = "idx_tx_user", columnList = "user_id")
+        @Index(name = "idx_tx_user", columnList = "user_id"),
+        @Index(name = "idx_tx_user_instrument_date", columnList = "user_id,financial_instrument_id,transaction_date")
 })
 @Getter
 @Setter
@@ -26,6 +27,10 @@ public class Transaction {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "financial_instrument_id")
+    private FinancialInstrument financialInstrument;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;

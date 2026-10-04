@@ -2,8 +2,13 @@ package com.store.api.controller;
 
 import com.store.api.model.dto.TransactionResponse;
 import com.store.api.model.dto.TransactionSyncRequest;
+import com.store.api.model.dto.FinancialInstrumentResponse;
+import com.store.api.model.dto.InstrumentAssignmentRequest;
+import com.store.api.config.security.UserContext;
 import com.store.api.model.enums.FlowType;
 import com.store.api.service.TransactionService;
+import com.store.api.service.FinancialInstrumentService;
+import com.store.api.service.InstrumentAssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,6 +29,19 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final InstrumentAssignmentService assignmentService;
+    private final FinancialInstrumentService instrumentService;
+
+    @PatchMapping("/{id}/financial-instrument")
+    public TransactionResponse assignInstrument(@PathVariable Long id,
+            @Valid @RequestBody InstrumentAssignmentRequest request) {
+        return assignmentService.assign(id, request.getFinancialInstrumentId());
+    }
+
+    @GetMapping("/{id}/financial-instrument-suggestions")
+    public List<FinancialInstrumentResponse> instrumentSuggestions(@PathVariable Long id) {
+        return assignmentService.suggestions(id);
+    }
 
     // Single transaction ingestion from mobile device
     @PostMapping("/sync")
@@ -46,11 +64,15 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) FlowType flowType,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long financialInstrumentId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate"));
-        Page<TransactionResponse> result = transactionService.getTransactions(startDate, endDate, flowType, search, pageable);
+        if (financialInstrumentId != null) {
+            instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
+        }
+        Page<TransactionResponse> result = transactionService.getTransactions(startDate, endDate, flowType, search, financialInstrumentId, pageable);
         return ResponseEntity.ok(result);
     }
 }

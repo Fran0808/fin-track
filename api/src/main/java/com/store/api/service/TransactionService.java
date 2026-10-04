@@ -3,6 +3,7 @@ package com.store.api.service;
 import com.store.api.config.security.UserContext;
 import com.store.api.model.dto.TransactionResponse;
 import com.store.api.model.dto.TransactionSyncRequest;
+import com.store.api.model.dto.FinancialInstrumentResponse;
 import com.store.api.model.entity.RawNotificationLog;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
@@ -85,11 +86,19 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Pageable pageable) {
+        return getTransactions(startDate, endDate, flowType, search, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Long financialInstrumentId, Pageable pageable) {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             predicates.add(cb.equal(root.get("user"), currentUser));
+            if (financialInstrumentId != null) {
+                predicates.add(cb.equal(root.get("financialInstrument").get("id"), financialInstrumentId));
+            }
             if (startDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("transactionDate"), startDate));
             }
@@ -106,12 +115,13 @@ public class TransactionService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        return transactionRepository.findAll(spec, pageable).map(this::mapToResponse);
+        return transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
     }
 
-    private TransactionResponse mapToResponse(Transaction t) {
+    public static TransactionResponse mapToResponse(Transaction t) {
         return TransactionResponse.builder()
                 .id(t.getId())
+                .financialInstrument(FinancialInstrumentResponse.from(t.getFinancialInstrument()))
                 .amount(t.getAmount())
                 .flowType(t.getFlowType())
                 .contactName(t.getContactName())
