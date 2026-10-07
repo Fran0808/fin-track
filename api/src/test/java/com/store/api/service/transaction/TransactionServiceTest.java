@@ -1,7 +1,7 @@
-package com.store.api.service;
+package com.store.api.service.transaction;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.TransactionSyncRequest;
+import com.store.api.model.dto.transaction.TransactionSyncRequest;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
@@ -117,7 +117,7 @@ class TransactionServiceTest {
         when(transactions.findByIdAndUser(50L, user)).thenReturn(Optional.of(existing));
         when(transactions.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        com.store.api.model.dto.TransactionClassificationRequest request = com.store.api.model.dto.TransactionClassificationRequest.builder()
+        com.store.api.model.dto.transaction.TransactionClassificationRequest request = com.store.api.model.dto.transaction.TransactionClassificationRequest.builder()
                 .category("ALIMENTACION")
                 .tags(List.of("almuerzo", "reembolsable"))
                 .notes("Almuerzo con compañeros")
@@ -137,7 +137,7 @@ class TransactionServiceTest {
         UserContext.setCurrentUser(user);
         when(transactions.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
-        com.store.api.model.dto.TransactionClassificationRequest request = new com.store.api.model.dto.TransactionClassificationRequest();
+        com.store.api.model.dto.transaction.TransactionClassificationRequest request = new com.store.api.model.dto.transaction.TransactionClassificationRequest();
         request.setCategory("OTROS");
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,

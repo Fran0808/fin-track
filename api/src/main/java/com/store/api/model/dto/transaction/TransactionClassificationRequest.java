@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.transaction;
 
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;

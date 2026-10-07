@@ -1,15 +1,15 @@
-package com.store.api.controller;
+package com.store.api.controller.transaction;
 
-import com.store.api.model.dto.TransactionClassificationRequest;
-import com.store.api.model.dto.TransactionResponse;
-import com.store.api.model.dto.TransactionSyncRequest;
-import com.store.api.model.dto.FinancialInstrumentResponse;
-import com.store.api.model.dto.InstrumentAssignmentRequest;
+import com.store.api.model.dto.transaction.TransactionClassificationRequest;
+import com.store.api.model.dto.transaction.TransactionResponse;
+import com.store.api.model.dto.transaction.TransactionSyncRequest;
+import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
+import com.store.api.model.dto.transaction.InstrumentAssignmentRequest;
 import com.store.api.config.security.UserContext;
 import com.store.api.model.enums.FlowType;
-import com.store.api.service.TransactionService;
-import com.store.api.service.FinancialInstrumentService;
-import com.store.api.service.InstrumentAssignmentService;
+import com.store.api.service.transaction.TransactionService;
+import com.store.api.service.instrument.FinancialInstrumentService;
+import com.store.api.service.transaction.InstrumentAssignmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

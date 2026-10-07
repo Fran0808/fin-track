@@ -1,10 +1,10 @@
-package com.store.api.service;
+package com.store.api.service.transaction;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.TransactionClassificationRequest;
-import com.store.api.model.dto.TransactionResponse;
-import com.store.api.model.dto.TransactionSyncRequest;
-import com.store.api.model.dto.FinancialInstrumentResponse;
+import com.store.api.model.dto.transaction.TransactionClassificationRequest;
+import com.store.api.model.dto.transaction.TransactionResponse;
+import com.store.api.model.dto.transaction.TransactionSyncRequest;
+import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 import com.store.api.model.entity.RawNotificationLog;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;

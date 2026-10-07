@@ -1,4 +1,6 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.transaction;
+
+import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

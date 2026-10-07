@@ -1,7 +1,7 @@
-package com.store.api.service;
+package com.store.api.service.transaction;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.TransactionSyncRequest;
+import com.store.api.model.dto.transaction.TransactionSyncRequest;
 import com.store.api.model.entity.*;
 import com.store.api.model.enums.*;
 import com.store.api.repository.*;

@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.transaction;
 
 import com.store.api.model.enums.FlowType;
 import jakarta.validation.constraints.DecimalMin;
