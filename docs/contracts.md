@@ -19,17 +19,17 @@ Paths below are relative to `/api/v1`.
 
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
-| `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../api/src/main/java/com/store/api/controller/FinancialInstrumentController.java) |
-| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../api/src/main/java/com/store/api/controller/CategoryController.java) |
-| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../api/src/main/java/com/store/api/controller/TransactionController.java) |
-| `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/AnalyticsController.java) |
-| `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/EmailSyncController.java) |
-| `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/DevicePairingController.java) |
-| `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../api/src/main/java/com/store/api/controller/GoogleAuthController.java) |
+| `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
+| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
+| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
+| `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
+| `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
+| `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
 
 ## Transaction ingestion payload
 
@@ -58,7 +58,7 @@ ownership checks, suggestions and schema preparation.
 
 ## Sources to update together
 
-- [TransactionSyncRequest](../api/src/main/java/com/store/api/model/dto/TransactionSyncRequest.java) and [TransactionResponse](../api/src/main/java/com/store/api/model/dto/TransactionResponse.java).
+- [TransactionSyncRequest](../api/src/main/java/com/store/api/model/dto/transaction/TransactionSyncRequest.java) and [TransactionResponse](../api/src/main/java/com/store/api/model/dto/transaction/TransactionResponse.java).
 - [Android TransactionSyncDto](../android/app/src/main/java/com/financemanager/listener/network/TransactionSyncDto.kt) and [ApiClient](../android/app/src/main/java/com/financemanager/listener/network/ApiClient.kt).
 - [Frontend types](../ui/src/types/index.ts) and [HTTP service](../ui/src/services/api.ts).
 - Related controller, validation, authentication and client tests.

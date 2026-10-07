@@ -18,6 +18,34 @@ The backend targets Java 21 and currently uses Spring Boot 4.1.1 with PostgreSQL
 Android uses Kotlin and Jetpack Compose; the frontend uses React, TypeScript,
 Vite and Tailwind. Build manifests are authoritative for exact versions.
 
+## Backend package organization
+
+The backend keeps its layer-based structure. Controllers, services and DTOs are
+grouped by feature inside those layers to make related files easier to find:
+
+```text
+com/store/api/
+├── controller/{analytics,auth,category,email,instrument,transaction}/
+├── service/{analytics,auth,category,email,instrument,transaction}/
+├── model/dto/{analytics,auth,category,email,instrument,transaction}/
+├── model/entity/
+├── model/enums/
+├── repository/
+├── config/
+└── App.java
+```
+
+Create only feature folders that contain files. Entities, enums, repositories
+and configuration retain their existing packages. Services for movement
+classification and product assignment belong to `service/transaction`.
+Email keeps its `client`, `parser` and `scheduler` subpackages.
+
+Tests mirror the corresponding production packages. Parser tests belong to
+`service/email/parser`; the product persistence workflow test lives in
+`service/instrument` and imports the transaction services explicitly.
+Keep `App` at `com.store.api` so Spring can discover all child packages.
+Package organization does not change HTTP routes, DTO fields or table names.
+
 ## Android ingestion
 
 1. `YapeNotificationListenerService` receives a notification.
