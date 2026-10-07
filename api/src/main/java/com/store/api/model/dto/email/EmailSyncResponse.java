@@ -1,6 +1,6 @@
 package com.store.api.model.dto.email;
 
-import com.store.api.model.dto.TransactionResponse;
+import com.store.api.model.dto.transaction.TransactionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

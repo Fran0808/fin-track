@@ -1,4 +1,4 @@
-package com.store.api.controller;
+package com.store.api.controller.email;
 
 import com.store.api.model.dto.email.EmailConnectionTestResponse;
 import com.store.api.model.dto.email.EmailSyncResponse;

@@ -1,12 +1,12 @@
 package com.store.api.service.email;
 
-import com.store.api.model.dto.TransactionResponse;
+import com.store.api.model.dto.transaction.TransactionResponse;
 import com.store.api.model.dto.email.EmailMessageDto;
 import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.ProcessedEmailMessageRepository;
-import com.store.api.service.TransactionService;
+import com.store.api.service.transaction.TransactionService;
 import com.store.api.service.auth.GoogleOAuthService;
 import com.store.api.service.email.client.GmailApiClient;
 import com.store.api.service.email.client.ImapEmailClient;

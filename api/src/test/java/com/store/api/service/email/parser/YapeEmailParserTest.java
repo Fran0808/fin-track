@@ -1,8 +1,7 @@
-package com.store.api.service.email;
+package com.store.api.service.email.parser;
 
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 import com.store.api.model.enums.FlowType;
-import com.store.api.service.email.parser.YapeEmailParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
