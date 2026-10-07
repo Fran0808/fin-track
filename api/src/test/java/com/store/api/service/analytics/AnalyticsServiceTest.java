@@ -1,6 +1,6 @@
-package com.store.api.service;
+package com.store.api.service.analytics;
 
-import com.store.api.model.dto.PeriodAnalyticsResponse;
+import com.store.api.model.dto.analytics.PeriodAnalyticsResponse;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;

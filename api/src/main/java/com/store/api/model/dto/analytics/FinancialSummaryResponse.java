@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.analytics;
 
 import lombok.Builder;
 import lombok.Data;

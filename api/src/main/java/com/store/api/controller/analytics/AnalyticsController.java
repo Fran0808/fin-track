@@ -1,7 +1,7 @@
-package com.store.api.controller;
+package com.store.api.controller.analytics;
 
-import com.store.api.model.dto.FinancialSummaryResponse;
-import com.store.api.service.AnalyticsService;
+import com.store.api.model.dto.analytics.FinancialSummaryResponse;
+import com.store.api.service.analytics.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +21,7 @@ public class AnalyticsController {
     }
 
     @GetMapping("/period")
-    public ResponseEntity<com.store.api.model.dto.PeriodAnalyticsResponse> getPeriodAnalytics(
+    public ResponseEntity<com.store.api.model.dto.analytics.PeriodAnalyticsResponse> getPeriodAnalytics(
             @org.springframework.web.bind.annotation.RequestParam(required = false) Integer year,
             @org.springframework.web.bind.annotation.RequestParam(required = false) Integer month
     ) {

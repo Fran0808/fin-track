@@ -1,4 +1,4 @@
-package com.store.api.service;
+package com.store.api.service.analytics;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.FinancialSummaryResponse;
-import com.store.api.model.dto.PeriodAnalyticsResponse;
+import com.store.api.model.dto.analytics.FinancialSummaryResponse;
+import com.store.api.model.dto.analytics.PeriodAnalyticsResponse;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
 import com.store.api.model.enums.ChannelType;
