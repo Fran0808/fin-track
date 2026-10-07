@@ -30,12 +30,16 @@ import com.financemanager.listener.data.LocalTransactionEntity
 import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.network.ApiClient
 import com.financemanager.listener.service.YapeNotificationListenerService
+import com.financemanager.listener.service.CaptureStatus
 import com.financemanager.listener.ui.theme.*
 import com.financemanager.listener.worker.TransactionSyncWorker
 import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun DashboardScreen(modifier: Modifier = Modifier) {
@@ -46,8 +50,29 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var settingsVisible by rememberSaveable { mutableStateOf(false) }
     var pairingVisible by rememberSaveable { mutableStateOf(false) }
     var unpairVisible by rememberSaveable { mutableStateOf(false) }
+    var reviewUnassigned by rememberSaveable { mutableStateOf(false) }
+    var entryToAssign by remember { mutableStateOf<LocalTransactionEntity?>(null) }
+    val scope = rememberCoroutineScope()
+    var session by remember { mutableStateOf(PairingPreferences.session(context)) }
     val database = remember { AppDatabase.getDatabase(context) }
-    val transactions by database.transactionDao().getRecentTransactionsFlow().collectAsState(emptyList())
+    val dao = database.transactionDao()
+    val transactionFlow = remember(session?.ownerKey, reviewUnassigned) {
+        if (reviewUnassigned) dao.unassignedTransactions() else dao.getRecentTransactionsFlow(session?.ownerKey)
+    }
+    val transactions = key(session?.ownerKey, reviewUnassigned) {
+        val rows by transactionFlow.collectAsState(emptyList())
+        rows
+    }
+    val pendingFlow = remember(session?.ownerKey) { dao.pendingCount(session?.ownerKey) }
+    val pendingCount by pendingFlow.collectAsState(0)
+    val unassignedFlow = remember { dao.unassignedCount() }
+    val unassignedCount by unassignedFlow.collectAsState(0)
+    val capture by CaptureStatus.state.collectAsState()
+    val connectionLabel = when {
+        !permissionGranted -> "Permiso deshabilitado"
+        capture.connected -> "Servicio conectado"
+        else -> "Esperando conexión"
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
@@ -56,6 +81,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 permissionGranted = hasNotificationPermission(context)
                 paired = PairingPreferences.isPaired(context)
                 email = PairingPreferences.getPairedEmail(context)
+                session = PairingPreferences.session(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -103,7 +129,14 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 AppPanel {
                     SectionLabel("NOTIFICACIONES")
                     Text(if (permissionGranted) "Permiso habilitado" else "Permiso pendiente", fontWeight = FontWeight.SemiBold)
-                    Text("El permiso no confirma que el servicio esté conectado.", color = Muted)
+                    Text(connectionLabel, color = Muted)
+                    Text("Última conexión: ${formatDiagnosticTime(capture.lastConnection)}", color = Muted)
+                    Text("Última notificación de Yape: ${formatDiagnosticTime(capture.lastNotification)}", color = Muted)
+                    Text("Último guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
+                    capture.lastError?.let { Text(it, color = Negative) }
+                    Text(capture.syncMessage, color = Muted)
+                    OutlinedButton(onClick = { YapeNotificationListenerService.reviewActive() },
+                        enabled = permissionGranted && capture.connected) { Text("Revisar notificaciones activas") }
                     OutlinedButton(onClick = { openNotificationSettings(context) }) { Text("Revisar permiso") }
                 }
             }
@@ -128,12 +161,14 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     Column {
                         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(Modifier.size(8.dp).background(if (permissionGranted) Positive else Negative, RoundedCornerShape(4.dp)))
-                                Text(if (permissionGranted) "Permiso habilitado" else "Habilita la captura", fontWeight = FontWeight.SemiBold)
+                                Box(Modifier.size(8.dp).background(if (permissionGranted && capture.connected) Positive else Negative, RoundedCornerShape(4.dp)))
+                                Text(connectionLabel, fontWeight = FontWeight.SemiBold)
                             }
-                            Text(if (permissionGranted) "Conexión del servicio sin verificar" else "Permite que FinTrack lea las notificaciones de Yape.", color = Muted, fontSize = 12.sp)
+                            Text(if (permissionGranted) "${pendingCount} movimientos pendientes de esta cuenta" else "Permite que FinTrack lea las notificaciones de Yape.", color = Muted, fontSize = 12.sp)
+                            capture.lastError?.let { Text(it, color = Negative, fontSize = 12.sp) }
+                            Text(capture.syncMessage, color = Muted, fontSize = 12.sp)
                             HorizontalDivider(color = Line)
-                            Text("Última captura: ${transactions.firstOrNull()?.let { formatTransactionDate(it.transactionDate, "d MMM · HH:mm") } ?: "Sin movimientos"}", color = Muted, fontSize = 12.sp)
+                            Text("Último guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted, fontSize = 12.sp)
                             if (!permissionGranted) {
                                 Button(onClick = { openNotificationSettings(context) }) { Text("Habilitar permiso") }
                             }
@@ -152,6 +187,17 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
             }
             item {
+                if (unassignedCount > 0) {
+                    AppPanel {
+                        Text("$unassignedCount movimientos sin cuenta comprobada", fontWeight = FontWeight.SemiBold)
+                        Text("Se conservan en este teléfono y no se enviarán automáticamente. Incluye registros antiguos o capturados sin vinculación.", color = Muted)
+                        TextButton(onClick = { reviewUnassigned = !reviewUnassigned }) {
+                            Text(if (reviewUnassigned) "Ver cuenta vinculada" else "Revisar registros locales")
+                        }
+                    }
+                }
+            }
+            item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Movimientos", fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
@@ -160,7 +206,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     TextButton(onClick = {
                         TransactionSyncWorker.enqueue(context)
                         Toast.makeText(context, "Sincronización encolada", Toast.LENGTH_SHORT).show()
-                    }, enabled = paired && transactions.any { !it.isSynced }) { Text("Sincronizar") }
+                    }, enabled = session != null && pendingCount > 0) { Text("Sincronizar") }
                 }
             }
             if (transactions.isEmpty()) {
@@ -177,7 +223,12 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 if (day != previousDay) {
                     item(key = "date-${transaction.transactionHash}") { SectionLabel(formatTransactionDate(transaction.transactionDate, "d 'de' MMMM 'de' yyyy").uppercase(Locale.forLanguageTag("es-PE"))) }
                 }
-                item(key = transaction.transactionHash) { TransactionRow(transaction) }
+                item(key = transaction.transactionHash) {
+                    TransactionRow(transaction)
+                    if (reviewUnassigned && !transaction.isSynced && session != null) {
+                        TextButton(onClick = { entryToAssign = transaction }) { Text("Asignar a mi cuenta") }
+                    }
+                }
             }
         }
         item {
@@ -186,10 +237,36 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         }
     }
 
+    entryToAssign?.let { entry ->
+        AlertDialog(onDismissRequest = { entryToAssign = null },
+            title = { Text("Confirmar propietario") },
+            text = { Text("Confirma que el movimiento de S/ ${entry.amount} de ${entry.contactName} pertenece a $email. Se enviará a esa cuenta conservando su identificador.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val expected = session
+                    entryToAssign = null
+                    scope.launch {
+                        try {
+                            val assigned = withContext(Dispatchers.IO) {
+                                if (expected != null && PairingPreferences.session(context) == expected)
+                                    dao.assignReviewedEntry(entry.id, expected.ownerKey) else 0
+                            }
+                            if (assigned == 1) TransactionSyncWorker.enqueue(context)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            CaptureStatus.error("No se pudo asignar el movimiento. Sigue guardado sin cuenta.")
+                        }
+                    }
+                }) { Text("Confirmar y sincronizar") }
+            }, dismissButton = { TextButton(onClick = { entryToAssign = null }) { Text("Cancelar") } })
+    }
     if (pairingVisible) {
         PairingDialog(onDismiss = { pairingVisible = false }, onSuccess = {
             email = it
             paired = true
+            session = PairingPreferences.session(context)
+            reviewUnassigned = false
             pairingVisible = false
         })
     }
@@ -201,7 +278,9 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             confirmButton = {
                 TextButton(onClick = {
                     PairingPreferences.clearPairing(context)
+                    TransactionSyncWorker.cancel(context)
                     ApiClient.resetService()
+                    session = null
                     paired = false
                     email = null
                     unpairVisible = false
@@ -242,7 +321,7 @@ private fun TransactionRow(transaction: LocalTransactionEntity) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${if (income) "+" else "−"} S/ $amount", color = if (income) Positive else Negative,
                     style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"), fontWeight = FontWeight.SemiBold)
-                Text(if (transaction.isSynced) "Sincronizado" else "Pendiente", color = Muted, fontSize = 11.sp)
+                Text(if (transaction.isSynced) "Sincronizado" else if (transaction.ownerKey == null) "Requiere revisión" else "Pendiente", color = Muted, fontSize = 11.sp)
             }
         }
         HorizontalDivider(color = Line)
@@ -252,6 +331,11 @@ private fun TransactionRow(transaction: LocalTransactionEntity) {
 private fun formatTransactionDate(value: String, pattern: String): String = runCatching {
     LocalDateTime.parse(value).format(DateTimeFormatter.ofPattern(pattern, Locale.forLanguageTag("es-PE")))
 }.getOrDefault(value.replace('T', ' ').substringBefore('.'))
+
+private fun formatDiagnosticTime(value: Long?): String = value?.let {
+    java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("d MMM HH:mm:ss", Locale.forLanguageTag("es-PE")))
+} ?: "Sin registro en esta ejecución"
 
 private fun hasNotificationPermission(context: Context): Boolean {
     val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false

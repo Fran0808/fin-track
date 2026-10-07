@@ -1,15 +1,13 @@
 package com.financemanager.listener.parser
 
 import java.math.BigDecimal
-import java.security.MessageDigest
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 open class YapeNotificationParser : NotificationParser {
 
     override val supportedPackages: Set<String> = setOf(
-        "com.bcp.innovacxion.yapeapp",
-        "com.android.shell"
+        "com.bcp.innovacxion.yapeapp"
     )
 
     // 1. Incomes with explicit sender name
@@ -32,29 +30,28 @@ open class YapeNotificationParser : NotificationParser {
 
     // 4. Outgoing expenses
     private val expenseRegex = Regex(
-        """(?:¡?yapeaste!?\s*)?(?:enviaste|pagaste)?\s*S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)\s+a\s+([A-Za-zÀ-ÿ0-9\s.*'-]+)""",
+        """(?:¡?yapeaste!?|enviaste|pagaste)\s+S/\.?\s*((?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?)\s+a\s+([A-Za-zÀ-ÿ0-9\s.*'-]+)""",
         RegexOption.IGNORE_CASE
     )
 
     override fun parse(title: String?, text: String?, bigText: String?): ParsedTransaction? {
-        val candidates = listOfNotNull(bigText, text)
-            .filter { it.isNotBlank() }
-            .distinct()
-
-        for (body in candidates) {
-            val content = "${title.orEmpty()} $body".trim()
-            val parsed = parseContent(content)
-            if (parsed != null) return parsed
-        }
-
-        if (candidates.isEmpty() && !title.isNullOrBlank()) {
-            return parseContent(title.trim())
-        }
-
-        return null
+        // Do not reinterpret an invalid expanded amount using a truncated short body.
+        val body = bigText?.takeIf { it.isNotBlank() } ?: text?.takeIf { it.isNotBlank() }
+        val content = "${title.orEmpty()} ${body.orEmpty()}".trim()
+        return if (content.isBlank()) null else parseContent(content)
     }
 
     private fun parseContent(fullContent: String): ParsedTransaction? {
+        // Validate complete monetary tokens before regex extraction can consume a prefix.
+        val amounts = Regex("""S/\.?\s*([0-9][0-9.,]*)""", RegexOption.IGNORE_CASE).findAll(fullContent).toList()
+        if (amounts.size != 1) return null
+        if (Regex("""^\s+\d""").containsMatchIn(fullContent.substring(amounts.single().range.last + 1))) return null
+        val token = amounts.single().groupValues[1].removeSuffix(".")
+        if (!Regex("""(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?""").matches(token)) return null
+        if (sanitizeAmount(token)?.let { it < BigDecimal("0.01") || it > BigDecimal("99999999.99") } != false) return null
+        if (Regex("""(?U)\b(?:no|nunca)\s+(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
+        if (Regex("""\b(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent) &&
+            Regex("""(?U)\b(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
         // 1. Try explicit sender income
         incomeWithSenderRegex.find(fullContent)?.let { match ->
             val rawContact = match.groupValues[1].trim()
@@ -146,9 +143,7 @@ open class YapeNotificationParser : NotificationParser {
     }
 
     private fun generateHash(flowType: FlowType, amount: BigDecimal, contact: String, rawText: String): String {
-        val minuteApprox = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
-        val input = "${flowType.name}_${amount.toPlainString()}_${contact.lowercase().trim()}_${minuteApprox}_$rawText"
-        val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
-        return bytes.joinToString("") { "%02x".format(it) }
+        // Content identity only; the capture boundary adds Android event metadata before persistence.
+        return NotificationIdentity.digest("${flowType.name}|${amount.stripTrailingZeros().toPlainString()}|${contact.lowercase(Locale.ROOT).trim()}|$rawText")
     }
 }

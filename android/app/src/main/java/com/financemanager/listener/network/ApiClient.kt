@@ -14,13 +14,16 @@ import java.util.concurrent.TimeUnit
 
 interface ApiService {
     @POST("api/v1/transactions/sync/batch")
-    suspend fun syncBatch(@Body requests: List<TransactionSyncDto>): Response<Any>
+    suspend fun syncBatch(@Header("X-Device-Token") token: String,
+                         @Body requests: List<TransactionSyncDto>): Response<List<SyncReceipt>>
 
     @POST("api/v1/user/pairing-info/verify")
     suspend fun verifyPairing(
         @Header("X-Device-Token") token: String
     ): Response<PairingVerifyDto>
 }
+
+data class SyncReceipt(val transactionHash: String)
 
 object ApiClient {
     private var customBaseUrl: String? = null
@@ -30,19 +33,6 @@ object ApiClient {
         return OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val requestBuilder = chain.request().newBuilder()
-                try {
-                    val app = FinTrackApplication.instance
-                    val token = PairingPreferences.getPairingToken(app)
-                    if (!token.isNullOrBlank()) {
-                        requestBuilder.addHeader("X-Device-Token", token)
-                    }
-                } catch (e: Exception) {
-                    // Application context not available
-                }
-                chain.proceed(requestBuilder.build())
-            }
             .build()
     }
 
@@ -58,7 +48,7 @@ object ApiClient {
 
     @Synchronized
     fun getService(overrideBaseUrl: String? = null): ApiService {
-        val targetUrl = overrideBaseUrl ?: resolveBaseUrl()
+        val targetUrl = com.financemanager.listener.data.PairingScope.normalizeServer(overrideBaseUrl ?: resolveBaseUrl())
         if (cachedService != null && customBaseUrl == targetUrl) {
             return cachedService!!
         }

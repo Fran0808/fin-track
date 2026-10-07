@@ -17,7 +17,7 @@ class NotificationParserDispatcherTest {
     @Test
     fun isSupportedPackage_withYapePackage_returnsTrue() {
         assertTrue(dispatcher.isSupportedPackage("com.bcp.innovacxion.yapeapp"))
-        assertTrue(dispatcher.isSupportedPackage("com.android.shell"))
+        assertFalse(dispatcher.isSupportedPackage("com.android.shell"))
     }
 
     @Test

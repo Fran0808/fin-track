@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "local_transactions",
-    indices = [Index(value = ["transactionHash"], unique = true)]
+    indices = [Index(value = ["transactionHash"], unique = true), Index(value = ["sourceEventId"], unique = true)]
 )
 data class LocalTransactionEntity(
     @PrimaryKey(autoGenerate = true)
@@ -19,5 +19,10 @@ data class LocalTransactionEntity(
     val transactionHash: String,
     val rawText: String,
     val isSynced: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val ownerKey: String? = null,
+    val sourceEventId: String? = null,
+    val sourceKey: String? = null,
+    val sourceFingerprint: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val sourceActive: Boolean = false
 )
