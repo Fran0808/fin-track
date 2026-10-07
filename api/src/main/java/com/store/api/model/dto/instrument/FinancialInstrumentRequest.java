@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.instrument;
 
 import com.store.api.model.enums.Bank;
 import com.store.api.model.enums.InstrumentType;

@@ -1,8 +1,8 @@
-package com.store.api.controller;
+package com.store.api.controller.instrument;
 
-import com.store.api.model.dto.FinancialInstrumentRequest;
-import com.store.api.model.dto.FinancialInstrumentResponse;
-import com.store.api.service.FinancialInstrumentService;
+import com.store.api.model.dto.instrument.FinancialInstrumentRequest;
+import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
+import com.store.api.service.instrument.FinancialInstrumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

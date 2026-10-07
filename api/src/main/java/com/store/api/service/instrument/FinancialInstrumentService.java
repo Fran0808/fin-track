@@ -1,8 +1,8 @@
-package com.store.api.service;
+package com.store.api.service.instrument;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.FinancialInstrumentRequest;
-import com.store.api.model.dto.FinancialInstrumentResponse;
+import com.store.api.model.dto.instrument.FinancialInstrumentRequest;
+import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 import com.store.api.model.entity.FinancialInstrument;
 import com.store.api.model.entity.User;
 import com.store.api.model.enums.Bank;
