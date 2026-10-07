@@ -1,4 +1,4 @@
-package com.store.api.controller;
+package com.store.api.controller.auth;
 
 import com.store.api.config.security.UserContext;
 import com.store.api.model.dto.auth.DevicePairingInfoResponse;
