@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.category;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

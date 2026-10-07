@@ -1,8 +1,8 @@
-package com.store.api.service;
+package com.store.api.service.category;
 
 import com.store.api.config.security.UserContext;
-import com.store.api.model.dto.CategoryRequest;
-import com.store.api.model.dto.CategoryResponse;
+import com.store.api.model.dto.category.CategoryRequest;
+import com.store.api.model.dto.category.CategoryResponse;
 import com.store.api.model.entity.Category;
 import com.store.api.model.entity.User;
 import com.store.api.repository.CategoryRepository;

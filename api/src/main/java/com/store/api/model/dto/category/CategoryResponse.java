@@ -1,4 +1,4 @@
-package com.store.api.model.dto;
+package com.store.api.model.dto.category;
 
 import com.store.api.model.entity.Category;
 import lombok.Builder;

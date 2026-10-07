@@ -1,8 +1,8 @@
-package com.store.api.controller;
+package com.store.api.controller.category;
 
-import com.store.api.model.dto.CategoryRequest;
-import com.store.api.model.dto.CategoryResponse;
-import com.store.api.service.CategoryService;
+import com.store.api.model.dto.category.CategoryRequest;
+import com.store.api.model.dto.category.CategoryResponse;
+import com.store.api.service.category.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
