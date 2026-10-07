@@ -50,11 +50,11 @@ Package organization does not change HTTP routes, DTO fields or table names.
 
 1. `YapeNotificationListenerService` receives a notification.
 2. `NotificationParserDispatcher` rejects unsupported packages before parsing content.
-3. A bank-specific parser extracts amount, flow, contact, date and hash.
-4. A `LocalTransactionEntity` is inserted in Room.
-5. `TransactionSyncWorker` sends pending records through `ApiClient` with a device token.
+3. A bank-specific parser extracts financial fields; capture adds Android publication time and event identity.
+4. A `LocalTransactionEntity` is inserted in Room with its pairing scope. Active notifications are recovered on connection; legacy rows retain their hashes and require ownership review.
+5. `TransactionSyncWorker` sends only the current scope's pending records through `ApiClient` with a fixed device token.
 6. The API resolves the user, validates the payload and deduplicates by hash and user.
-7. A successful response lets Android mark the local records as synced; failures are retried.
+7. A successful response confirming the hash lets Android mark the record as synced; transient failures receive bounded retries. See [Android recovery](android-notification-recovery.md).
 
 Capture, queuing and successful synchronization are distinct states. A payment
 visible on the phone is not proof that the backend received it.

@@ -7,6 +7,7 @@ are defined by source and build files; update these documents when those change.
 | --- | --- |
 | [Architecture](architecture.md) | Module boundaries, ingestion paths and compatibility identifiers. |
 | [Development](development.md) | Native Windows setup, commands, verification and script limitations. |
+| [Android notification recovery](android-notification-recovery.md) | Capture identity, account isolation, legacy review and device verification. |
 | [Contracts](contracts.md) | Authentication, transaction payloads and changes affecting multiple modules. |
 | [Cashflow rules](domain/cashflow.md) | Financial interpretation, internal transfers, currencies and deduplication. |
 | [Cards and accounts](domain/financial-instruments.md) | Product lifecycle, assignment, suggestions, API and isolated schema verification. |

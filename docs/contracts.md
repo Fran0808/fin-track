@@ -9,6 +9,7 @@ generated OpenAPI specification.
 - Web requests use `Authorization: Bearer <jwt>`.
 - Android ingestion uses `X-Device-Token: <device-token>`; the server resolves the owning user.
 - Device credentials are limited to transaction sync and the app-update path allowed by `JwtAuthFilter`. They cannot access web analytics, email sync or transaction lists. Disallowed device access returns 403; invalid tokens return 401.
+- Android pairs only when verification confirms `valid` and a `userId`. Sync uses a fixed server/token snapshot and requires the response's `transactionHash` to match before acknowledging a local row; the payload is unchanged.
 - `GET /auth/google/url` and `GET /auth/google/callback` are public OAuth entry points.
 - `POST /user/pairing-info/verify` is a public verification route, but needs a valid candidate token in the header or request body to return a valid result.
 - CORS preflight and app-update access have special handling in [JwtAuthFilter](../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.

@@ -43,7 +43,7 @@ hash twice for that user; matching hashes for different users are separate recor
 
 Current hash inputs differ:
 
-- Android Yape notifications: flow, amount representation, normalized contact, capture minute and original notification text.
+- Android Yape notifications (1.0.2+): Android event metadata and a fingerprint of flow, normalized amount, contact and any security code. Older rows keep their original capture-minute hashes. See [recovery and compatibility](../android-notification-recovery.md).
 - BCP/Yape emails: flow, amount representation, normalized merchant/contact, operation identifier (or minute fallback) and date.
 
 The same payment arriving through email and a notification may have different
