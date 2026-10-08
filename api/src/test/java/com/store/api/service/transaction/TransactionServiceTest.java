@@ -7,6 +7,7 @@ import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
+import com.store.api.repository.CategoryRepository;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Path;
@@ -32,7 +33,8 @@ import static org.mockito.Mockito.*;
 class TransactionServiceTest {
     private final TransactionRepository transactions = mock(TransactionRepository.class);
     private final RawNotificationRepository rawNotifications = mock(RawNotificationRepository.class);
-    private final TransactionService service = new TransactionService(transactions, rawNotifications);
+    private final CategoryRepository categories = mock(CategoryRepository.class);
+    private final TransactionService service = new TransactionService(transactions, rawNotifications, categories);
 
     @AfterEach
     public void clearContext() {
@@ -118,14 +120,15 @@ class TransactionServiceTest {
         when(transactions.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         com.store.api.model.dto.transaction.TransactionClassificationRequest request = com.store.api.model.dto.transaction.TransactionClassificationRequest.builder()
-                .category("ALIMENTACION")
+                .category("Comida y bebidas")
                 .tags(List.of("almuerzo", "reembolsable"))
                 .notes("Almuerzo con compañeros")
                 .build();
 
+        when(categories.existsByUserAndActiveTrueAndNameIgnoreCase(user, "Comida y bebidas")).thenReturn(true);
         var response = service.updateClassification(50L, request);
 
-        assertEquals("ALIMENTACION", response.getCategory());
+        assertEquals("Comida y bebidas", response.getCategory());
         assertEquals(List.of("almuerzo", "reembolsable"), response.getTags());
         assertEquals("Almuerzo con compañeros", response.getNotes());
         verify(transactions).save(existing);

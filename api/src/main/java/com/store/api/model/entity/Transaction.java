@@ -47,7 +47,7 @@ public class Transaction {
     @Column(name = "transaction_date", nullable = false)
     private LocalDateTime transactionDate;
 
-    @Column(name = "category", length = 50)
+    @Column(name = "category", length = 100)
     private String category;
 
     @Column(name = "tags", length = 255)

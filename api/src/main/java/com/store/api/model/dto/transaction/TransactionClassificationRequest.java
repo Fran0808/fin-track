@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class TransactionClassificationRequest {
 
-    @Size(max = 50, message = "La categoría no debe superar los 50 caracteres")
+    @Size(max = 100, message = "La categoría no debe superar los 100 caracteres")
     private String category;
 
     private List<@Size(max = 30, message = "Cada etiqueta no debe superar los 30 caracteres") String> tags;

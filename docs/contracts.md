@@ -58,6 +58,19 @@ Product currency is fixed to PEN and does not add currency to captured transacti
 See [cards and accounts](domain/financial-instruments.md) for registration fields,
 ownership checks, suggestions and schema preparation.
 
+## Transaction classification
+
+`PATCH /transactions/{id}/classification` accepts category names up to 100 characters.
+New assignments must match an active category in the authenticated user's catalog
+(case-insensitive). Invalid assignments return HTTP 400 with a Spanish `message`.
+The transaction must also belong to that user. Existing legacy or inactive category
+values can remain unchanged while editing notes or tags.
+An empty or whitespace-only category clears it; null or an omitted category leaves
+it unchanged. Names are trimmed and retain their submitted casing.
+Unexpected server errors return a generic Spanish message without SQL or financial details.
+
+Existing databases need the [category schema migration](development.md#transaction-category-migration).
+
 ## Sources to update together
 
 - [TransactionSyncRequest](../api/src/main/java/com/store/api/model/dto/transaction/TransactionSyncRequest.java) and [TransactionResponse](../api/src/main/java/com/store/api/model/dto/transaction/TransactionResponse.java).

@@ -104,6 +104,33 @@ The Maven wrapper uses the configured environment and Java installation. CI has 
 disposable PostgreSQL service; local commands do not yet reproduce that isolation.
 First-time dependency downloads may require network access.
 
+## Transaction category migration
+
+Older databases may still have `transactions_category_check`, which only accepts
+the former fixed enum. Hibernate schema updates do not remove this legacy check.
+The [manual migration](../scripts/migrations/20261008_transaction_categories.sql)
+drops only that check and expands `category` to 100 characters to match the catalog.
+It preserves existing rows and category values, runs in a transaction with bounded
+lock/statement timeouts, and can be repeated safely.
+
+Confirm the intended database and back it up before applying the migration. With
+PostgreSQL connection credentials configured securely, run from the repository root:
+
+```powershell
+psql -X -v ON_ERROR_STOP=1 -d finance_db -f scripts/migrations/20261008_transaction_categories.sql
+```
+
+Replace `finance_db` with the confirmed target and supply host/user options as needed.
+Deploy the updated backend to enable catalog validation and safe error messages.
+The updated dashboard sends an empty category to explicitly remove an assignment.
+Do not restore the old check after new category values have been saved; that rollback
+would reject those values.
+
+The [SQL regression test](../scripts/migrations/test_transaction_categories.sql)
+creates a synthetic `public.transactions` table. Run it only in a newly created,
+disposable database with no financial data. It checks the original failure,
+idempotency, preservation of existing values, custom names and unclassified rows.
+
 ## Dashboard and Android verification
 
 From `ui`, run `npm test`, `npm run lint` and `npm run build` after application

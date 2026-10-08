@@ -11,6 +11,7 @@ import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
+import com.store.api.repository.CategoryRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final RawNotificationRepository rawNotificationRepository;
+    private final CategoryRepository categoryRepository;
 
     @Transactional
     public TransactionResponse processAndSave(TransactionSyncRequest request) {
@@ -98,7 +100,16 @@ public class TransactionService {
 
         if (request.getCategory() != null) {
             String trimmed = request.getCategory().trim();
-            tx.setCategory(trimmed.isEmpty() ? null : trimmed.toUpperCase());
+            if (trimmed.isEmpty()) {
+                tx.setCategory(null);
+            } else if (!trimmed.equalsIgnoreCase(tx.getCategory())) {
+                if (trimmed.length() > 100
+                        || !categoryRepository.existsByUserAndActiveTrueAndNameIgnoreCase(currentUser, trimmed)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Selecciona una categoría activa de tu catálogo.");
+                }
+                tx.setCategory(trimmed);
+            }
         }
         if (request.getTags() != null) {
             tx.setTagsList(request.getTags());

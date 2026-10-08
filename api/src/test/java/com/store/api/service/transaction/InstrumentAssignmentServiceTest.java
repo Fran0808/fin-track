@@ -102,7 +102,7 @@ class InstrumentAssignmentServiceTest {
         when(transactions.findByTransactionHashAndUser("original", user)).thenReturn(Optional.of(transaction));
         TransactionSyncRequest request = new TransactionSyncRequest();
         request.setTransactionHash("original"); request.setChannel("YAPE");
-        var result = new TransactionService(transactions, mock(RawNotificationRepository.class)).processAndSave(request);
+        var result = new TransactionService(transactions, mock(RawNotificationRepository.class), mock(CategoryRepository.class)).processAndSave(request);
         assertEquals(2L, result.getFinancialInstrument().getId());
         assertFalse(result.getFinancialInstrument().isActive());
         assertEquals(new BigDecimal("25.50"), result.getAmount());
