@@ -13,6 +13,7 @@ generated OpenAPI specification.
 - `GET /auth/google/url` and `GET /auth/google/callback` are public OAuth entry points.
 - `POST /user/pairing-info/verify` is a public verification route, but needs a valid candidate token in the header or request body to return a valid result.
 - CORS preflight and app-update access have special handling in [JwtAuthFilter](../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.
+- [CorsConfig](../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification and instrument assignment updates. Actual protected requests still require authentication.
 
 ## Client endpoints
 
