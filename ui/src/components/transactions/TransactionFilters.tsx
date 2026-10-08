@@ -4,6 +4,7 @@ import type { FlowType } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
 import { CustomSelect } from '../common';
+import { TransactionDateFilter } from './TransactionDateFilter';
 
 interface TransactionFiltersProps {
   search: string;
@@ -13,6 +14,8 @@ interface TransactionFiltersProps {
   channel?: string;
   minAmount?: number;
   maxAmount?: number;
+  startDate?: string;
+  endDate?: string;
   onFilterChange: (filters: Partial<TransactionFilterParams>) => void;
   onReset: () => void;
 }
@@ -41,6 +44,8 @@ export function TransactionFilters({
   channel = '',
   minAmount,
   maxAmount,
+  startDate,
+  endDate,
   onFilterChange,
   onReset,
 }: TransactionFiltersProps) {
@@ -67,7 +72,7 @@ export function TransactionFilters({
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
   ].filter(Boolean).length;
 
-  const hasAnyFilter = Boolean(localSearch.trim() || flowType || activeAdvancedCount > 0);
+  const hasAnyFilter = Boolean(localSearch.trim() || flowType || startDate || endDate || activeAdvancedCount > 0);
 
   return (
     <div className="space-y-4">
@@ -149,6 +154,8 @@ export function TransactionFilters({
           )}
         </div>
       </div>
+
+      <TransactionDateFilter key={`${startDate || ''}:${endDate || ''}`} startDate={startDate} endDate={endDate} onFilterChange={onFilterChange} />
 
       {isAdvancedOpen && (
         <div className="rounded-2xl border border-line bg-canvas/60 p-4 transition-all sm:p-5">

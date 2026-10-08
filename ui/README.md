@@ -11,6 +11,17 @@ backend configuration, startup commands and module checks. The development serve
 runs on port 5173 and proxies `/api` to `localhost:8080` through
 [vite.config.ts](vite.config.ts). Keep the proxy and OAuth URLs aligned when changing ports.
 
+## Searching movements by date
+
+In Movements, use the visible date filter to choose the selected month, a specific
+day, or an inclusive date range. Choose the dates and press `Buscar por fecha`.
+Ranges can span multiple months. The final date includes the entire day.
+The date filter combines with text, movement type and advanced filters; pagination
+and CSV export retain the same applied range. Invalid or incomplete ranges cannot
+be applied. `Limpiar filtros` or `Mes seleccionado` restores the selected month;
+changing the global month also clears custom dates. Dashboard analytics continue
+to use the globally selected month.
+
 ## Entry points
 
 | Area | Source |

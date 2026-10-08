@@ -9,6 +9,7 @@ interface TransactionsViewProps {
   pageData: PageResponse<Transaction> | null;
   loading: boolean;
   filters: TransactionFilterParams;
+  exportFilters?: TransactionFilterParams;
   onFilterChange: (filters: Partial<TransactionFilterParams>) => void;
   onPageChange: (newPage: number) => void;
   onSelectTransaction: (transaction: Transaction) => void;
@@ -19,6 +20,7 @@ export function TransactionsView({
   pageData,
   loading,
   filters,
+  exportFilters = filters,
   onFilterChange,
   onPageChange,
   onSelectTransaction,
@@ -57,7 +59,7 @@ export function TransactionsView({
   const handleExportCSV = async () => {
     setIsExporting(true);
     try {
-      const blob = await api.exportTransactionsCsv(filters);
+      const blob = await api.exportTransactionsCsv(exportFilters);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -103,6 +105,8 @@ export function TransactionsView({
             channel={filters.channel || ''}
             minAmount={filters.minAmount}
             maxAmount={filters.maxAmount}
+            startDate={filters.startDate}
+            endDate={filters.endDate}
             onFilterChange={onFilterChange}
             onReset={() =>
               onFilterChange({
@@ -113,6 +117,8 @@ export function TransactionsView({
                 channel: '',
                 minAmount: undefined,
                 maxAmount: undefined,
+                startDate: undefined,
+                endDate: undefined,
               })
             }
           />
@@ -120,7 +126,9 @@ export function TransactionsView({
         <TransactionTable
           pageData={pageData}
           loading={loading}
-          periodName={periodName}
+          periodName={filters.startDate && filters.endDate
+            ? `${filters.startDate.slice(0, 10).split('-').reverse().join('/')} al ${filters.endDate.slice(0, 10).split('-').reverse().join('/')}`
+            : periodName}
           onPageChange={onPageChange}
           onSelectTransaction={onSelectTransaction}
         />

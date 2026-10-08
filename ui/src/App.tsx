@@ -51,6 +51,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     refreshSyncStatus,
     error,
     filters,
+    transactionFilters,
     selectedPeriod,
     setSelectedPeriod,
     handlePageChange,
@@ -166,6 +167,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               pageData={transactionsPage}
               loading={loadingTransactions}
               filters={filters}
+              exportFilters={transactionFilters}
               onFilterChange={handleFilterChange}
               onPageChange={handlePageChange}
               onSelectTransaction={setSelectedTransaction}
