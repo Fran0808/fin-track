@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import type { Bank, FinancialInstrument, FinancialInstrumentRequest, InstrumentType } from '../../types';
 import { api } from '../../services/api';
 import { instrumentLabels, instrumentRequest } from '../../utils/instruments';
+import { CustomSelect } from '../common';
 
 interface Props {
   item: FinancialInstrument | null;
@@ -45,32 +46,61 @@ export function InstrumentForm({ item, instruments, onClose, onSaved }: Props) {
       <p className="mt-2 text-sm text-muted">Solo soles. Guarda un alias y, si lo necesitas, los últimos cuatro dígitos.</p>
       <form onSubmit={event => { void submit(event); }} className="mt-5 space-y-4">
         <fieldset disabled={saving} className="space-y-4">
-          <label className="block text-sm font-medium">Tipo de producto
-            <select className={fieldClass} value={data.type} onChange={e => setData({ ...data, type: e.target.value as InstrumentType, linkedAccountId: null })}>
-              {Object.entries(instrumentLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
+          <div>
+            <label htmlFor="instrument-type" className="block text-sm font-medium">Tipo de producto</label>
+            <div className="mt-1">
+              <CustomSelect
+                id="instrument-type"
+                value={data.type}
+                onChange={val => setData({ ...data, type: val as InstrumentType, linkedAccountId: null })}
+                options={Object.entries(instrumentLabels).map(([value, label]) => ({ value: value as InstrumentType, label }))}
+              />
+            </div>
+          </div>
           <label className="block text-sm font-medium">Alias
             <input required maxLength={100} className={fieldClass} value={data.alias} onChange={e => setData({ ...data, alias: e.target.value })} placeholder="Ejemplo: Cuenta principal" />
           </label>
-          <label className="block text-sm font-medium">Banco
-            <select className={fieldClass} value={data.bank} onChange={e => setData({ ...data, bank: e.target.value as Bank, linkedAccountId: null })}>
-              <option value="BCP">BCP</option><option value="INTERBANK">Interbank</option><option value="BBVA">BBVA</option><option value="OTHER">Otro</option>
-            </select>
-          </label>
+          <div>
+            <label htmlFor="instrument-bank" className="block text-sm font-medium">Banco</label>
+            <div className="mt-1">
+              <CustomSelect
+                id="instrument-bank"
+                value={data.bank}
+                onChange={val => setData({ ...data, bank: val as Bank, linkedAccountId: null })}
+                options={[
+                  { value: 'BCP' as Bank, label: 'BCP' },
+                  { value: 'INTERBANK' as Bank, label: 'Interbank' },
+                  { value: 'BBVA' as Bank, label: 'BBVA' },
+                  { value: 'OTHER' as Bank, label: 'Otro' },
+                ]}
+              />
+            </div>
+          </div>
           {data.bank === 'OTHER' && <label className="block text-sm font-medium">Nombre de la institución
             <input required maxLength={100} className={fieldClass} value={data.institutionName || ''} onChange={e => setData({ ...data, institutionName: e.target.value, linkedAccountId: null })} />
           </label>}
           <label className="block text-sm font-medium">Últimos cuatro dígitos (opcional)
             <input inputMode="numeric" pattern="[0-9]{4}" maxLength={4} className={fieldClass} value={data.lastFour || ''} onChange={e => setData({ ...data, lastFour: e.target.value || null })} />
           </label>
-          {data.type === 'DEBIT_CARD' && <label className="block text-sm font-medium">Cuenta vinculada (opcional)
-            <select className={fieldClass} value={data.linkedAccountId || ''} onChange={e => setData({ ...data, linkedAccountId: e.target.value ? Number(e.target.value) : null })}>
-              <option value="">Sin cuenta vinculada</option>
-              {existingAccount && !accounts.some(account => account.id === existingAccount.id) && <option value={existingAccount.id}>{existingAccount.alias} (archivada)</option>}
-              {accounts.map(account => <option key={account.id} value={account.id}>{account.alias}</option>)}
-            </select>
-          </label>}
+          {data.type === 'DEBIT_CARD' && (
+            <div>
+              <label htmlFor="instrument-linked" className="block text-sm font-medium">Cuenta vinculada (opcional)</label>
+              <div className="mt-1">
+                <CustomSelect<string | number>
+                  id="instrument-linked"
+                  value={data.linkedAccountId ?? ''}
+                  onChange={val => setData({ ...data, linkedAccountId: val === '' ? null : Number(val) })}
+                  options={[
+                    { value: '', label: 'Sin cuenta vinculada' },
+                    ...(existingAccount && !accounts.some(account => account.id === existingAccount.id)
+                      ? [{ value: existingAccount.id, label: `${existingAccount.alias} (archivada)` }]
+                      : []),
+                    ...accounts.map(account => ({ value: account.id, label: account.alias })),
+                  ]}
+                />
+              </div>
+            </div>
+          )}
         </fieldset>
         {error && <p role="alert" className="text-sm text-negative">{error}</p>}
         <div className="flex justify-end gap-3">

@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
+import { CustomSelect } from '../common';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -129,22 +130,20 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
               <label htmlFor="modal-category" className="block text-xs font-semibold text-muted">
                 Categoría
               </label>
-              <select
-                id="modal-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-ink focus:border-brand focus:outline-none"
-              >
-                <option value="">Sin categorizar</option>
-                {category && !categoryOptions.some((o) => o.id === category) && (
-                  <option value={category}>{category}</option>
-                )}
-                {categoryOptions.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1.5">
+                <CustomSelect
+                  id="modal-category"
+                  value={category}
+                  onChange={(val) => setCategory(val)}
+                  options={[
+                    { value: '', label: 'Sin categorizar' },
+                    ...(category && !categoryOptions.some((o) => o.id === category)
+                      ? [{ value: category, label: category }]
+                      : []),
+                    ...categoryOptions.map((cat) => ({ value: cat.id, label: cat.label })),
+                  ]}
+                />
+              </div>
             </div>
 
             <div>

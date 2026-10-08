@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Tag } from 'lucid
 import type { FlowType } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
+import { CustomSelect } from '../common';
 
 interface TransactionFiltersProps {
   search: string;
@@ -156,40 +157,36 @@ export function TransactionFilters({
               <label htmlFor="filter-category" className="block text-xs font-semibold text-muted">
                 Categoría
               </label>
-              <select
-                id="filter-category"
-                value={category}
-                onChange={(e) => onFilterChange({ category: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-ink focus:border-brand focus:outline-none"
-              >
-                <option value="">Todas las categorías</option>
-                {category && !categoryOptions.some((o) => o.id === category) && (
-                  <option value={category}>{category}</option>
-                )}
-                {categoryOptions.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1.5">
+                <CustomSelect
+                  id="filter-category"
+                  value={category}
+                  onChange={(val) => onFilterChange({ category: val })}
+                  options={[
+                    { value: '', label: 'Todas las categorías' },
+                    ...(category && !categoryOptions.some((o) => o.id === category)
+                      ? [{ value: category, label: category }]
+                      : []),
+                    ...categoryOptions.map((cat) => ({ value: cat.id, label: cat.label })),
+                  ]}
+                  className="text-xs py-1.5"
+                />
+              </div>
             </div>
 
             <div>
               <label htmlFor="filter-channel" className="block text-xs font-semibold text-muted">
                 Medio de pago
               </label>
-              <select
-                id="filter-channel"
-                value={channel}
-                onChange={(e) => onFilterChange({ channel: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2 text-xs font-medium text-ink focus:border-brand focus:outline-none"
-              >
-                {CHANNEL_OPTIONS.map((ch) => (
-                  <option key={ch.value} value={ch.value}>
-                    {ch.label}
-                  </option>
-                ))}
-              </select>
+              <div className="mt-1.5">
+                <CustomSelect
+                  id="filter-channel"
+                  value={channel}
+                  onChange={(val) => onFilterChange({ channel: val })}
+                  options={CHANNEL_OPTIONS}
+                  className="text-xs py-1.5"
+                />
+              </div>
             </div>
 
             <div>

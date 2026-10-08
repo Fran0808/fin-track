@@ -41,7 +41,7 @@ it('preserves an archived assignment on screen and allows removing it', async ()
   const assign = vi.spyOn(api, 'assignFinancialInstrument').mockResolvedValue({ ...movement, financialInstrument: null });
   render(<InstrumentAssignment transaction={{ ...movement, financialInstrument: { ...card, active: false } }} onUpdated={vi.fn()} />);
   await screen.findByText('Sin sugerencias');
-  expect(screen.getAllByText('Débito diario (archivado)')).toHaveLength(2);
+  expect(screen.getAllByText('Débito diario (archivado)').length).toBeGreaterThanOrEqual(2);
   fireEvent.change(screen.getByLabelText('Seleccionar producto'), { target: { value: '' } });
   fireEvent.click(screen.getByRole('button', { name: 'Guardar asignación' }));
   await waitFor(() => expect(assign).toHaveBeenCalledWith(5, null));

@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { instrumentBank, instrumentLabels, instrumentRequest } from '../../utils/instruments';
 import { InstrumentForm } from '../instruments/InstrumentForm';
 import { TransactionTable } from '../transactions/TransactionTable';
+import { CustomSelect } from '../common';
 
 interface Props {
   year: number;
@@ -82,11 +83,27 @@ export function InstrumentsView({ year, month, revision, onSelectTransaction, on
           <p className="mt-2 text-sm text-muted">Organiza tus productos en soles y consulta sus movimientos registrados.</p></div>
         <button onClick={() => setForm({ item: null })} className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white">Agregar producto</button>
       </div>
-      <label className="block text-sm font-medium">Mostrar productos
-        <select value={status} onChange={e => { setStatus(e.target.value); setSelectedId(null); setPage(0); }} className="ml-3 rounded-lg border border-line bg-white px-3 py-2">
-          <option value="active">Activos</option><option value="archived">Archivados</option><option value="all">Todos</option>
-        </select>
-      </label>
+      <div className="flex items-center gap-3">
+        <label htmlFor="instruments-status" className="text-sm font-semibold text-muted">
+          Mostrar productos
+        </label>
+        <div className="w-44">
+          <CustomSelect
+            id="instruments-status"
+            value={status}
+            onChange={(val) => {
+              setStatus(val);
+              setSelectedId(null);
+              setPage(0);
+            }}
+            options={[
+              { value: 'active', label: 'Activos' },
+              { value: 'archived', label: 'Archivados' },
+              { value: 'all', label: 'Todos' },
+            ]}
+          />
+        </div>
+      </div>
       {error && <div role="alert" className="text-sm text-negative">{error}<button className="ml-3 underline" onClick={() => setRefresh(value => value + 1)}>Reintentar</button></div>}
       {loading ? <p role="status" className="text-sm text-muted">Cargando productos...</p> : !visible.length ? <div className="surface p-8 text-sm text-muted">No tienes productos {status === 'archived' ? 'archivados' : 'registrados en esta vista'}. Agrega una cuenta o tarjeta para comenzar.</div> :
         <div className="grid gap-6 lg:grid-cols-2">

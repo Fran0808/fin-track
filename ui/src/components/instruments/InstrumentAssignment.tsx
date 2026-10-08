@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FinancialInstrument, Transaction } from '../../types';
 import { api } from '../../services/api';
 import { instrumentBank, instrumentLabels } from '../../utils/instruments';
+import { CustomSelect } from '../common';
 
 export function InstrumentAssignment({ transaction, onUpdated }: { transaction: Transaction; onUpdated: (transaction: Transaction) => void }) {
   const [resource, setResource] = useState<{ key: string; items: FinancialInstrument[]; suggestions: FinancialInstrument[]; error: string | null } | null>(null);
@@ -41,13 +42,27 @@ export function InstrumentAssignment({ transaction, onUpdated }: { transaction: 
       <h3 id="assignment-title" className="text-sm font-semibold">Tarjeta o cuenta asignada</h3>
       <p className="mt-2 text-sm text-muted">{current ? `${current.alias}${current.active ? '' : ' (archivado)'}` : 'Sin asignar'}</p>
       {loading ? <p role="status" className="mt-3 text-sm text-muted">Buscando productos y sugerencias...</p> : !loadError && <>
-        <label className="mt-3 block text-sm">Seleccionar producto
-          <select disabled={saving} value={value} onChange={e => setChoice({ baseId: currentId, value: e.target.value })} className="mt-1 block w-full rounded-lg border border-line bg-white px-3 py-2">
-            <option value="">Sin asignar</option>
-            {current && !items.some(item => item.id === current.id) && <option value={current.id} disabled>{current.alias} (archivado)</option>}
-            {items.map(item => <option key={item.id} value={item.id}>{item.alias} · {instrumentLabels[item.type]} · {instrumentBank(item)}{item.lastFour ? ` ··${item.lastFour}` : ''}</option>)}
-          </select>
-        </label>
+        <div>
+          <label htmlFor="assignment-product" className="block text-sm font-medium">Seleccionar producto</label>
+          <div className="mt-1">
+            <CustomSelect
+              id="assignment-product"
+              disabled={saving}
+              value={value}
+              onChange={val => setChoice({ baseId: currentId, value: val })}
+              options={[
+                { value: '', label: 'Sin asignar' },
+                ...(current && !items.some(item => item.id === current.id)
+                  ? [{ value: current.id.toString(), label: `${current.alias} (archivado)` }]
+                  : []),
+                ...items.map(item => ({
+                  value: item.id.toString(),
+                  label: `${item.alias} · ${instrumentLabels[item.type]} · ${instrumentBank(item)}${item.lastFour ? ` ··${item.lastFour}` : ''}`,
+                })),
+              ]}
+            />
+          </div>
+        </div>
         <button disabled={saving || unchanged} onClick={() => { void assign(value ? Number(value) : null); }} className="mt-3 rounded-lg bg-brand px-3 py-2 text-sm text-white disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar asignación'}</button>
         <h4 className="mt-4 text-sm font-medium">Sugerencias</h4>
         {!suggestions.length ? <p className="mt-1 text-xs text-muted">Sin sugerencias</p> : <div className="mt-2 space-y-2">

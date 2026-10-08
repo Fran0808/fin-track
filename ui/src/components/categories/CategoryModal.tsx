@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import type { Category, CategoryRequest } from '../../types';
 import { AVAILABLE_ICONS, CategoryIcon } from './CategoryIcon';
+import { CustomSelect } from '../common';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -170,21 +171,23 @@ export function CategoryModal({
             <label htmlFor="cat-parent" className="block text-xs font-semibold text-muted">
               Categoría principal (opcional para subcategorías)
             </label>
-            <select
-              id="cat-parent"
-              value={parentId || ''}
-              onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)}
-              className="mt-1.5 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20"
-            >
-              <option value="">Ninguna (es categoría principal)</option>
-              {parentOptions
-                .filter((p) => !initialCategory || p.id !== initialCategory.id)
-                .map((parent) => (
-                  <option key={parent.id} value={parent.id}>
-                    {parent.name}
-                  </option>
-                ))}
-            </select>
+            <div className="mt-1.5">
+              <CustomSelect<string | number>
+                id="cat-parent"
+                value={parentId ?? ''}
+                onChange={(val) => setParentId(val === '' ? null : Number(val))}
+                options={[
+                  { value: '', label: 'Ninguna (es categoría principal)' },
+                  ...parentOptions
+                    .filter((p) => !initialCategory || p.id !== initialCategory.id)
+                    .map((parent) => ({
+                      value: parent.id,
+                      label: parent.name,
+                      icon: <CategoryIcon name={parent.icon} className="h-4 w-4" />,
+                    })),
+                ]}
+              />
+            </div>
           </div>
 
           <div>
