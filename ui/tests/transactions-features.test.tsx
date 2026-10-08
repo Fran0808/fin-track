@@ -106,6 +106,15 @@ it('allows editing category, adding tags, and saving classification in Transacti
   expect(onUpdated).toHaveBeenCalled();
 });
 
+it('sends an empty category to clear an existing classification', async () => {
+  vi.spyOn(api, 'getCategories').mockResolvedValue([]);
+  const updateSpy = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...sampleTx, category: null });
+  render(<TransactionDetailModal transaction={sampleTx} onClose={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: '' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
+  await waitFor(() => expect(updateSpy).toHaveBeenCalledWith(10, expect.objectContaining({ category: '' })));
+});
+
 it('toggles advanced filters panel and emits multi-criteria filter updates', () => {
   const onFilterChange = vi.fn();
   const onReset = vi.fn();

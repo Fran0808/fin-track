@@ -73,7 +73,7 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
     setSaveSuccess(false);
     try {
       const updated = await api.updateTransactionClassification(transaction.id, {
-        category: category || null,
+        category,
         tags: tags.length > 0 ? tags : null,
         notes: notes.trim() || null,
       });
