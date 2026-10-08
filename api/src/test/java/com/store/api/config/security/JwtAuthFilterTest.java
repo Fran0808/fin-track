@@ -38,6 +38,7 @@ class JwtAuthFilterTest {
             "GET,/api/v1/financial-instruments", "POST,/api/v1/financial-instruments",
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
+            "PATCH,/api/v1/transactions/1/classification",
             "GET,/api/v1/transactions", "POST,/api/v1/transactions/sync",
             "POST,/api/v1/transactions/sync/batch", "GET,/api/v1/analytics/summary",
             "GET,/api/v1/analytics/period", "POST,/api/v1/emails/sync",
@@ -175,7 +176,8 @@ class JwtAuthFilterTest {
             "POST,/api/v1/transactions/sync/extra", "POST,/api/v1/app/update",
             "GET,/api/v1/financial-instruments", "POST,/api/v1/financial-instruments",
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
-            "GET,/api/v1/transactions/1/financial-instrument-suggestions"
+            "GET,/api/v1/transactions/1/financial-instrument-suggestions",
+            "PATCH,/api/v1/transactions/1/classification"
     })
     void rejectsDeviceCredentialsOutsideAllowedEndpoints(String method, String path) throws Exception {
         when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
@@ -196,7 +198,8 @@ class JwtAuthFilterTest {
             "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
             "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/pairing-info",
             "POST,/api/v1/user/pairing-info/regenerate", "GET,/api/v1/financial-instruments",
-            "PATCH,/api/v1/transactions/1/financial-instrument"
+            "PATCH,/api/v1/transactions/1/financial-instrument",
+            "PATCH,/api/v1/transactions/1/classification"
     })
     void permitsWebCredentialsOnDeviceRestrictedEndpoints(String method, String path) throws Exception {
         when(users.findById(42L)).thenReturn(Optional.of(user));
