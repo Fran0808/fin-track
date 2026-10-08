@@ -25,4 +25,4 @@ this directory contains explanations and reference material.
 - Distinguish implemented behavior from planned improvements and known limitations.
 - Store anonymized examples only; never include live credentials or private financial records.
 - Add a runbook when a diagnosis becomes repeatable, and an ADR when a decision has alternatives and lasting consequences.
-- Local skills still live in ignored `skills/`. Their migration and adaptation, test isolation, script corrections and agent evals are later stages; they are not implemented by this documentation change.
+- Local skills live in `.agents/skills/`. The current `skills/` ignore rule also excludes this directory from Git. Skill adaptation, test isolation, script corrections and agent evals remain pending.
