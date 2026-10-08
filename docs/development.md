@@ -142,6 +142,21 @@ Documentation-only changes need link, consistency and diff checks. When delivery
 includes running the application, verify that the current process or APK contains
 the changed code. Report compilation, installation and runtime checks separately.
 
+## Branding assets
+
+The shared logo master lives in [assets/branding](../assets/branding).
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-brand-assets.ps1` from the repository
+root on Windows to regenerate the web logo, favicon, Apple touch icon and Android
+launcher assets. The script uses System.Drawing, preserves the logo's proportions
+and transparency, and adds safe padding for adaptive launcher masks.
+It overwrites only the derived branding assets; keep the master image as the source.
+Web components use `ui/src/assets/fintrack-mark.png`; browser icons live in
+`ui/public/`, and Android assets live in `android/app/src/main/res/`.
+Android requires API 26 or higher and uses one adaptive launcher icon for both
+standard and round launcher shapes. Its foreground is exported once, with no
+legacy icon copies per density. The adaptive XML and background stay unchanged
+when replacing the logo; only the two Android PNG assets need regeneration.
+
 ## Existing scripts
 
 These scripts are existing tools, with limitations that have not been fixed by

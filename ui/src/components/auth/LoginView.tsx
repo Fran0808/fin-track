@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts';
 import { LoginWaves } from '../effects/LoginWaves';
+import { BrandMark } from '../common/BrandMark';
 
 export function LoginView() {
   const { loginWithGoogle, error } = useAuth();
@@ -19,7 +20,7 @@ export function LoginView() {
   return (
     <div className="flex min-h-screen flex-col bg-canvas text-ink">
       <header className="mx-auto flex w-full max-w-7xl items-center px-6 py-7 sm:px-10">
-        <span className="mr-3 flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white" aria-hidden="true">W</span>
+        <BrandMark className="mr-3" />
         <span className="font-display text-lg font-bold tracking-tight">FinTrack</span>
       </header>
 

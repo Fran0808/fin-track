@@ -7,6 +7,7 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -96,11 +98,8 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = BrandBlue, shape = RoundedCornerShape(12.dp)) {
-                    Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                        Text("W", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
+                Image(painter = painterResource(R.drawable.fintrack_mark), contentDescription = null,
+                    modifier = Modifier.size(40.dp))
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text("FinTrack", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)

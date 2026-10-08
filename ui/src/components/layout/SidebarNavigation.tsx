@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { BrandMark } from '../common/BrandMark';
 import { ArrowLeftRight, ChartNoAxesCombined, CreditCard, LayoutDashboard, Settings2, Target, Tags } from 'lucide-react';
 
 export type NavView = 'inicio' | 'mi-dinero' | 'movimientos' | 'tarjetas' | 'categorias' | 'presupuestos' | 'configuracion';
@@ -30,7 +31,7 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
     <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-4 py-7 sm:w-64">
       <div className="px-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white" aria-hidden="true">W</span>
+          <BrandMark />
           <div>
             <p className="font-display text-lg font-bold leading-tight tracking-tight text-ink">FinTrack</p>
             <p className="text-xs text-muted">Tu dinero en movimiento</p>
