@@ -50,7 +50,7 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
                 type="button"
                 onClick={() => onViewChange(item.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors ${active ? 'bg-brand/8 text-brand' : 'text-muted hover:bg-canvas hover:text-ink'}`}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors ${active ? 'bg-brand/8 text-brand' : 'text-muted hover:bg-canvas hover:text-ink'} cursor-pointer`}
               >
                 <Icon className="h-4.5 w-4.5 shrink-0" />
                 {item.label}
