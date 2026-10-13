@@ -11,6 +11,7 @@ are defined by source and build files; update these documents when those change.
 | [Contracts](contracts.md) | Authentication, transaction payloads and changes affecting multiple modules. |
 | [Cashflow rules](domain/cashflow.md) | Financial interpretation, internal transfers, currencies and deduplication. |
 | [Cards and accounts](domain/financial-instruments.md) | Product lifecycle, assignment, suggestions, API and isolated schema verification. |
+| [Pending movements and rules](domain/classification.md) | Inbox criteria, automatic classification, category lifecycle and schema preparation. |
 | [Docker guide](../docker/README.md) | Compose configuration, existing volumes and container operations. |
 
 Agent instructions are maintained separately in [the root agreements](../AGENTS.md)

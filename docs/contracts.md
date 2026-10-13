@@ -28,6 +28,8 @@ Paths below are relative to `/api/v1`.
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
 | `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
 | `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
 | `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
@@ -70,6 +72,19 @@ it unchanged. Names are trimmed and retain their submitted casing.
 Unexpected server errors return a generic Spanish message without SQL or financial details.
 
 Existing databases need the [category schema migration](development.md#transaction-category-migration).
+
+## Pending movements and rules
+
+The inbox returns the existing paginated transaction response. Rule creation and
+replacement require `matchText` (nonblank, at most 150 characters), `categoryId`
+(positive ID of an owned active category), `priority` (integer 0–9999) and `enabled`
+(boolean). Responses add `id`, `categoryName` and `categoryActive`; lists are sorted
+by priority then ID. Deletion returns 204. All endpoints require web authentication;
+device credentials cannot manage rules or read the inbox. Foreign rule IDs return
+404; invalid category targets return 400. An existing inactive target may be kept
+only when saving the rule disabled.
+
+See [classification behavior and schema preparation](domain/classification.md).
 
 ## Sources to update together
 
