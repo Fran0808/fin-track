@@ -16,6 +16,8 @@ excluded from expenses. Listen Service is the repository name.
 - **Cashflow dashboard:** period summaries, expense charts and transaction filters
   for dates, amounts, category, tags, payment channel and financial instrument.
 - **Classification:** system and custom categories, subcategories, tags and personal notes.
+- **Pending inbox:** complete uncategorized movements and unassigned payment instruments across the entire history.
+- **Classification rules:** categorize new movements by merchant/contact text, with ordered priorities and pause controls.
 - **Cards and accounts:** register financial instruments, associate movements and
   review assignment suggestions before confirming them.
 - **CSV export:** export transactions matching the selected filters.
