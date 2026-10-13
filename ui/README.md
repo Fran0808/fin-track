@@ -24,6 +24,12 @@ to use the globally selected month.
 
 ## Entry points
 
+`Pendientes` shows the entire history's movements missing a category or assigned
+instrument, with reason filters and the existing detail dialog for completion.
+`Reglas` manages automatic category assignments for new movements. These screens
+do not use the global month selector. See [pending movements and rules](../docs/domain/classification.md)
+for matching, priority and category lifecycle behavior.
+
 | Area | Source |
 | --- | --- |
 | Session lifecycle | [AuthContext](src/contexts/AuthContext.tsx) |
