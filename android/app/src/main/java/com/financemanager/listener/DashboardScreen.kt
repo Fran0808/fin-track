@@ -69,9 +69,13 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     val ownedFlow = remember(session?.ownerKey) { dao.getTransactionsFlow(session?.ownerKey) }
     val owned by key(session?.ownerKey) { ownedFlow.collectAsState(emptyList()) }
     val unassigned by remember { dao.unassignedTransactions() }.collectAsState(emptyList())
+    val phoneMovements = remember(owned, unassigned) {
+        (owned + unassigned).sortedWith(compareByDescending<LocalTransactionEntity> { it.transactionDate }.thenByDescending { it.id })
+    }
     val pendingCount = owned.count { !it.isSynced }
+    val destinationCount = unassigned.count { !it.isSynced }
     val status = MovementStatus.valueOf(statusName)
-    val rows = if (status == MovementStatus.UNASSIGNED) unassigned else owned
+    val rows = phoneMovements
     val filtered = remember(rows, query, status, startDay, endDay) {
         filterMovements(rows, query, status, startDay?.let(LocalDate::parse), endDay?.let(LocalDate::parse))
     }
@@ -113,13 +117,13 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             }
             if (tab == 0) {
                 item { Text("Tus movimientos de Yape", style = MaterialTheme.typography.titleLarge)
-                    Text("Se guardan en este teléfono antes de enviarse a tu cuenta.", color = Muted) }
+                    Text("Se guardan en este teléfono antes de enviarse a la web.", color = Muted) }
                 if (session == null || !permission) item {
                     AppPanel {
                         Text("Configura tu teléfono", fontWeight = FontWeight.SemiBold)
-                        Text("1. Vincula tu cuenta", color = if (session == null) Ink else Positive)
+                        Text("1. Conecta este teléfono con la web", color = if (session == null) Ink else Positive)
                         if (session == null) Button(onClick = { pairing = true }) { Text("Escanear QR de la web") }
-                        else Text("Cuenta vinculada", color = Positive)
+                        else Text("Destino de envío configurado", color = Positive)
                         Text("2. Activa el acceso a notificaciones", color = if (!permission) Ink else Positive)
                         if (!permission) OutlinedButton(onClick = { openNotificationSettings(context) }) { Text("Activar acceso") }
                         else Text("Acceso habilitado", color = Positive)
@@ -139,37 +143,38 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
                 if (session != null) item {
                     AppPanel {
-                        Text("Envío a tu cuenta", fontWeight = FontWeight.SemiBold)
-                        Text(if (pendingCount == 0) "Todos tus movimientos están enviados" else "$pendingCount movimientos por enviar", style = MaterialTheme.typography.titleMedium)
+                        Text("Envío a la web", fontWeight = FontWeight.SemiBold)
+                        Text(if (pendingCount == 0) "No hay movimientos por enviar al destino actual" else "$pendingCount movimientos por enviar", style = MaterialTheme.typography.titleMedium)
                         Text(capture.syncMessage, color = Muted)
                         if (pendingCount > 0) {
                             Text("Los movimientos siguen guardados si no hay conexión.", color = Muted)
-                            if (capture.syncPhase == SyncPhase.AUTH_REQUIRED) Button(onClick = { pairing = true }) { Text("Volver a vincular cuenta") }
+                            if (capture.syncPhase == SyncPhase.AUTH_REQUIRED) Button(onClick = { pairing = true }) { Text("Conectar de nuevo con la web") }
                             else Button(onClick = { TransactionSyncWorker.enqueue(context) }, enabled = capture.syncPhase != SyncPhase.SENDING) {
                                 Text(if (capture.syncPhase == SyncPhase.SENDING) "Enviando…" else "Enviar ahora")
                             }
                         }
                     }
                 }
-                if (unassigned.isNotEmpty()) item {
+                if (destinationCount > 0) item {
                     AppPanel {
-                        Text("${unassigned.size} movimientos sin cuenta asignada", fontWeight = FontWeight.SemiBold)
-                        Text("Confirma a qué cuenta pertenecen antes de enviarlos.", color = Muted)
+                        Text("$destinationCount movimientos necesitan confirmar destino", fontWeight = FontWeight.SemiBold)
+                        Text("Están guardados en este teléfono. Confirma que son tuyos y a dónde enviarlos.", color = Muted)
                         TextButton(onClick = { openMovements(MovementStatus.UNASSIGNED) }) { Text("Revisar movimientos") }
                     }
                 }
                 item { Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Últimos movimientos", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    Text("Últimos movimientos del teléfono", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                     TextButton(onClick = { openMovements() }) { Text("Ver todos") }
                 } }
-                if (owned.isEmpty()) item { AppPanel {
-                    Text(if (session == null) "Vincula una cuenta para ver sus movimientos." else "Aún no hay movimientos para esta cuenta.")
-                    Text("La próxima notificación reconocida se guardará aquí. Los registros sin cuenta tienen su propia lista.", color = Muted)
+                if (phoneMovements.isEmpty()) item { AppPanel {
+                    Text("No hay movimientos locales disponibles para mostrar.")
+                    Text("Aquí aparecen las notificaciones reconocidas en este teléfono. El historial de la web no se descarga y los registros de otros destinos de envío no se incluyen.", color = Muted)
                 } }
-                items(owned.take(5).size, key = { owned[it].transactionHash }) { index -> TransactionRow(owned[index]) { selected = owned[index] } }
+                items(phoneMovements.take(5).size, key = { phoneMovements[it].transactionHash }) { index -> TransactionRow(phoneMovements[index]) { selected = phoneMovements[index] } }
             } else if (tab == 1) {
                 item {
-                    Text(if (status == MovementStatus.UNASSIGNED) "Guardados sin cuenta asignada" else "Historial capturado para tu cuenta en este teléfono", color = Muted)
+                    Text("Movimientos del teléfono", fontWeight = FontWeight.SemiBold)
+                    Text(if (status == MovementStatus.UNASSIGNED) "Guardados aquí; necesitan confirmar el destino antes de enviarse." else "Incluye los del destino actual y los que necesitan confirmar destino. El historial de la web no se descarga.", color = Muted)
                     OutlinedTextField(query, { query = it }, label = { Text("Buscar nombre o importe") }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 }
                 item {
@@ -185,9 +190,9 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     Text("${filtered.size} movimientos", color = Muted)
                 }
                 if (filtered.isEmpty()) item { AppPanel {
-                    Text(if (status == MovementStatus.UNASSIGNED) "No hay movimientos sin cuenta" else "No hay movimientos para esta selección", fontWeight = FontWeight.SemiBold)
+                    Text(if (status == MovementStatus.UNASSIGNED) "No hay movimientos que necesiten confirmar destino" else "No hay movimientos para esta selección", fontWeight = FontWeight.SemiBold)
                     Text("Puedes cambiar el estado, la búsqueda o las fechas.", color = Muted)
-                    TextButton(onClick = { openMovements() }) { Text("Ver todos los de mi cuenta") }
+                    TextButton(onClick = { openMovements() }) { Text("Quitar filtros") }
                 } }
                 filtered.forEachIndexed { index, row ->
                     val day = row.transactionDate.substringBefore('T')
@@ -198,10 +203,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
             } else {
                 item { AppPanel {
-                    Text("Cuenta", fontWeight = FontWeight.SemiBold)
-                    Text(email ?: "Sin cuenta vinculada", color = Muted)
-                    Text("La vinculación permite enviar los movimientos a tu cuenta de la web.", color = Muted)
-                    if (session == null) Button(onClick = { pairing = true }) { Text("Vincular con QR") }
+                    Text("Conexión con la web", fontWeight = FontWeight.SemiBold)
+                    Text(email ?: if (session == null) "Sin destino de envío configurado" else "Destino de envío configurado", color = Muted)
+                    Text("El QR o código de vinculación indica a qué usuario de la web se enviarán los movimientos. La captura en el teléfono funciona por separado.", color = Muted)
+                    if (session == null) Button(onClick = { pairing = true }) { Text("Conectar con QR") }
                     else OutlinedButton(onClick = { unpair = true }) { Text("Desvincular teléfono") }
                 } }
                 item { AppPanel {
@@ -255,18 +260,26 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 Text(formatTransactionDate(row.transactionDate, "d MMM yyyy, HH:mm"), color = Muted)
                 Text("Origen: ${row.channel}")
                 Text("Estado: ${movementLabel(row)}")
-                Text(if (row.ownerKey == null) "Cuenta: sin asignar" else "Cuenta: ${email ?: "cuenta vinculada"}")
-                Text(if (row.isSynced) "La web confirmó la recepción de este movimiento." else "El movimiento está guardado en este teléfono.", color = Muted)
+                Text(when {
+                    row.ownerKey == null && row.isSynced -> "Destino: no consta en este registro antiguo"
+                    row.ownerKey == null -> "Destino: necesita confirmación"
+                    else -> "Destino en la web: ${email ?: "destino configurado"}"
+                })
+                Text(when {
+                    row.isSynced && row.ownerKey == null -> "Este registro antiguo figura como enviado. No se enviará de nuevo."
+                    row.isSynced -> "La web confirmó la recepción de este movimiento."
+                    else -> "El movimiento está guardado en este teléfono."
+                }, color = Muted)
                 if (row.ownerKey == null && !row.isSynced) {
-                    if (session != null) Button(onClick = { assignment = row; selected = null }) { Text("Asignar a mi cuenta") }
-                    else Text("Vincula tu cuenta desde Ajustes para poder asignarlo.", color = Muted)
+                    if (session != null) Button(onClick = { assignment = row; selected = null }) { Text("Confirmar destino de envío") }
+                    else Text("Conecta el teléfono con la web desde Ajustes para elegir el destino de envío.", color = Muted)
                 }
             }
         }, confirmButton = { TextButton(onClick = { selected = null }) { Text("Cerrar") } })
     }
     assignment?.let { row ->
-        AlertDialog(onDismissRequest = { if (!assigning) assignment = null }, title = { Text("Asignar a tu cuenta") },
-            text = { Text("Confirma que este movimiento de S/ ${row.amount} de ${row.contactName} pertenece a ${email ?: "tu cuenta"}. Después se enviará a la web.") },
+        AlertDialog(onDismissRequest = { if (!assigning) assignment = null }, title = { Text("Confirmar destino de envío") },
+            text = { Text("Confirma que este movimiento de S/ ${row.amount} de ${row.contactName} es tuyo y que quieres enviarlo a ${email ?: "el usuario conectado en la web"}.") },
             confirmButton = { TextButton(enabled = !assigning && session != null, onClick = {
                 val expected = session
                 assigning = true
@@ -278,10 +291,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         if (changed == 1) TransactionSyncWorker.enqueue(context)
                         assignment = null
                     } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                    catch (_: Exception) { CaptureStatus.error("No se pudo asignar el movimiento. Sigue guardado sin cuenta.") }
+                    catch (_: Exception) { CaptureStatus.error("No se pudo confirmar el destino. El movimiento sigue guardado en el teléfono.") }
                     finally { assigning = false }
                 }
-            }) { Text(if (assigning) "Asignando…" else "Confirmar y enviar") } },
+            }) { Text(if (assigning) "Confirmando…" else "Confirmar y enviar") } },
             dismissButton = { TextButton(enabled = !assigning, onClick = { assignment = null }) { Text("Cancelar") } })
     }
     if (pairing) PairingDialog(onDismiss = { pairing = false }, onSuccess = {
@@ -289,10 +302,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         selected = null; assignment = null; openMovements(); tab = 0
     })
     if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Desvincular teléfono") },
-        text = { Text("Se detendrá el envío a $email. Los movimientos guardados se conservarán en este teléfono.") },
+        text = { Text("Se detendrá el envío a ${email ?: "el destino configurado en la web"}. Los movimientos guardados se conservarán en este teléfono.") },
         confirmButton = { TextButton(onClick = {
             PairingPreferences.clearPairing(context); TransactionSyncWorker.cancel(context); ApiClient.resetService()
-            CaptureStatus.sync("Vincula una cuenta para enviar movimientos.")
+            CaptureStatus.sync("Conecta el teléfono con la web para enviar movimientos.")
             session = null; email = null; unpair = false; selected = null; assignment = null; statusName = MovementStatus.ALL.name
         }) { Text("Desvincular", color = Negative) } }, dismissButton = { TextButton(onClick = { unpair = false }) { Text("Cancelar") } })
 }
@@ -311,7 +324,7 @@ private fun TransactionRow(row: LocalTransactionEntity, onClick: () -> Unit) {
                 Text(row.contactName, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text("${row.channel} · ${formatTransactionDate(row.transactionDate, "HH:mm")}", color = Muted, fontSize = 12.sp)
             }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Column(Modifier.widthIn(max = 160.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(formatAmount(row), color = if (row.flowType == "INCOME") Positive else Ink, fontWeight = FontWeight.SemiBold)
                 Text(movementLabel(row), color = Muted, fontSize = 12.sp)
             }
@@ -338,7 +351,7 @@ private fun NavigationMark(index: Int, color: Color) {
         }
     }
 }
-private fun movementLabel(row: LocalTransactionEntity) = if (row.ownerKey == null) "Sin cuenta asignada" else if (row.isSynced) "Enviado" else "Por enviar"
+private fun movementLabel(row: LocalTransactionEntity) = if (row.isSynced) "Enviado" else if (row.ownerKey == null) "Necesita confirmar destino" else "Por enviar"
 private fun formatAmount(row: LocalTransactionEntity): String {
     val amount = row.amount.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: row.amount
     return "${if (row.flowType == "INCOME") "+" else "−"} S/ $amount"

@@ -30,4 +30,15 @@ class MovementFiltersTest {
         assertTrue(filterMovements(rows, "", MovementStatus.UNASSIGNED).isEmpty())
         assertEquals(rows, filterMovements(rows, "", MovementStatus.ALL))
     }
+
+    @Test fun oldSentRecordsRemainVisibleWithoutRequestingDestinationAgain() {
+        val oldSent = row("2026-10-01", owner = null, synced = true)
+        val pendingDestination = row("2026-10-02", owner = null)
+        val current = row("2026-10-03")
+        val rows = listOf(oldSent, pendingDestination, current)
+        assertEquals(rows, filterMovements(rows, "", MovementStatus.ALL))
+        assertEquals(listOf(oldSent), filterMovements(rows, "", MovementStatus.SENT))
+        assertEquals(listOf(pendingDestination), filterMovements(rows, "", MovementStatus.UNASSIGNED))
+        assertEquals(listOf(current), filterMovements(rows, "", MovementStatus.TO_SEND))
+    }
 }

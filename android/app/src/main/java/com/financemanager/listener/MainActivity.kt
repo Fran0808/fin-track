@@ -61,14 +61,14 @@ fun PairingDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isVerifying) onDismiss() },
-        title = { Text("Vincular tu cuenta") },
+        title = { Text("Conectar con la web") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Abre FinTrack en la web y toca ‘Vinculación móvil’. Escanea el QR para conectar este teléfono a tu cuenta.",
+                    text = "Abre FinTrack en la web y toca ‘Vinculación móvil’. Escanea el QR para configurar a dónde se enviarán los movimientos de este teléfono.",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -245,7 +245,7 @@ private fun verifyAndSaveToken(
                     PairingPreferences.savePairing(context, token, targetUrl, email, requireNotNull(body.userId))
                     ApiClient.resetService()
                     com.financemanager.listener.worker.TransactionSyncWorker.enqueue(context)
-                    Toast.makeText(context, "¡Dispositivo vinculado con éxito!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Teléfono conectado con la web", Toast.LENGTH_SHORT).show()
                     onSuccess(email)
                 } else {
                     onError("Token inválido o rechazado por el servidor (${response.code()})")

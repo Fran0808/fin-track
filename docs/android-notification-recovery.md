@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.1.0 (version code 6) keeps the existing application ID, preferences and
+FinTrack 1.1.1 (version code 7) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -48,9 +48,9 @@ stored in transaction rows. Reverification upgrades only that credential's scope
 
 Legacy rows have no proven owner, so migration leaves them unassigned. Captures
 made without pairing, and notifications published or dated before the current pairing,
-are also unassigned. These rows remain available through **Movimientos > Sin cuenta**
+are also unassigned. These rows remain available through **Movimientos > Confirmar destino**
 or **Inicio > Revisar movimientos**. A pending row can be assigned individually
-from its detail using **Asignar a mi cuenta**
+from its detail using **Confirmar destino de envío**
 and an explicit confirmation in the app; its hash remains unchanged. Already
 synced legacy rows are retained for review and cannot be reassigned this way.
 No old pending row is automatically sent to a newly paired account.
@@ -98,27 +98,32 @@ record for review while allowing later records to proceed. Network/server failur
 retry up to five attempts per work request; manual synchronization can try again.
 The **Por enviar** counter includes all current-account rows. Queuing a send is
 shown separately from sending and server confirmation; rejected authorization
-offers **Volver a vincular cuenta**. Send state is not restored as a live task after
+offers **Conectar de nuevo con la web**. Send state is not restored as a live task after
 process restart; the durable local rows determine which movements still need sending.
 
 ## Mobile navigation
 
 - **Inicio** shows setup steps when needed, capture status, the last successful
-  save, send status, unassigned-review access and five recent account movements.
-- **Movimientos** reads the complete local history for the current owner, ordered
+  save, send status, destination-review access and five recent local movements.
+- **Movimientos del teléfono** combines the complete local history for the current
+  owner with unassigned local rows, ordered
   by transaction date. Search matches contact names without case sensitivity or
   amount text. Date filters include both endpoints; selecting only a start date
   filters that single day. Calendar values are interpreted in UTC as calendar dates
   to avoid shifting a selected day to the previous day on the device.
-- Status filters are **Todos**, **Por enviar**, **Enviados** and **Sin cuenta**.
-  Unassigned rows are a separate scope; **Todos** does not mix accounts or include
-  unassigned rows. An empty review retains navigation and filters after assigning
+- Status filters are **Todos**, **Por enviar**, **Enviados** and **Confirmar destino**.
+  **Todos** includes unassigned rows without including rows assigned to other users
+  or servers. **Confirmar destino** includes only unsynced unassigned rows; already
+  synced legacy rows remain visible as **Enviado** and cannot be reassigned or sent
+  again. An empty review retains navigation and filters after assigning
   its last record. This use of **Por enviar** is distinct from classification
   pending work in the web dashboard.
-- Tapping a movement opens its amount, date, origin, owner and delivery state.
+- Tapping a movement opens its amount, date, origin, destination and delivery state.
   Ownership assignment still requires individual confirmation. Notification text
   and security codes are not displayed in this detail.
-- **Ajustes** contains account linking, notification access, expandable diagnostic
+- **Ajustes > Conexión con la web** explains that the QR/token configures the send
+  destination independently of local notification capture. Settings also contains
+  notification access, expandable diagnostic
   activity and the installed version. QR linking is primary; manual token/server
   fields are behind **Configuración manual**, with the token masked.
 

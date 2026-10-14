@@ -5,7 +5,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 enum class MovementStatus(val label: String) {
-    ALL("Todos"), TO_SEND("Por enviar"), SENT("Enviados"), UNASSIGNED("Sin cuenta")
+    ALL("Todos"), TO_SEND("Por enviar"), SENT("Enviados"), UNASSIGNED("Confirmar destino")
 }
 
 fun filterMovements(rows: List<LocalTransactionEntity>, query: String, status: MovementStatus,
@@ -17,7 +17,7 @@ fun filterMovements(rows: List<LocalTransactionEntity>, query: String, status: M
         MovementStatus.ALL -> true
         MovementStatus.TO_SEND -> row.ownerKey != null && !row.isSynced
         MovementStatus.SENT -> row.isSynced
-        MovementStatus.UNASSIGNED -> row.ownerKey == null
+        MovementStatus.UNASSIGNED -> row.ownerKey == null && !row.isSynced
     }
     matchesDate && matchesStatus && (query.isBlank() ||
         row.contactName.contains(query.trim(), ignoreCase = true) || row.amount.contains(query.trim()))

@@ -41,12 +41,12 @@ class TransactionSyncWorker(appContext: Context, workerParams: WorkerParameters)
             if (PairingPreferences.session(applicationContext) != session) return Result.success()
             when (outcome) {
                 SyncOutcome.COMPLETE -> {
-                    CaptureStatus.sync(if (entries.isEmpty()) "Todos tus movimientos están enviados." else "${entries.size} movimientos confirmados por la web.", SyncPhase.COMPLETE)
+                    CaptureStatus.sync(if (entries.isEmpty()) "No hay movimientos por enviar a este destino." else "${entries.size} movimientos confirmados por la web.", SyncPhase.COMPLETE)
                     Result.success()
                 }
                 SyncOutcome.SESSION_CHANGED -> Result.success()
                 SyncOutcome.AUTH_REQUIRED -> {
-                    CaptureStatus.sync("Vuelve a vincular la cuenta: el servidor rechazó la autorización.", SyncPhase.AUTH_REQUIRED)
+                    CaptureStatus.sync("Conecta de nuevo con la web: el servidor rechazó la autorización.", SyncPhase.AUTH_REQUIRED)
                     Result.failure()
                 }
                 SyncOutcome.REJECTED -> {
