@@ -12,7 +12,8 @@ object SyncEngine {
         entries: List<LocalTransactionEntity>, owner: String,
         isCurrentSession: () -> Boolean,
         send: suspend (LocalTransactionEntity) -> SyncReply,
-        acknowledge: (LocalTransactionEntity) -> Unit
+        acknowledge: (LocalTransactionEntity) -> Unit,
+        onProblem: (SyncProblem) -> Unit = {}
     ): SyncOutcome {
         var rejected = false
         for (entry in entries) {
@@ -22,18 +23,32 @@ object SyncEngine {
                 val response = send(entry)
                 when {
                     response.code in 200..299 -> {
-                        if (response.hashes != listOf(entry.transactionHash)) return SyncOutcome.RETRY
+                        if (response.hashes != listOf(entry.transactionHash)) {
+                            onProblem(SyncProblem(SyncFailure.MISSING_RECEIPT))
+                            return SyncOutcome.RETRY
+                        }
                         acknowledge(entry)
                     }
-                    response.code == 401 || response.code == 403 -> return SyncOutcome.AUTH_REQUIRED
-                    response.code == 408 || response.code == 429 || response.code >= 500 -> return SyncOutcome.RETRY
-                    else -> rejected = true
+                    response.code == 401 || response.code == 403 -> {
+                        onProblem(SyncProblem(SyncFailure.AUTHORIZATION, response.code))
+                        return SyncOutcome.AUTH_REQUIRED
+                    }
+                    response.code == 408 || response.code == 429 || response.code >= 500 -> {
+                        onProblem(SyncProblem(SyncFailure.HTTP, response.code))
+                        return SyncOutcome.RETRY
+                    }
+                    else -> {
+                        onProblem(SyncProblem(SyncFailure.HTTP, response.code))
+                        rejected = true
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: IOException) {
+            } catch (error: IOException) {
+                onProblem(syncProblem(error))
                 return SyncOutcome.RETRY
             } catch (_: IllegalArgumentException) {
+                onProblem(SyncProblem(SyncFailure.INVALID_RECORD))
                 // A malformed local record must not prevent subsequent records from syncing.
                 rejected = true
             }

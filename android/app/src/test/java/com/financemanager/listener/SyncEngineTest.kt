@@ -7,6 +7,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.IOException
+import java.net.ConnectException
 
 class SyncEngineTest {
     private fun entry(hash: String, owner: String? = "a") = LocalTransactionEntity(
@@ -66,5 +67,23 @@ class SyncEngineTest {
             SyncEngine.run(listOf(entry("one")), "a", { true }, { throw CancellationException() }, {})
             fail("Cancellation was swallowed")
         } catch (_: CancellationException) { }
+    }
+
+    @Test fun failedConnectionReportsCauseAndKeepsEntryPending() = runBlocking {
+        var problem: SyncProblem? = null
+        val result = SyncEngine.run(listOf(entry("one")), "a", { true },
+            { throw ConnectException("private payload") }, { fail("Failed entry was acknowledged") },
+            onProblem = { problem = it })
+        assertEquals(SyncOutcome.RETRY, result)
+        assertEquals(SyncFailure.CONNECTION, problem?.failure)
+    }
+
+    @Test fun transientServerFailureReportsHttpStatus() = runBlocking {
+        var problem: SyncProblem? = null
+        val result = SyncEngine.run(listOf(entry("one")), "a", { true },
+            { SyncReply(503, emptyList()) }, { fail("Failed entry was acknowledged") },
+            onProblem = { problem = it })
+        assertEquals(SyncOutcome.RETRY, result)
+        assertEquals(503, problem?.httpCode)
     }
 }
