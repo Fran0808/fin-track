@@ -64,6 +64,8 @@ const mockCategories: Category[] = [
 describe('CategoriesView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: function (this: HTMLDialogElement) { this.setAttribute('open', ''); } });
+    Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: function (this: HTMLDialogElement) { this.removeAttribute('open'); } });
     vi.mocked(api.getCategories).mockResolvedValue(mockCategories);
   });
 
@@ -185,4 +187,27 @@ describe('CategoriesView', () => {
       expect(vi.mocked(api.deleteCategory)).toHaveBeenCalledWith(10);
     });
   });
+
+  it('displays error inside the delete dialog when deletion is rejected by the server', async () => {
+    vi.mocked(api.deleteCategory).mockRejectedValue(new Error('Cannot delete category with existing subcategories'));
+
+    render(<CategoriesView />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Freelance & Consultoría')).toBeDefined();
+    });
+
+    const deleteBtn = screen.getByLabelText('Eliminar categoría Freelance & Consultoría');
+    fireEvent.click(deleteBtn);
+
+    const confirmBtn = screen.getByRole('button', { name: 'Eliminar' });
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeDefined();
+      expect(screen.getAllByText('Cannot delete category with existing subcategories').length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });
+
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Tags,
   Search,
@@ -35,7 +35,9 @@ export function CategoriesView() {
 
   // Deletion confirm modal
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const deleteDialogRef = useRef<HTMLDialogElement>(null);
 
   // Expanded subcategories in UI
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
@@ -177,20 +179,27 @@ export function CategoriesView() {
     await loadCategories();
   };
 
+  useEffect(() => {
+    const dialog = deleteDialogRef.current;
+    if (!dialog) return;
+    if (categoryToDelete && !dialog.open) dialog.showModal();
+    if (!categoryToDelete && dialog.open) dialog.close();
+  }, [categoryToDelete]);
+
   // Delete category
   const handleDeleteCategory = async () => {
     if (!categoryToDelete) return;
     try {
       setIsDeleting(true);
+      setDeleteError(null);
       await api.deleteCategory(categoryToDelete.id);
       showNotification(`Categoría "${categoryToDelete.name}" eliminada.`);
       setCategoryToDelete(null);
       await loadCategories();
     } catch (err: unknown) {
-      showNotification(
-        err instanceof Error ? err.message : 'Error al eliminar la categoría',
-        'error'
-      );
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la categoría';
+      setDeleteError(msg);
+      showNotification(msg, 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -590,19 +599,24 @@ export function CategoriesView() {
       />
 
       {/* Delete Confirmation Modal */}
-      {categoryToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-ink/40 backdrop-blur-xs"
-            onClick={() => setCategoryToDelete(null)}
-            aria-hidden="true"
-          />
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="delete-dialog-title"
-            className="relative z-10 w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-xl"
-          >
+      <dialog
+        ref={deleteDialogRef}
+        role="alertdialog"
+        aria-labelledby="delete-dialog-title"
+        onClose={() => {
+          setCategoryToDelete(null);
+          setDeleteError(null);
+        }}
+        onClick={(e) => {
+          if (e.target === deleteDialogRef.current) {
+            setCategoryToDelete(null);
+            setDeleteError(null);
+          }
+        }}
+        className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-line bg-white p-6 shadow-xl backdrop:bg-ink/40 text-ink"
+      >
+        {categoryToDelete && (
+          <div>
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-negative/10 text-negative">
               <Trash2 className="h-5 w-5" />
             </div>
@@ -612,10 +626,18 @@ export function CategoriesView() {
             <p className="mt-1 text-xs text-muted leading-relaxed">
               Estás a punto de eliminar la categoría <strong>{categoryToDelete.name}</strong>. Esta acción no se puede deshacer.
             </p>
+            {deleteError && (
+              <p role="alert" className="mt-3 text-xs font-medium text-negative">
+                {deleteError}
+              </p>
+            )}
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
-                onClick={() => setCategoryToDelete(null)}
+                onClick={() => {
+                  setCategoryToDelete(null);
+                  setDeleteError(null);
+                }}
                 className="rounded-xl border border-line px-3.5 py-2 text-xs font-semibold text-muted hover:bg-canvas hover:text-ink"
               >
                 Cancelar
@@ -631,8 +653,8 @@ export function CategoriesView() {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </dialog>
     </div>
   );
 }

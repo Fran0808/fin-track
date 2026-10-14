@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import type { Category, CategoryRequest } from '../../types';
-import { AVAILABLE_ICONS, CategoryIcon } from './CategoryIcon';
+import { CategoryIcon } from './CategoryIcon';
+import { AVAILABLE_ICONS } from './categoryIconsData';
 import { CustomSelect } from '../common';
 
 interface CategoryModalProps {
@@ -34,6 +35,7 @@ export function CategoryModal({
   initialCategory,
   defaultParentId = null,
 }: CategoryModalProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState('');
   const [color, setColor] = useState('#10B981');
   const [icon, setIcon] = useState('tag');
@@ -57,14 +59,11 @@ export function CategoryModal({
   }, [initialCategory, defaultParentId, isOpen]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen && !dialog.open) dialog.showModal();
+    if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -100,22 +99,16 @@ export function CategoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-ink/40 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal Dialog */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="category-modal-title"
-        className="relative z-10 w-full max-w-lg rounded-2xl border border-line bg-white p-6 shadow-xl sm:p-7"
-      >
-        <div className="flex items-center justify-between border-b border-line pb-4">
+    <dialog
+      ref={dialogRef}
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) onClose();
+      }}
+      aria-labelledby="category-modal-title"
+      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-line bg-white p-6 shadow-xl backdrop:bg-ink/40 text-ink sm:p-7"
+    >
+      <div className="flex items-center justify-between border-b border-line pb-4">
           <div className="flex items-center gap-3">
             <div
               className="flex h-10 w-10 items-center justify-center rounded-xl"
@@ -256,7 +249,7 @@ export function CategoryModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </dialog>
   );
 }
+
