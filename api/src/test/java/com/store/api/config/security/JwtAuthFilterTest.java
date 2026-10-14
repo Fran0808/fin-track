@@ -39,6 +39,8 @@ class JwtAuthFilterTest {
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
             "PATCH,/api/v1/transactions/1/classification",
+            "GET,/api/v1/transactions/pending", "GET,/api/v1/classification-rules",
+            "POST,/api/v1/classification-rules", "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1",
             "GET,/api/v1/transactions", "POST,/api/v1/transactions/sync",
             "POST,/api/v1/transactions/sync/batch", "GET,/api/v1/analytics/summary",
             "GET,/api/v1/analytics/period", "POST,/api/v1/emails/sync",
@@ -177,7 +179,9 @@ class JwtAuthFilterTest {
             "GET,/api/v1/financial-instruments", "POST,/api/v1/financial-instruments",
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
-            "PATCH,/api/v1/transactions/1/classification"
+            "PATCH,/api/v1/transactions/1/classification", "GET,/api/v1/transactions/pending",
+            "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
+            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1"
     })
     void rejectsDeviceCredentialsOutsideAllowedEndpoints(String method, String path) throws Exception {
         when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
@@ -199,7 +203,9 @@ class JwtAuthFilterTest {
             "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/pairing-info",
             "POST,/api/v1/user/pairing-info/regenerate", "GET,/api/v1/financial-instruments",
             "PATCH,/api/v1/transactions/1/financial-instrument",
-            "PATCH,/api/v1/transactions/1/classification"
+            "PATCH,/api/v1/transactions/1/classification", "GET,/api/v1/transactions/pending",
+            "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
+            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1"
     })
     void permitsWebCredentialsOnDeviceRestrictedEndpoints(String method, String path) throws Exception {
         when(users.findById(42L)).thenReturn(Optional.of(user));

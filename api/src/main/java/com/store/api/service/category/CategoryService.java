@@ -6,6 +6,7 @@ import com.store.api.model.dto.category.CategoryResponse;
 import com.store.api.model.entity.Category;
 import com.store.api.model.entity.User;
 import com.store.api.repository.CategoryRepository;
+import com.store.api.repository.ClassificationRuleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class CategoryService {
     private final CategoryRepository repository;
+    private final ClassificationRuleRepository classificationRules;
 
     private static final List<SystemCategoryTemplate> DEFAULT_CATEGORIES = List.of(
             new SystemCategoryTemplate("Ahorro e inversión", "piggy-bank", "#10B981"),
@@ -162,6 +164,9 @@ public class CategoryService {
             throw badRequest("Cannot delete category with existing subcategories; delete or reassign them first");
         }
 
+        if (classificationRules.existsByUserAndCategory(user, item)) {
+            throw badRequest("Elimina o cambia las reglas que usan esta categoría antes de eliminarla.");
+        }
         repository.delete(item);
     }
 

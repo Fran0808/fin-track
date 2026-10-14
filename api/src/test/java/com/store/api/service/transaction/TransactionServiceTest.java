@@ -34,7 +34,8 @@ class TransactionServiceTest {
     private final TransactionRepository transactions = mock(TransactionRepository.class);
     private final RawNotificationRepository rawNotifications = mock(RawNotificationRepository.class);
     private final CategoryRepository categories = mock(CategoryRepository.class);
-    private final TransactionService service = new TransactionService(transactions, rawNotifications, categories);
+    private final com.store.api.service.category.ClassificationRuleService rules = mock(com.store.api.service.category.ClassificationRuleService.class);
+    private final TransactionService service = new TransactionService(transactions, rawNotifications, categories, rules);
 
     @AfterEach
     public void clearContext() {
@@ -180,6 +181,61 @@ class TransactionServiceTest {
         assertTrue(csv.contains("\"ALIMENTACION\""));
         assertTrue(csv.contains("\"comida,snacks\""));
         assertTrue(csv.contains("\"Compra semanal\""));
+    }
+
+    @Test
+    void appliesRulesBeforeSavingAndDoesNotReapplyOnDuplicateSync() {
+        User owner = User.builder().id(7L).build();
+        UserContext.setCurrentUser(owner);
+        doAnswer(call -> { ((Transaction) call.getArgument(0)).setCategory("Regla"); return null; })
+                .when(rules).classifyNewTransaction(any());
+        when(transactions.save(any())).thenAnswer(call -> call.getArgument(0));
+        assertEquals("Regla", service.processAndSave(request()).getCategory());
+        verify(transactions).save(argThat(tx -> "Regla".equals(tx.getCategory())));
+        when(transactions.existsByTransactionHashAndUser("shared-hash", owner)).thenReturn(true);
+        when(transactions.findByTransactionHashAndUser("shared-hash", owner)).thenReturn(Optional.of(
+                Transaction.builder().user(owner).category("Corregida manualmente").build()));
+        assertEquals("Corregida manualmente", service.processAndSave(request()).getCategory());
+        verify(rules, times(1)).classifyNewTransaction(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(com.store.api.model.enums.PendingReason.class)
+    void pendingQueriesAlwaysRequireOwnerAndUseTheSelectedReason(com.store.api.model.enums.PendingReason reason) {
+        User owner = User.builder().id(7L).build();
+        UserContext.setCurrentUser(owner);
+        Root<Transaction> root = mock(Root.class);
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        Path<Object> userPath = mock(Path.class), flowPath = mock(Path.class), instrumentPath = mock(Path.class);
+        Path<String> categoryPath = mock(Path.class);
+        jakarta.persistence.criteria.Expression<String> normalized = mock(jakarta.persistence.criteria.Expression.class);
+        Predicate ownerPredicate = mock(Predicate.class), nonTransfer = mock(Predicate.class), blank = mock(Predicate.class);
+        Predicate category = mock(Predicate.class), instrument = mock(Predicate.class), either = mock(Predicate.class), scoped = mock(Predicate.class);
+        when(root.get("user")).thenReturn(userPath);
+        when(root.get("flowType")).thenReturn(flowPath);
+        when(root.get("financialInstrument")).thenReturn(instrumentPath);
+        when(root.<String>get("category")).thenReturn(categoryPath);
+        when(cb.coalesce(categoryPath, "")).thenReturn(normalized);
+        when(cb.trim(normalized)).thenReturn(normalized);
+        when(cb.equal(normalized, "")).thenReturn(blank);
+        when(cb.notEqual(flowPath, FlowType.INTERNAL_TRANSFER)).thenReturn(nonTransfer);
+        when(cb.and(nonTransfer, blank)).thenReturn(category);
+        when(cb.isNull(instrumentPath)).thenReturn(instrument);
+        when(cb.or(category, instrument)).thenReturn(either);
+        when(cb.equal(userPath, owner)).thenReturn(ownerPredicate);
+        Predicate expected = switch (reason) { case CATEGORY -> category; case INSTRUMENT -> instrument; case ALL -> either; };
+        when(cb.and(ownerPredicate, expected)).thenReturn(scoped);
+        when(transactions.findAll(any(Specification.class), any(Pageable.class))).thenAnswer(call -> {
+            Specification<Transaction> specification = call.getArgument(0);
+            assertSame(scoped, specification.toPredicate(root, mock(CriteriaQuery.class), cb));
+            return Page.empty(PageRequest.of(0, 10));
+        });
+        service.getPendingTransactions(reason, PageRequest.of(0, 10));
+        verify(cb).and(ownerPredicate, expected);
+        UserContext.clear();
+        assertEquals(401, assertThrows(ResponseStatusException.class,
+                () -> service.getPendingTransactions(reason, PageRequest.of(0, 10))).getStatusCode().value());
+        verify(transactions, times(1)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     private TransactionSyncRequest request() {

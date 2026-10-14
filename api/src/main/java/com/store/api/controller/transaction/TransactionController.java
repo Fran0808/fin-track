@@ -7,6 +7,7 @@ import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 import com.store.api.model.dto.transaction.InstrumentAssignmentRequest;
 import com.store.api.config.security.UserContext;
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.PendingReason;
 import com.store.api.service.transaction.TransactionService;
 import com.store.api.service.instrument.FinancialInstrumentService;
 import com.store.api.service.transaction.InstrumentAssignmentService;
@@ -36,6 +37,19 @@ public class TransactionController {
     private final TransactionService transactionService;
     private final InstrumentAssignmentService assignmentService;
     private final FinancialInstrumentService instrumentService;
+
+    @GetMapping("/pending")
+    public Page<TransactionResponse> pending(
+            @RequestParam(defaultValue = "ALL") PendingReason reason,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La página no puede ser negativa y el tamaño debe estar entre 1 y 100.");
+        }
+        return transactionService.getPendingTransactions(reason,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate", "id")));
+    }
 
     @PatchMapping("/{id}/financial-instrument")
     public TransactionResponse assignInstrument(@PathVariable Long id,

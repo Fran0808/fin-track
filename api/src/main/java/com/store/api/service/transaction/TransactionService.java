@@ -9,6 +9,8 @@ import com.store.api.model.entity.RawNotificationLog;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.PendingReason;
+import com.store.api.service.category.ClassificationRuleService;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
 import com.store.api.repository.CategoryRepository;
@@ -38,6 +40,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final RawNotificationRepository rawNotificationRepository;
     private final CategoryRepository categoryRepository;
+    private final ClassificationRuleService classificationRules;
 
     @Transactional
     public TransactionResponse processAndSave(TransactionSyncRequest request) {
@@ -75,6 +78,7 @@ public class TransactionService {
                 .transactionHash(request.getTransactionHash())
                 .build();
 
+        classificationRules.classifyNewTransaction(transaction);
         Transaction saved = transactionRepository.save(transaction);
         log.info("Transaction saved successfully: ID={}, Amount={}, FlowType={}, Channel={}, User={}",
                 saved.getId(), saved.getAmount(), saved.getFlowType(), saved.getChannel(),
@@ -123,6 +127,24 @@ public class TransactionService {
         log.info("Transaction classification updated: ID={}, Category={}, Tags={}, User={}",
                 saved.getId(), saved.getCategory(), saved.getTags(), currentUser.getEmail());
         return mapToResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getPendingTransactions(PendingReason reason, Pageable pageable) {
+        User user = UserContext.requireCurrentUser();
+        Specification<Transaction> pending = (root, query, cb) -> {
+            Predicate missingCategory = cb.and(
+                    cb.notEqual(root.get("flowType"), FlowType.INTERNAL_TRANSFER),
+                    cb.equal(cb.trim(cb.coalesce(root.get("category"), "")), ""));
+            Predicate missingInstrument = cb.isNull(root.get("financialInstrument"));
+            Predicate needsReview = switch (reason) {
+                case CATEGORY -> missingCategory;
+                case INSTRUMENT -> missingInstrument;
+                case ALL -> cb.or(missingCategory, missingInstrument);
+            };
+            return cb.and(cb.equal(root.get("user"), user), needsReview);
+        };
+        return transactionRepository.findAll(pending, pageable).map(TransactionService::mapToResponse);
     }
 
     public Specification<Transaction> buildSpecification(

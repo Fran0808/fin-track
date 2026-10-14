@@ -21,7 +21,8 @@ import static org.mockito.Mockito.*;
 
 class CategoryServiceTest {
     private final CategoryRepository repository = mock(CategoryRepository.class);
-    private final CategoryService service = new CategoryService(repository);
+    private final com.store.api.repository.ClassificationRuleRepository rules = mock(com.store.api.repository.ClassificationRuleRepository.class);
+    private final CategoryService service = new CategoryService(repository, rules);
     private final User user = User.builder().id(12L).email("tester@example.test").build();
 
     @BeforeEach
@@ -138,6 +139,15 @@ class CategoryServiceTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.delete(15L));
         assertEquals(400, ex.getStatusCode().value());
         assertTrue(ex.getReason().contains("subcategories"));
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    void cannotDeleteCategoryReferencedByRule() {
+        Category category = Category.builder().id(15L).user(user).name("Hobbies").build();
+        when(repository.findByIdAndUser(15L, user)).thenReturn(Optional.of(category));
+        when(rules.existsByUserAndCategory(user, category)).thenReturn(true);
+        assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.delete(15L)).getStatusCode().value());
         verify(repository, never()).delete(any());
     }
 
