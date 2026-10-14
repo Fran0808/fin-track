@@ -66,7 +66,8 @@ export function CustomSelect<T extends string | number = string>({
       {/* Hidden native select for form accessibility and tests */}
       <select
         id={id}
-        value={String(value)}
+        disabled={disabled}
+        value={String(value ?? '')}
         onChange={(e) => {
           const found = options.find((o) => String(o.value) === e.target.value);
           if (found) onChange(found.value);

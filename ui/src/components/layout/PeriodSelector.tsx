@@ -33,12 +33,14 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
+        setActiveYear(year);
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsOpen(false);
+        setActiveYear(year);
       }
     };
 
@@ -51,7 +53,7 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
       document.removeEventListener('touchstart', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, year]);
 
   const minYear = 2024;
   const maxYear = Math.max(new Date().getFullYear() + 2, year + 1);
@@ -106,7 +108,12 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
       {/* Modern styled Period Selector button */}
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          setIsOpen((prev) => {
+            if (!prev) setActiveYear(year);
+            return !prev;
+          });
+        }}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         className="inline-flex items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2 text-sm font-semibold text-ink shadow-2xs transition hover:border-brand/40 hover:bg-canvas focus:outline-none focus:ring-2 focus:ring-brand/20"

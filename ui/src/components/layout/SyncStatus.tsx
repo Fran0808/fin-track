@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Mail, RefreshCw } from 'lucide-react';
 import type { GoogleAuthStatus } from '../../types';
 
 interface SyncStatusProps {
@@ -28,7 +28,7 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
           : status.lastSuccessfulSyncAt
             ? `Sincronizado: ${formatSyncDate(status.lastSuccessfulSyncAt)}`
             : 'Aún sin sincronizar';
-  const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : CheckCircle2;
+  const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : connected ? CheckCircle2 : Mail;
 
   return (
     <div className="flex items-center gap-2.5" role="status" aria-live="polite">

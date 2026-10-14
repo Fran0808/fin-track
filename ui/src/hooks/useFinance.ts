@@ -98,7 +98,6 @@ export function useFinance(userId: number) {
   }, [loadTransactions]);
 
   useEffect(() => {
-    setSyncStatus(null);
     loadSyncStatus();
   }, [loadSyncStatus]);
 
