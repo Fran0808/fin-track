@@ -21,6 +21,17 @@ class CaptureRegressionTest {
         }
     }
 
+    @Test fun screenshotReceiptFormatRoutesThroughAuthorizedDispatcher() {
+        val title = "Confirmación de Pago"
+        val body = "Persona Pr* te envió un pago por S/ 2. El cód. de seguridad es: 123"
+        val result = requireNotNull(NotificationParserDispatcher().parse("com.bcp.innovacxion.yapeapp", title, body))
+        assertEquals(BigDecimal("2"), result.amount)
+        assertEquals(FlowType.INCOME, result.flowType)
+        assertEquals("Persona Pr*", result.contactName)
+        assertEquals("YAPE", result.channel)
+        assertNull(NotificationParserDispatcher().parse("com.android.shell", title, body))
+    }
+
     @Test fun promotionsAmbiguousAmountsAndZeroAreRejected() {
         listOf("Gana S/ 50 a tu cuenta participando", "S/ 50 a tu cuenta", "Persona te envió S/ 25,50",
             "Persona te envió S/ 25.555", "Persona te envió S/ 1,23.50", "Persona te envió S/ 0",

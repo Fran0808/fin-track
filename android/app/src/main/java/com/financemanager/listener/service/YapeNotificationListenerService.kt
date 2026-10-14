@@ -16,6 +16,7 @@ import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.parser.NotificationIdentity
 import com.financemanager.listener.parser.NotificationMetadata
 import com.financemanager.listener.parser.NotificationParserDispatcher
+import com.financemanager.listener.parser.expandedNotificationText
 import com.financemanager.listener.worker.TransactionSyncWorker
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -93,8 +94,10 @@ class YapeNotificationListenerService : NotificationListenerService() {
             val extras = notification.extras
             val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
-            val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
-                ?: extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.joinToString(" ")
+            val bigText = expandedNotificationText(
+                extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
+                extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.toList()
+            )
             val parsed = dispatcher.parse(sbn.packageName, title, text, bigText)
             if (parsed == null) {
                 CaptureStatus.event(CaptureEvent.UNRECOGNIZED)
@@ -126,7 +129,7 @@ class YapeNotificationListenerService : NotificationListenerService() {
                 } else CaptureStatus.event(CaptureEvent.DUPLICATE)
             }
         } catch (_: Exception) {
-            CaptureStatus.error("No se pudo leer una notificación de Yape.")
+            CaptureStatus.error("No se pudo leer una notificación compatible.")
         }
     }
 

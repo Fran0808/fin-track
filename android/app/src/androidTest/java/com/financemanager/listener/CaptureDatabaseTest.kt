@@ -9,6 +9,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.financemanager.listener.data.AppDatabase
 import com.financemanager.listener.data.LocalTransactionEntity
+import com.financemanager.listener.parser.*
+import com.financemanager.listener.worker.*
+import java.net.ConnectException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -35,6 +38,33 @@ class CaptureDatabaseTest {
             dao.retireSource("key-1")
             assertTrue(dao.persistNotification(entry(hash = "event-3"), false) > 0)
             assertEquals(3, dao.getUnsyncedTransactions("owner-a").size)
+        }
+    }
+
+    @Test fun authorizedReceiptIsStoredOfflineAndConfirmedBeforeMarkingSent() = runBlocking {
+        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().withDatabase { db ->
+            val dao = db.transactionDao()
+            val parsed = requireNotNull(NotificationParserDispatcher().parse("com.bcp.innovacxion.yapeapp",
+                "Confirmación de Pago", "Persona Pr* te envió un pago por S/ 2. El cód. de seguridad es: 123"))
+            val identified = NotificationIdentity.apply(parsed, NotificationMetadata("test-receipt", 1_750_000_000_000))
+            val entity = LocalTransactionEntity(amount = identified.amount.toPlainString(), flowType = identified.flowType.name,
+                contactName = identified.contactName, channel = identified.channel, transactionDate = identified.transactionDate.toString(),
+                transactionHash = identified.transactionHash, rawText = identified.rawText, ownerKey = "test-owner",
+                sourceEventId = identified.transactionHash, sourceKey = "test-receipt",
+                sourceFingerprint = NotificationIdentity.fingerprint(parsed), sourceActive = true)
+            assertTrue(dao.persistNotification(entity, false) > 0)
+            assertEquals(1, dao.getTransactionsFlow("test-owner").first().size)
+            assertEquals(-1L, dao.persistNotification(entity, true))
+            val acknowledge: (LocalTransactionEntity) -> Unit = { dao.markAsSynced(it.transactionHash, "test-owner") }
+            val offline = SyncEngine.run(dao.getUnsyncedTransactions("test-owner"), "test-owner", { true },
+                { throw ConnectException("synthetic offline failure") }, acknowledge)
+            assertEquals(SyncOutcome.RETRY, offline)
+            assertEquals(1, dao.getUnsyncedTransactions("test-owner").size)
+            val confirmed = SyncEngine.run(dao.getUnsyncedTransactions("test-owner"), "test-owner", { true },
+                { SyncReply(201, listOf(it.transactionHash)) }, acknowledge)
+            assertEquals(SyncOutcome.COMPLETE, confirmed)
+            assertTrue(dao.getUnsyncedTransactions("test-owner").isEmpty())
+            assertTrue(dao.getTransactionsFlow("test-owner").first().single().isSynced)
         }
     }
 
