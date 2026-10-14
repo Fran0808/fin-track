@@ -30,6 +30,21 @@ export interface TransactionClassificationRequest {
   notes?: string | null;
 }
 
+export type PendingReason = 'ALL' | 'CATEGORY' | 'INSTRUMENT';
+
+export interface ClassificationRuleRequest {
+  matchText: string;
+  categoryId: number;
+  priority: number;
+  enabled: boolean;
+}
+
+export interface ClassificationRule extends ClassificationRuleRequest {
+  id: number;
+  categoryName: string;
+  categoryActive: boolean;
+}
+
 export interface Category {
   id: number;
   name: string;
@@ -186,5 +201,4 @@ export interface DevicePairingInfo {
   serverUrl: string;
   qrPayload: string;
 }
-
 

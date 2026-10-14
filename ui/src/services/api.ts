@@ -14,6 +14,9 @@ import type {
   FinancialInstrumentRequest,
   Category,
   CategoryRequest,
+  PendingReason,
+  ClassificationRule,
+  ClassificationRuleRequest,
 } from '../types';
 
 const BASE_URL = '/api/v1';
@@ -72,6 +75,28 @@ export interface TransactionFilterParams {
 }
 
 export const api = {
+  async getPendingTransactions(reason: PendingReason = 'ALL', page = 0): Promise<PageResponse<Transaction>> {
+    const query = new URLSearchParams({ reason, page: String(page), size: '10' });
+    return handleResponse<PageResponse<Transaction>>(await fetchWithAuth(`${BASE_URL}/transactions/pending?${query}`));
+  },
+
+  async getClassificationRules(): Promise<ClassificationRule[]> {
+    return handleResponse<ClassificationRule[]>(await fetchWithAuth(`${BASE_URL}/classification-rules`));
+  },
+
+  async saveClassificationRule(data: ClassificationRuleRequest, id?: number): Promise<ClassificationRule> {
+    return handleResponse<ClassificationRule>(await fetchWithAuth(`${BASE_URL}/classification-rules${id === undefined ? '' : '/' + id}`, {
+      method: id === undefined ? 'POST' : 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }));
+  },
+
+  async deleteClassificationRule(id: number): Promise<void> {
+    const response = await fetchWithAuth(`${BASE_URL}/classification-rules/${id}`, { method: 'DELETE' });
+    if (!response.ok) await handleResponse<never>(response);
+  },
+
   async getFinancialInstruments(active?: boolean): Promise<FinancialInstrument[]> {
     const query = active === undefined ? '' : `?active=${active}`;
     return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/financial-instruments${query}`));

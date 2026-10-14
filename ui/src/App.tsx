@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView, CategoriesView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView, CategoriesView, PendingView, ClassificationRulesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -15,6 +15,8 @@ const VIEW_LABELS: Record<NavView, string> = {
   inicio: 'Inicio',
   'mi-dinero': 'Mi dinero',
   movimientos: 'Movimientos',
+  pendientes: 'Pendientes',
+  reglas: 'Reglas',
   tarjetas: 'Tarjetas y cuentas',
   categorias: 'Categorías',
   presupuestos: 'Presupuestos',
@@ -112,8 +114,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
                 Vinculación móvil
               </button>
-              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
-              {activeView !== 'configuracion' && activeView !== 'categorias' && <PeriodSelector
+              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().then(() => setInstrumentRevision(value => value + 1)).catch(() => {}); }} />
+              {!['configuracion', 'categorias', 'pendientes', 'reglas'].includes(activeView) && <PeriodSelector
                 year={selectedPeriod.year}
                 month={selectedPeriod.month}
                 onChange={(year, month) => setSelectedPeriod({ year, month })}
@@ -174,6 +176,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           {activeView === 'categorias' && (
             <CategoriesView />
           )}
+          {activeView === 'pendientes' && <PendingView revision={instrumentRevision} onSelectTransaction={setSelectedTransaction} onOpenRules={() => setActiveView('reglas')} />}
+          {activeView === 'reglas' && <ClassificationRulesView />}
           {activeView === 'configuracion' && (
             <SettingsView
               googleStatus={syncStatus}
