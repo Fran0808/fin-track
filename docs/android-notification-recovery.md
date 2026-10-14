@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.1.1 (version code 7) keeps the existing application ID, preferences and
+FinTrack 1.1.2 (version code 8) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -96,6 +96,22 @@ records. Only a successful response containing that record's hash marks it synce
 Authentication errors require pairing; other permanent HTTP errors preserve the
 record for review while allowing later records to proceed. Network/server failures
 retry up to five attempts per work request; manual synchronization can try again.
+**Enviar ahora** creates a separate one-shot work request using `KEEP`, rather than
+appending behind the automatic chain's backoff. Repeated taps do not accumulate
+manual requests. Both paths require network connectivity and share a process-local
+mutex around reading and sending pending rows: a manual attempt does not cancel an
+in-flight automatic request or read a stale pending list concurrently. A manual
+failure completes that request; the user can immediately request another attempt,
+while scheduled automatic retries remain available. Android scheduling and network
+constraints still apply, so the button does not guarantee immediate execution.
+Unpairing cancels both unique work chains.
+
+Failure messages distinguish connection refusal/unreachability, host lookup,
+timeout, TLS, HTTP status and a missing acknowledgement. They never include raw
+exception messages, response bodies, notification contents or credentials. A failed
+send adds a fixed diagnostic event. **Ajustes > Conexión con la web** displays the
+configured server address to help verify the destination. A queued request does
+not overwrite the display of an already running upload.
 The **Por enviar** counter includes all current-account rows. Queuing a send is
 shown separately from sending and server confirmation; rejected authorization
 offers **Conectar de nuevo con la web**. Send state is not restored as a live task after
@@ -138,7 +154,8 @@ From `android`:
 Unit regressions cover strict amounts/promotions, masked names, authorized
 packages, event identity, ownership scopes, HTTP acknowledgements, session changes,
 offline behavior, rejected records, bounded storage retries, inclusive date filters,
-movement-state filters and bounded diagnostic transitions. Instrumented
+movement-state filters, bounded diagnostic transitions, sanitized connection/HTTP
+failure reporting and serial execution of simultaneous manual/automatic attempts. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
 ownership isolation, legacy hashes, full owner-scoped history, empty review after
 assignment and pending counts beyond 50 rows. Compiling

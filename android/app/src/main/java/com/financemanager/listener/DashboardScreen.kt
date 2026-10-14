@@ -149,7 +149,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         if (pendingCount > 0) {
                             Text("Los movimientos siguen guardados si no hay conexión.", color = Muted)
                             if (capture.syncPhase == SyncPhase.AUTH_REQUIRED) Button(onClick = { pairing = true }) { Text("Conectar de nuevo con la web") }
-                            else Button(onClick = { TransactionSyncWorker.enqueue(context) }, enabled = capture.syncPhase != SyncPhase.SENDING) {
+                            else Button(onClick = { TransactionSyncWorker.enqueue(context, manual = true) }, enabled = capture.syncPhase != SyncPhase.SENDING) {
                                 Text(if (capture.syncPhase == SyncPhase.SENDING) "Enviando…" else "Enviar ahora")
                             }
                         }
@@ -205,6 +205,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 item { AppPanel {
                     Text("Conexión con la web", fontWeight = FontWeight.SemiBold)
                     Text(email ?: if (session == null) "Sin destino de envío configurado" else "Destino de envío configurado", color = Muted)
+                    session?.let { Text("Servidor: ${it.serverUrl}", color = Muted, fontSize = 12.sp) }
                     Text("El QR o código de vinculación indica a qué usuario de la web se enviarán los movimientos. La captura en el teléfono funciona por separado.", color = Muted)
                     if (session == null) Button(onClick = { pairing = true }) { Text("Conectar con QR") }
                     else OutlinedButton(onClick = { unpair = true }) { Text("Desvincular teléfono") }

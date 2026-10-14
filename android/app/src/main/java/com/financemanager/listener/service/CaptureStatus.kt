@@ -29,6 +29,7 @@ enum class CaptureEvent(val label: String) {
     SAVED("Movimiento guardado en el teléfono"),
     DUPLICATE("Notificación ya registrada o recuperada"),
     SENT("La web confirmó un movimiento"),
+    SEND_FAILED("El envío a la web no se completó"),
     ERROR("No se pudo procesar una notificación")
 }
 
@@ -91,5 +92,8 @@ object CaptureStatus {
         mutable.update { it.copy(lastError = message) }
         event(CaptureEvent.ERROR)
     }
-    fun sync(message: String, phase: SyncPhase = SyncPhase.IDLE) = mutable.update { it.copy(syncMessage = message, syncPhase = phase) }
+    fun sync(message: String, phase: SyncPhase = SyncPhase.IDLE) = mutable.update {
+        if (phase == SyncPhase.QUEUED && it.syncPhase == SyncPhase.SENDING) it
+        else it.copy(syncMessage = message, syncPhase = phase)
+    }
 }
