@@ -6,6 +6,7 @@ class FinTrackApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        com.financemanager.listener.service.CaptureStatus.initialize(this)
         com.financemanager.listener.data.PairingPreferences.session(this)
     }
 

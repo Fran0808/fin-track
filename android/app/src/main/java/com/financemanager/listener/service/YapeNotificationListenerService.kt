@@ -86,13 +86,21 @@ class YapeNotificationListenerService : NotificationListenerService() {
         CaptureStatus.received()
         try {
             val notification = sbn.notification
-            if (notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
+            if (notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) {
+                CaptureStatus.event(CaptureEvent.GROUP_SUMMARY)
+                return
+            }
             val extras = notification.extras
             val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()
             val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
                 ?: extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)?.joinToString(" ")
-            val parsed = dispatcher.parse(sbn.packageName, title, text, bigText) ?: return
+            val parsed = dispatcher.parse(sbn.packageName, title, text, bigText)
+            if (parsed == null) {
+                CaptureStatus.event(CaptureEvent.UNRECOGNIZED)
+                return
+            }
+            CaptureStatus.event(CaptureEvent.RECOGNIZED)
             val metadata = NotificationMetadata(sbn.key, sbn.postTime,
                 notification.`when`.takeIf { it > 0 && it <= sbn.postTime } ?: sbn.postTime)
             val identified = NotificationIdentity.apply(parsed, metadata)
@@ -115,7 +123,7 @@ class YapeNotificationListenerService : NotificationListenerService() {
                 if (inserted != -1L) {
                     CaptureStatus.saved()
                     TransactionSyncWorker.enqueue(applicationContext)
-                }
+                } else CaptureStatus.event(CaptureEvent.DUPLICATE)
             }
         } catch (_: Exception) {
             CaptureStatus.error("No se pudo leer una notificación de Yape.")
@@ -134,6 +142,11 @@ class YapeNotificationListenerService : NotificationListenerService() {
         private var current: YapeNotificationListenerService? = null
         private var lastRebind = 0L
         fun reviewActive() { current?.reviewActiveNotifications() }
+        fun reconnect(context: Context) {
+            if (!hasPermission(context) || CaptureStatus.state.value.connected) return
+            runCatching { requestRebind(ComponentName(context, YapeNotificationListenerService::class.java)) }
+                .onFailure { CaptureStatus.error("No se pudo solicitar la reconexión. Revisa el acceso a notificaciones.") }
+        }
         fun hasPermission(context: Context): Boolean {
             val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
             val component = ComponentName(context, YapeNotificationListenerService::class.java)

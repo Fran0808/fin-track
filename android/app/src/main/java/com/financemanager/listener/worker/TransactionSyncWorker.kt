@@ -7,6 +7,8 @@ import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.network.ApiClient
 import com.financemanager.listener.network.TransactionSyncDto
 import com.financemanager.listener.service.CaptureStatus
+import com.financemanager.listener.service.CaptureEvent
+import com.financemanager.listener.service.SyncPhase
 import kotlinx.coroutines.CancellationException
 import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
@@ -17,6 +19,7 @@ class TransactionSyncWorker(appContext: Context, workerParams: WorkerParameters)
             val session = PairingPreferences.session(applicationContext) ?: return Result.success()
             val dao = AppDatabase.getDatabase(applicationContext).transactionDao()
             val entries = dao.getUnsyncedTransactions(session.ownerKey)
+            CaptureStatus.sync("Enviando ${entries.size} movimientos a tu cuenta…", SyncPhase.SENDING)
             val service = ApiClient.getService(session.serverUrl)
             val outcome = SyncEngine.run(entries, session.ownerKey,
                 isCurrentSession = { PairingPreferences.session(applicationContext) == session },
@@ -30,20 +33,24 @@ class TransactionSyncWorker(appContext: Context, workerParams: WorkerParameters)
                     val response = service.syncBatch(session.token, listOf(dto))
                     SyncReply(response.code(), response.body()?.map { it.transactionHash }.orEmpty())
                 },
-                acknowledge = { dao.markAsSynced(it.transactionHash, session.ownerKey) }
+                acknowledge = {
+                    dao.markAsSynced(it.transactionHash, session.ownerKey)
+                    CaptureStatus.event(CaptureEvent.SENT)
+                }
             )
+            if (PairingPreferences.session(applicationContext) != session) return Result.success()
             when (outcome) {
                 SyncOutcome.COMPLETE -> {
-                    CaptureStatus.sync("Sincronización completada; ${entries.size} pendientes procesados.")
+                    CaptureStatus.sync(if (entries.isEmpty()) "Todos tus movimientos están enviados." else "${entries.size} movimientos confirmados por la web.", SyncPhase.COMPLETE)
                     Result.success()
                 }
                 SyncOutcome.SESSION_CHANGED -> Result.success()
                 SyncOutcome.AUTH_REQUIRED -> {
-                    CaptureStatus.sync("Vuelve a vincular la cuenta: el servidor rechazó la autorización.")
+                    CaptureStatus.sync("Vuelve a vincular la cuenta: el servidor rechazó la autorización.", SyncPhase.AUTH_REQUIRED)
                     Result.failure()
                 }
                 SyncOutcome.REJECTED -> {
-                    CaptureStatus.sync("Algunos movimientos fueron rechazados; se conservaron para revisión.")
+                    CaptureStatus.sync("Algunos movimientos fueron rechazados; se conservaron para revisión.", SyncPhase.REJECTED)
                     Result.failure()
                 }
                 SyncOutcome.RETRY -> retryOrStop()
@@ -57,10 +64,10 @@ class TransactionSyncWorker(appContext: Context, workerParams: WorkerParameters)
 
     private fun retryOrStop(): Result {
         return if (runAttemptCount < 4) {
-            CaptureStatus.sync("Sincronización pendiente; se reintentará automáticamente.")
+            CaptureStatus.sync("El envío se reintentará automáticamente.", SyncPhase.RETRY)
             Result.retry()
         } else {
-            CaptureStatus.sync("No se pudo sincronizar tras 5 intentos. Puedes reintentar manualmente.")
+            CaptureStatus.sync("No se pudo enviar tras 5 intentos. Puedes reintentar manualmente.", SyncPhase.RETRY)
             Result.failure()
         }
     }
@@ -69,6 +76,7 @@ class TransactionSyncWorker(appContext: Context, workerParams: WorkerParameters)
         private const val WORK_NAME = "TransactionSyncWork"
         fun enqueue(context: Context) {
             if (PairingPreferences.session(context) == null) return
+            CaptureStatus.sync("Envío solicitado. Se realizará cuando haya conexión.", SyncPhase.QUEUED)
             val request = OneTimeWorkRequestBuilder<TransactionSyncWorker>()
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.SECONDS).build()
