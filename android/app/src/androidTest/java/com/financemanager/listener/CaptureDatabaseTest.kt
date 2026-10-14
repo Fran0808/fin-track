@@ -74,6 +74,22 @@ class CaptureDatabaseTest {
         }
     }
 
+    @Test fun fullHistoryRemainsOwnerScopedAndReviewCanBecomeEmpty() = runBlocking {
+        Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().withDatabase { db ->
+            val dao = db.transactionDao()
+            repeat(60) { dao.insert(entry("history-$it", "key-$it")) }
+            dao.insert(entry("other", "other", "owner-b"))
+            val unassigned = dao.insert(entry("unassigned", "unassigned", null))
+            assertEquals(60, dao.getTransactionsFlow("owner-a").first().size)
+            assertEquals(1, dao.getTransactionsFlow("owner-b").first().size)
+            assertTrue(dao.getTransactionsFlow(null).first().isEmpty())
+            assertEquals(1, dao.unassignedTransactions().first().size)
+            assertEquals(1, dao.assignReviewedEntry(unassigned, "owner-a"))
+            assertTrue(dao.unassignedTransactions().first().isEmpty())
+            assertEquals(61, dao.getTransactionsFlow("owner-a").first().size)
+        }
+    }
+
     @Test fun migrationPreservesExistingRowsAndRoomValidatesSchema() = runBlocking {
         val name = "capture-migration-test.db"
         context.deleteDatabase(name)

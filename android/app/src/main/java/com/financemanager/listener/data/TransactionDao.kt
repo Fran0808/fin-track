@@ -22,13 +22,16 @@ abstract class TransactionDao {
     @Query("SELECT * FROM local_transactions WHERE ownerKey = :owner ORDER BY createdAt DESC LIMIT 50")
     abstract fun getRecentTransactionsFlow(owner: String?): Flow<List<LocalTransactionEntity>>
 
+    @Query("SELECT * FROM local_transactions WHERE ownerKey = :owner ORDER BY transactionDate DESC, id DESC")
+    abstract fun getTransactionsFlow(owner: String?): Flow<List<LocalTransactionEntity>>
+
     @Query("SELECT COUNT(*) FROM local_transactions WHERE isSynced = 0 AND ownerKey = :owner")
     abstract fun pendingCount(owner: String?): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM local_transactions WHERE ownerKey IS NULL")
     abstract fun unassignedCount(): Flow<Int>
 
-    @Query("SELECT * FROM local_transactions WHERE ownerKey IS NULL ORDER BY createdAt DESC LIMIT 50")
+    @Query("SELECT * FROM local_transactions WHERE ownerKey IS NULL ORDER BY transactionDate DESC, id DESC")
     abstract fun unassignedTransactions(): Flow<List<LocalTransactionEntity>>
 
     @Query("UPDATE local_transactions SET ownerKey = :owner WHERE id = :id AND ownerKey IS NULL AND isSynced = 0")

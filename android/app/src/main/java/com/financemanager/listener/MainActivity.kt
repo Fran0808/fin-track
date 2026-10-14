@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.financemanager.listener.data.PairingPreferences
@@ -37,9 +38,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             FinTrackTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    DashboardScreen(modifier = Modifier.padding(innerPadding))
-                }
+                DashboardScreen()
             }
         }
     }
@@ -56,19 +55,20 @@ fun PairingDialog(
     var manualServerUrl by remember { mutableStateOf(PairingPreferences.getServerUrl(context)) }
     var isVerifying by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var manualVisible by remember { mutableStateOf(false) }
 
     val scanner = remember { GmsBarcodeScanning.getClient(context) }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Vincular Dispositivo") },
+        onDismissRequest = { if (!isVerifying) onDismiss() },
+        title = { Text("Vincular tu cuenta") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "Abre FinTrack en tu navegador web y toca 'Vincular Celular' para obtener tu código QR.",
+                    text = "Abre FinTrack en la web y toca ‘Vinculación móvil’. Escanea el QR para conectar este teléfono a tu cuenta.",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -92,27 +92,27 @@ fun PairingDialog(
                                 }
                             }
                             .addOnFailureListener { e ->
-                                errorMessage = "Fallo al abrir escáner: ${e.message}"
+                                errorMessage = "No se pudo abrir el escáner. Inténtalo otra vez o usa la configuración manual."
                             }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isVerifying
                 ) {
-                    Text("Escanear Código QR con Cámara")
+                    Text("Escanear QR")
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                Text(
-                    text = "O ingresa los datos manualmente:",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                TextButton(onClick = { manualVisible = !manualVisible }, enabled = !isVerifying) {
+                    Text(if (manualVisible) "Ocultar configuración manual" else "Configuración manual")
+                }
 
+                if (manualVisible) {
                 OutlinedTextField(
                     value = manualToken,
                     onValueChange = { manualToken = it },
-                    label = { Text("Token de Emparejamiento") },
+                    label = { Text("Código de vinculación") },
+                    visualTransformation = PasswordVisualTransformation(),
                     placeholder = { Text("wp_dev_...") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -121,11 +121,12 @@ fun PairingDialog(
                 OutlinedTextField(
                     value = manualServerUrl,
                     onValueChange = { manualServerUrl = it },
-                    label = { Text("URL del Servidor") },
+                    label = { Text("Dirección del servidor") },
                     placeholder = { Text("http://192.168.1.5:8080") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                }
 
                 if (errorMessage != null) {
                     Text(
@@ -149,6 +150,7 @@ fun PairingDialog(
             }
         },
         confirmButton = {
+            if (manualVisible) {
             Button(
                 onClick = {
                     if (manualToken.isBlank()) {
@@ -172,6 +174,7 @@ fun PairingDialog(
                 enabled = !isVerifying && manualToken.isNotBlank()
             ) {
                 Text("Conectar")
+            }
             }
         },
         dismissButton = {
@@ -251,7 +254,7 @@ private fun verifyAndSaveToken(
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 onFinish()
-                onError("No se pudo conectar al servidor: ${e.message}")
+                onError("No se pudo conectar. Comprueba que el teléfono pueda acceder a la dirección del servidor e inténtalo otra vez.")
             }
         }
     }

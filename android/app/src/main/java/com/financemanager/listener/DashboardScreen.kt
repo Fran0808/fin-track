@@ -4,11 +4,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,7 +14,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,317 +31,332 @@ import com.financemanager.listener.data.AppDatabase
 import com.financemanager.listener.data.LocalTransactionEntity
 import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.network.ApiClient
-import com.financemanager.listener.service.YapeNotificationListenerService
 import com.financemanager.listener.service.CaptureStatus
+import com.financemanager.listener.service.SyncPhase
+import com.financemanager.listener.service.YapeNotificationListenerService
 import com.financemanager.listener.ui.theme.*
 import com.financemanager.listener.worker.TransactionSyncWorker
-import java.math.RoundingMode
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.math.RoundingMode
+import java.time.*
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var permissionGranted by remember { mutableStateOf(hasNotificationPermission(context)) }
-    var paired by remember { mutableStateOf(PairingPreferences.isPaired(context)) }
-    var email by remember { mutableStateOf(PairingPreferences.getPairedEmail(context)) }
-    var settingsVisible by rememberSaveable { mutableStateOf(false) }
-    var pairingVisible by rememberSaveable { mutableStateOf(false) }
-    var unpairVisible by rememberSaveable { mutableStateOf(false) }
-    var reviewUnassigned by rememberSaveable { mutableStateOf(false) }
-    var entryToAssign by remember { mutableStateOf<LocalTransactionEntity?>(null) }
     val scope = rememberCoroutineScope()
+    val dao = remember { AppDatabase.getDatabase(context).transactionDao() }
+    var permission by remember { mutableStateOf(hasNotificationPermission(context)) }
     var session by remember { mutableStateOf(PairingPreferences.session(context)) }
-    val database = remember { AppDatabase.getDatabase(context) }
-    val dao = database.transactionDao()
-    val transactionFlow = remember(session?.ownerKey, reviewUnassigned) {
-        if (reviewUnassigned) dao.unassignedTransactions() else dao.getRecentTransactionsFlow(session?.ownerKey)
-    }
-    val transactions = key(session?.ownerKey, reviewUnassigned) {
-        val rows by transactionFlow.collectAsState(emptyList())
-        rows
-    }
-    val pendingFlow = remember(session?.ownerKey) { dao.pendingCount(session?.ownerKey) }
-    val pendingCount by pendingFlow.collectAsState(0)
-    val unassignedFlow = remember { dao.unassignedCount() }
-    val unassignedCount by unassignedFlow.collectAsState(0)
+    var email by remember { mutableStateOf(PairingPreferences.getPairedEmail(context)) }
+    var tab by rememberSaveable { mutableStateOf(0) }
+    var pairing by rememberSaveable { mutableStateOf(false) }
+    var unpair by rememberSaveable { mutableStateOf(false) }
+    var diagnostics by rememberSaveable { mutableStateOf(false) }
+    var query by rememberSaveable { mutableStateOf("") }
+    var statusName by rememberSaveable { mutableStateOf(MovementStatus.ALL.name) }
+    var startDay by rememberSaveable { mutableStateOf<String?>(null) }
+    var endDay by rememberSaveable { mutableStateOf<String?>(null) }
+    var datePicker by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf<LocalTransactionEntity?>(null) }
+    var assignment by remember { mutableStateOf<LocalTransactionEntity?>(null) }
+    var assigning by remember { mutableStateOf(false) }
     val capture by CaptureStatus.state.collectAsState()
-    val connectionLabel = when {
-        !permissionGranted -> "Permiso deshabilitado"
-        capture.connected -> "Servicio conectado"
-        else -> "Esperando conexión"
+    val ownedFlow = remember(session?.ownerKey) { dao.getTransactionsFlow(session?.ownerKey) }
+    val owned by key(session?.ownerKey) { ownedFlow.collectAsState(emptyList()) }
+    val unassigned by remember { dao.unassignedTransactions() }.collectAsState(emptyList())
+    val pendingCount = owned.count { !it.isSynced }
+    val status = MovementStatus.valueOf(statusName)
+    val rows = if (status == MovementStatus.UNASSIGNED) unassigned else owned
+    val filtered = remember(rows, query, status, startDay, endDay) {
+        filterMovements(rows, query, status, startDay?.let(LocalDate::parse), endDay?.let(LocalDate::parse))
     }
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    DisposableEffect(lifecycleOwner) {
+    val lifecycle = LocalLifecycleOwner.current
+    DisposableEffect(lifecycle) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                permissionGranted = hasNotificationPermission(context)
-                paired = PairingPreferences.isPaired(context)
+                permission = hasNotificationPermission(context)
+                val updated = PairingPreferences.session(context)
+                if (session?.ownerKey != updated?.ownerKey) { selected = null; assignment = null }
+                session = updated
                 email = PairingPreferences.getPairedEmail(context)
-                session = PairingPreferences.session(context)
             }
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        lifecycle.lifecycle.addObserver(observer)
+        onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
-    BackHandler(enabled = settingsVisible) { settingsVisible = false }
-
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(R.drawable.fintrack_mark), contentDescription = null,
-                    modifier = Modifier.size(40.dp))
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("FinTrack", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Tu dinero en movimiento", fontSize = 12.sp, color = Muted)
-                }
-                TextButton(onClick = { settingsVisible = !settingsVisible }) {
-                    Text(if (settingsVisible) "Volver" else "Ajustes")
-                }
+    BackHandler(enabled = tab != 0) { tab = 0 }
+    fun openMovements(next: MovementStatus = MovementStatus.ALL) {
+        statusName = next.name; query = ""; startDay = null; endDay = null; tab = 1
+    }
+    Scaffold(modifier = modifier, bottomBar = {
+        NavigationBar(containerColor = Color.White) {
+            listOf("Inicio", "Movimientos", "Ajustes").forEachIndexed { index, label ->
+                NavigationBarItem(selected = tab == index, onClick = { tab = index },
+                    icon = { NavigationMark(index, if (tab == index) BrandBlue else Muted) }, label = { Text(label) })
             }
         }
-        if (settingsVisible) {
-            item { Text("Ajustes", style = MaterialTheme.typography.headlineSmall) }
-            item {
-                AppPanel {
-                    SectionLabel("CUENTA")
-                    Text(if (paired) "Cuenta vinculada" else "Vincula tu cuenta", fontWeight = FontWeight.SemiBold)
-                    Text(email ?: "Escanea el QR de FinTrack para sincronizar tus movimientos.", color = Muted)
-                    if (paired) {
-                        OutlinedButton(onClick = { unpairVisible = true }) { Text("Desvincular dispositivo") }
-                    } else {
-                        Button(onClick = { pairingVisible = true }) { Text("Vincular cuenta") }
-                    }
-                }
-            }
-            item {
-                AppPanel {
-                    SectionLabel("NOTIFICACIONES")
-                    Text(if (permissionGranted) "Permiso habilitado" else "Permiso pendiente", fontWeight = FontWeight.SemiBold)
-                    Text(connectionLabel, color = Muted)
-                    Text("Última conexión: ${formatDiagnosticTime(capture.lastConnection)}", color = Muted)
-                    Text("Última notificación de Yape: ${formatDiagnosticTime(capture.lastNotification)}", color = Muted)
-                    Text("Último guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
-                    capture.lastError?.let { Text(it, color = Negative) }
-                    Text(capture.syncMessage, color = Muted)
-                    OutlinedButton(onClick = { YapeNotificationListenerService.reviewActive() },
-                        enabled = permissionGranted && capture.connected) { Text("Revisar notificaciones activas") }
-                    OutlinedButton(onClick = { openNotificationSettings(context) }) { Text("Revisar permiso") }
-                }
-            }
-            item {
-                AppPanel {
-                    SectionLabel("ACERCA DE")
-                    Text("FinTrack", fontWeight = FontWeight.SemiBold)
-                    Text("Versión ${BuildConfig.VERSION_NAME} · Compilación ${BuildConfig.VERSION_CODE}", color = Muted)
-                    Text("Los movimientos se guardan en este teléfono antes de sincronizarse.", color = Muted)
-                }
-            }
-        } else {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SectionLabel("TU TELÉFONO")
-                    Text("Captura de movimientos", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
-                    Text("Tus notificaciones de Yape, en un solo lugar.", fontSize = 13.sp, color = Muted)
-                }
-            }
-            item {
-                Surface(shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, Line), color = Color.White) {
-                    Column {
-                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(Modifier.size(8.dp).background(if (permissionGranted && capture.connected) Positive else Negative, RoundedCornerShape(4.dp)))
-                                Text(connectionLabel, fontWeight = FontWeight.SemiBold)
-                            }
-                            Text(if (permissionGranted) "${pendingCount} movimientos pendientes de esta cuenta" else "Permite que FinTrack lea las notificaciones de Yape.", color = Muted, fontSize = 12.sp)
-                            capture.lastError?.let { Text(it, color = Negative, fontSize = 12.sp) }
-                            Text(capture.syncMessage, color = Muted, fontSize = 12.sp)
-                            HorizontalDivider(color = Line)
-                            Text("Último guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted, fontSize = 12.sp)
-                            if (!permissionGranted) {
-                                Button(onClick = { openNotificationSettings(context) }) { Text("Habilitar permiso") }
-                            }
-                        }
-                        Box(Modifier.fillMaxWidth().height(4.dp).background(BrandBlue))
-                    }
-                }
-            }
-            if (!paired) {
-                item {
-                    AppPanel {
-                        Text("Conecta tu cuenta", fontWeight = FontWeight.SemiBold)
-                        Text("Vincula este teléfono para enviar tus movimientos a la web.", color = Muted, fontSize = 13.sp)
-                        Button(onClick = { pairingVisible = true }) { Text("Vincular cuenta") }
-                    }
-                }
-            }
-            item {
-                if (unassignedCount > 0) {
-                    AppPanel {
-                        Text("$unassignedCount movimientos sin cuenta comprobada", fontWeight = FontWeight.SemiBold)
-                        Text("Se conservan en este teléfono y no se enviarán automáticamente. Incluye registros antiguos o capturados sin vinculación.", color = Muted)
-                        TextButton(onClick = { reviewUnassigned = !reviewUnassigned }) {
-                            Text(if (reviewUnassigned) "Ver cuenta vinculada" else "Revisar registros locales")
-                        }
-                    }
-                }
-            }
+    }) { padding ->
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Movimientos", fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Últimos ${transactions.size} guardados en este teléfono", fontSize = 12.sp, color = Muted)
-                    }
-                    TextButton(onClick = {
-                        TransactionSyncWorker.enqueue(context)
-                        Toast.makeText(context, "Sincronización encolada", Toast.LENGTH_SHORT).show()
-                    }, enabled = session != null && pendingCount > 0) { Text("Sincronizar") }
+                    Image(painterResource(R.drawable.fintrack_mark), contentDescription = null, modifier = Modifier.size(36.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(if (tab == 0) "FinTrack" else if (tab == 1) "Movimientos" else "Ajustes",
+                        style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 }
             }
-            if (transactions.isEmpty()) {
+            if (tab == 0) {
+                item { Text("Tus movimientos de Yape", style = MaterialTheme.typography.titleLarge)
+                    Text("Se guardan en este teléfono antes de enviarse a tu cuenta.", color = Muted) }
+                if (session == null || !permission) item {
+                    AppPanel {
+                        Text("Configura tu teléfono", fontWeight = FontWeight.SemiBold)
+                        Text("1. Vincula tu cuenta", color = if (session == null) Ink else Positive)
+                        if (session == null) Button(onClick = { pairing = true }) { Text("Escanear QR de la web") }
+                        else Text("Cuenta vinculada", color = Positive)
+                        Text("2. Activa el acceso a notificaciones", color = if (!permission) Ink else Positive)
+                        if (!permission) OutlinedButton(onClick = { openNotificationSettings(context) }) { Text("Activar acceso") }
+                        else Text("Acceso habilitado", color = Positive)
+                    }
+                }
                 item {
                     AppPanel {
-                        Text("Aún no hay movimientos", fontWeight = FontWeight.SemiBold)
-                        Text("Cuando se capture una notificación de Yape, aparecerá aquí.", color = Muted)
+                        Text("Captura de Yape", fontWeight = FontWeight.SemiBold)
+                        Text(when { !permission -> "Acceso a notificaciones desactivado"; capture.connected -> "Acceso a notificaciones conectado"; else -> "Esperando conexión con Android" },
+                            color = if (permission && capture.connected) Positive else Ink)
+                        Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
+                        if (permission && capture.connected) Text("Lista para recibir la próxima notificación. No necesitas mantener FinTrack abierta.", color = Muted)
+                        if (permission && !capture.connected) OutlinedButton(onClick = { YapeNotificationListenerService.reconnect(context) }) { Text("Intentar reconectar") }
+                        capture.lastError?.let { Text(it, color = Negative) }
+                        TextButton(onClick = { tab = 2; diagnostics = true }) { Text("Ver diagnóstico") }
                     }
                 }
-            }
-            transactions.forEachIndexed { index, transaction ->
-                val day = formatTransactionDate(transaction.transactionDate, "yyyy-MM-dd")
-                val previousDay = transactions.getOrNull(index - 1)?.let { formatTransactionDate(it.transactionDate, "yyyy-MM-dd") }
-                if (day != previousDay) {
-                    item(key = "date-${transaction.transactionHash}") { SectionLabel(formatTransactionDate(transaction.transactionDate, "d 'de' MMMM 'de' yyyy").uppercase(Locale.forLanguageTag("es-PE"))) }
-                }
-                item(key = transaction.transactionHash) {
-                    TransactionRow(transaction)
-                    if (reviewUnassigned && !transaction.isSynced && session != null) {
-                        TextButton(onClick = { entryToAssign = transaction }) { Text("Asignar a mi cuenta") }
-                    }
-                }
-            }
-        }
-        item {
-            HorizontalDivider(color = Line)
-            Text("FinTrack · ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", modifier = Modifier.fillMaxWidth().padding(top = 14.dp), color = Muted, fontSize = 12.sp)
-        }
-    }
-
-    entryToAssign?.let { entry ->
-        AlertDialog(onDismissRequest = { entryToAssign = null },
-            title = { Text("Confirmar propietario") },
-            text = { Text("Confirma que el movimiento de S/ ${entry.amount} de ${entry.contactName} pertenece a $email. Se enviará a esa cuenta conservando su identificador.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    val expected = session
-                    entryToAssign = null
-                    scope.launch {
-                        try {
-                            val assigned = withContext(Dispatchers.IO) {
-                                if (expected != null && PairingPreferences.session(context) == expected)
-                                    dao.assignReviewedEntry(entry.id, expected.ownerKey) else 0
+                if (session != null) item {
+                    AppPanel {
+                        Text("Envío a tu cuenta", fontWeight = FontWeight.SemiBold)
+                        Text(if (pendingCount == 0) "Todos tus movimientos están enviados" else "$pendingCount movimientos por enviar", style = MaterialTheme.typography.titleMedium)
+                        Text(capture.syncMessage, color = Muted)
+                        if (pendingCount > 0) {
+                            Text("Los movimientos siguen guardados si no hay conexión.", color = Muted)
+                            if (capture.syncPhase == SyncPhase.AUTH_REQUIRED) Button(onClick = { pairing = true }) { Text("Volver a vincular cuenta") }
+                            else Button(onClick = { TransactionSyncWorker.enqueue(context) }, enabled = capture.syncPhase != SyncPhase.SENDING) {
+                                Text(if (capture.syncPhase == SyncPhase.SENDING) "Enviando…" else "Enviar ahora")
                             }
-                            if (assigned == 1) TransactionSyncWorker.enqueue(context)
-                        } catch (e: kotlinx.coroutines.CancellationException) {
-                            throw e
-                        } catch (_: Exception) {
-                            CaptureStatus.error("No se pudo asignar el movimiento. Sigue guardado sin cuenta.")
                         }
                     }
-                }) { Text("Confirmar y sincronizar") }
-            }, dismissButton = { TextButton(onClick = { entryToAssign = null }) { Text("Cancelar") } })
+                }
+                if (unassigned.isNotEmpty()) item {
+                    AppPanel {
+                        Text("${unassigned.size} movimientos sin cuenta asignada", fontWeight = FontWeight.SemiBold)
+                        Text("Confirma a qué cuenta pertenecen antes de enviarlos.", color = Muted)
+                        TextButton(onClick = { openMovements(MovementStatus.UNASSIGNED) }) { Text("Revisar movimientos") }
+                    }
+                }
+                item { Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Últimos movimientos", Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                    TextButton(onClick = { openMovements() }) { Text("Ver todos") }
+                } }
+                if (owned.isEmpty()) item { AppPanel {
+                    Text(if (session == null) "Vincula una cuenta para ver sus movimientos." else "Aún no hay movimientos para esta cuenta.")
+                    Text("La próxima notificación reconocida se guardará aquí. Los registros sin cuenta tienen su propia lista.", color = Muted)
+                } }
+                items(owned.take(5).size, key = { owned[it].transactionHash }) { index -> TransactionRow(owned[index]) { selected = owned[index] } }
+            } else if (tab == 1) {
+                item {
+                    Text(if (status == MovementStatus.UNASSIGNED) "Guardados sin cuenta asignada" else "Historial capturado para tu cuenta en este teléfono", color = Muted)
+                    OutlinedTextField(query, { query = it }, label = { Text("Buscar nombre o importe") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                }
+                item {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MovementStatus.entries.forEach { next -> FilterChip(selected = status == next, onClick = { statusName = next.name }, label = { Text(next.label) }) }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(onClick = { datePicker = true }, modifier = Modifier.weight(1f)) {
+                            Text(if (startDay == null) "Elegir fechas" else dateRangeLabel(startDay!!, endDay ?: startDay!!))
+                        }
+                        if (startDay != null) TextButton(onClick = { startDay = null; endDay = null }) { Text("Quitar") }
+                    }
+                    Text("${filtered.size} movimientos", color = Muted)
+                }
+                if (filtered.isEmpty()) item { AppPanel {
+                    Text(if (status == MovementStatus.UNASSIGNED) "No hay movimientos sin cuenta" else "No hay movimientos para esta selección", fontWeight = FontWeight.SemiBold)
+                    Text("Puedes cambiar el estado, la búsqueda o las fechas.", color = Muted)
+                    TextButton(onClick = { openMovements() }) { Text("Ver todos los de mi cuenta") }
+                } }
+                filtered.forEachIndexed { index, row ->
+                    val day = row.transactionDate.substringBefore('T')
+                    if (index == 0 || filtered[index - 1].transactionDate.substringBefore('T') != day) item(key = "day-$day") {
+                        Text(formatTransactionDate(row.transactionDate, "d 'de' MMMM 'de' yyyy"), color = Muted, fontSize = 13.sp)
+                    }
+                    item(key = row.transactionHash) { TransactionRow(row) { selected = row } }
+                }
+            } else {
+                item { AppPanel {
+                    Text("Cuenta", fontWeight = FontWeight.SemiBold)
+                    Text(email ?: "Sin cuenta vinculada", color = Muted)
+                    Text("La vinculación permite enviar los movimientos a tu cuenta de la web.", color = Muted)
+                    if (session == null) Button(onClick = { pairing = true }) { Text("Vincular con QR") }
+                    else OutlinedButton(onClick = { unpair = true }) { Text("Desvincular teléfono") }
+                } }
+                item { AppPanel {
+                    Text("Acceso a notificaciones", fontWeight = FontWeight.SemiBold)
+                    Text(if (permission) "Habilitado" else "Desactivado", color = Muted)
+                    OutlinedButton(onClick = { openNotificationSettings(context) }) { Text(if (permission) "Revisar acceso" else "Activar acceso") }
+                    if (permission && !capture.connected) OutlinedButton(onClick = { YapeNotificationListenerService.reconnect(context) }) { Text("Intentar reconectar") }
+                } }
+                item { AppPanel {
+                    TextButton(onClick = { diagnostics = !diagnostics }) { Text(if (diagnostics) "Ocultar diagnóstico" else "Ver diagnóstico de captura") }
+                    if (diagnostics) {
+                        Text("Última conexión: ${formatDiagnosticTime(capture.lastConnection)}", color = Muted)
+                        Text("Última notificación recibida: ${formatDiagnosticTime(capture.lastNotification)}", color = Muted)
+                        Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
+                        Text("Recibir una notificación no significa que se haya reconocido un pago. Los avisos promocionales también pueden descartarse.", color = Muted)
+                        OutlinedButton(onClick = { YapeNotificationListenerService.reviewActive() }, enabled = permission && capture.connected) { Text("Revisar notificaciones aún visibles") }
+                        if (capture.history.isEmpty()) Text("Aún no hay actividad registrada.", color = Muted)
+                        capture.history.forEach { event ->
+                            HorizontalDivider(color = Line)
+                            Text(event.event.label, fontSize = 14.sp)
+                            Text(formatDiagnosticTime(event.time), color = Muted, fontSize = 12.sp)
+                        }
+                        Text("Se conservan los últimos 30 eventos, sin nombres, importes ni códigos de seguridad.", color = Muted, fontSize = 12.sp)
+                    }
+                } }
+                item { Text("FinTrack ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 12.sp) }
+            }
+        }
     }
-    if (pairingVisible) {
-        PairingDialog(onDismiss = { pairingVisible = false }, onSuccess = {
-            email = it
-            paired = true
-            session = PairingPreferences.session(context)
-            reviewUnassigned = false
-            pairingVisible = false
-        })
+    if (datePicker) {
+        val range = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = startDay?.let { LocalDate.parse(it).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() },
+            initialSelectedEndDateMillis = endDay?.let { LocalDate.parse(it).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli() })
+        DatePickerDialog(onDismissRequest = { datePicker = false }, confirmButton = {
+            TextButton(enabled = range.selectedStartDateMillis != null, onClick = {
+                startDay = range.selectedStartDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
+                endDay = (range.selectedEndDateMillis ?: range.selectedStartDateMillis)?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString() }
+                datePicker = false
+            }) { Text("Aplicar fechas") }
+        }, dismissButton = { TextButton(onClick = { datePicker = false }) { Text("Cancelar") } }) {
+            DateRangePicker(state = range, modifier = Modifier.heightIn(max = 480.dp), title = { Text("Selecciona un día o un rango", Modifier.padding(16.dp)) })
+        }
     }
-    if (unpairVisible) {
-        AlertDialog(
-            onDismissRequest = { unpairVisible = false },
-            title = { Text("Desvincular dispositivo") },
-            text = { Text("Se dejarán de sincronizar los movimientos con $email hasta que vuelvas a vincular este teléfono.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    PairingPreferences.clearPairing(context)
-                    TransactionSyncWorker.cancel(context)
-                    ApiClient.resetService()
-                    session = null
-                    paired = false
-                    email = null
-                    unpairVisible = false
-                }) { Text("Desvincular", color = Negative) }
-            },
-            dismissButton = { TextButton(onClick = { unpairVisible = false }) { Text("Cancelar") } }
-        )
+    selected?.let { original ->
+        val row = (owned + unassigned).find { it.id == original.id }
+        if (row == null) LaunchedEffect(original.id) { selected = null }
+        else AlertDialog(onDismissRequest = { selected = null }, title = { Text("Detalle del movimiento") }, text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(formatAmount(row), style = MaterialTheme.typography.headlineMedium, color = if (row.flowType == "INCOME") Positive else Ink)
+                Text(row.contactName, fontWeight = FontWeight.SemiBold)
+                Text(formatTransactionDate(row.transactionDate, "d MMM yyyy, HH:mm"), color = Muted)
+                Text("Origen: ${row.channel}")
+                Text("Estado: ${movementLabel(row)}")
+                Text(if (row.ownerKey == null) "Cuenta: sin asignar" else "Cuenta: ${email ?: "cuenta vinculada"}")
+                Text(if (row.isSynced) "La web confirmó la recepción de este movimiento." else "El movimiento está guardado en este teléfono.", color = Muted)
+                if (row.ownerKey == null && !row.isSynced) {
+                    if (session != null) Button(onClick = { assignment = row; selected = null }) { Text("Asignar a mi cuenta") }
+                    else Text("Vincula tu cuenta desde Ajustes para poder asignarlo.", color = Muted)
+                }
+            }
+        }, confirmButton = { TextButton(onClick = { selected = null }) { Text("Cerrar") } })
     }
+    assignment?.let { row ->
+        AlertDialog(onDismissRequest = { if (!assigning) assignment = null }, title = { Text("Asignar a tu cuenta") },
+            text = { Text("Confirma que este movimiento de S/ ${row.amount} de ${row.contactName} pertenece a ${email ?: "tu cuenta"}. Después se enviará a la web.") },
+            confirmButton = { TextButton(enabled = !assigning && session != null, onClick = {
+                val expected = session
+                assigning = true
+                scope.launch {
+                    try {
+                        val changed = withContext(Dispatchers.IO) {
+                            if (expected != null && PairingPreferences.session(context) == expected) dao.assignReviewedEntry(row.id, expected.ownerKey) else 0
+                        }
+                        if (changed == 1) TransactionSyncWorker.enqueue(context)
+                        assignment = null
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (_: Exception) { CaptureStatus.error("No se pudo asignar el movimiento. Sigue guardado sin cuenta.") }
+                    finally { assigning = false }
+                }
+            }) { Text(if (assigning) "Asignando…" else "Confirmar y enviar") } },
+            dismissButton = { TextButton(enabled = !assigning, onClick = { assignment = null }) { Text("Cancelar") } })
+    }
+    if (pairing) PairingDialog(onDismiss = { pairing = false }, onSuccess = {
+        email = it; session = PairingPreferences.session(context); pairing = false
+        selected = null; assignment = null; openMovements(); tab = 0
+    })
+    if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Desvincular teléfono") },
+        text = { Text("Se detendrá el envío a $email. Los movimientos guardados se conservarán en este teléfono.") },
+        confirmButton = { TextButton(onClick = {
+            PairingPreferences.clearPairing(context); TransactionSyncWorker.cancel(context); ApiClient.resetService()
+            CaptureStatus.sync("Vincula una cuenta para enviar movimientos.")
+            session = null; email = null; unpair = false; selected = null; assignment = null; statusName = MovementStatus.ALL.name
+        }) { Text("Desvincular", color = Negative) } }, dismissButton = { TextButton(onClick = { unpair = false }) { Text("Cancelar") } })
 }
 
 @Composable
 private fun AppPanel(content: @Composable ColumnScope.() -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), border = BorderStroke(1.dp, Line), color = Color.White) {
+    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, Line), color = Color.White) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     }
 }
-
 @Composable
-private fun SectionLabel(text: String) {
-    Text(text, fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold, color = Muted)
-}
-
-@Composable
-private fun TransactionRow(transaction: LocalTransactionEntity) {
-    val income = transaction.flowType == "INCOME"
-    val amount = transaction.amount.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: transaction.amount
-    Column {
-        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Surface(color = if (income) SoftGreen else Negative.copy(alpha = 0.08f), shape = RoundedCornerShape(10.dp)) {
-                Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
-                    Text(if (income) "↙" else "↗", color = if (income) Positive else Negative, fontSize = 20.sp)
-                }
+private fun TransactionRow(row: LocalTransactionEntity, onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(row.contactName, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("${row.channel} · ${formatTransactionDate(row.transactionDate, "HH:mm")}", color = Muted, fontSize = 12.sp)
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(transaction.contactName, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text("${transaction.channel} · ${formatTransactionDate(transaction.transactionDate, "HH:mm")}", color = Muted, fontSize = 12.sp)
-            }
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${if (income) "+" else "−"} S/ $amount", color = if (income) Positive else Negative,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"), fontWeight = FontWeight.SemiBold)
-                Text(if (transaction.isSynced) "Sincronizado" else if (transaction.ownerKey == null) "Requiere revisión" else "Pendiente", color = Muted, fontSize = 11.sp)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(formatAmount(row), color = if (row.flowType == "INCOME") Positive else Ink, fontWeight = FontWeight.SemiBold)
+                Text(movementLabel(row), color = Muted, fontSize = 12.sp)
             }
         }
-        HorizontalDivider(color = Line)
+        HorizontalDivider(Modifier.padding(top = 14.dp), color = Line)
     }
 }
-
+@Composable
+private fun NavigationMark(index: Int, color: Color) {
+    Canvas(Modifier.size(24.dp)) {
+        val unit = size.width / 24
+        if (index == 0) {
+            val house = Path().apply { moveTo(3 * unit, 11 * unit); lineTo(12 * unit, 3 * unit); lineTo(21 * unit, 11 * unit); moveTo(6 * unit, 10 * unit); lineTo(6 * unit, 21 * unit); lineTo(18 * unit, 21 * unit); lineTo(18 * unit, 10 * unit) }
+            drawPath(house, color, style = Stroke(1.8f * unit))
+        } else if (index == 1) {
+            listOf(6f, 12f, 18f).forEach { y -> drawLine(color, Offset(4 * unit, y * unit), Offset(20 * unit, y * unit), 1.8f * unit) }
+        } else {
+            listOf(6f, 12f, 18f).forEachIndexed { i, y ->
+                drawLine(color, Offset(3 * unit, y * unit), Offset(21 * unit, y * unit), 1.8f * unit)
+                val center = Offset((if (i == 1) 15 else 8) * unit, y * unit)
+                drawCircle(Color.White, 3 * unit, center)
+                drawCircle(color, 3 * unit, center, style = Stroke(1.8f * unit))
+            }
+        }
+    }
+}
+private fun movementLabel(row: LocalTransactionEntity) = if (row.ownerKey == null) "Sin cuenta asignada" else if (row.isSynced) "Enviado" else "Por enviar"
+private fun formatAmount(row: LocalTransactionEntity): String {
+    val amount = row.amount.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: row.amount
+    return "${if (row.flowType == "INCOME") "+" else "−"} S/ $amount"
+}
 private fun formatTransactionDate(value: String, pattern: String): String = runCatching {
     LocalDateTime.parse(value).format(DateTimeFormatter.ofPattern(pattern, Locale.forLanguageTag("es-PE")))
-}.getOrDefault(value.replace('T', ' ').substringBefore('.'))
-
+}.getOrDefault(value.substringBefore('.').replace('T', ' '))
 private fun formatDiagnosticTime(value: Long?): String = value?.let {
-    java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("d MMM HH:mm:ss", Locale.forLanguageTag("es-PE")))
-} ?: "Sin registro en esta ejecución"
-
+    Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM, HH:mm:ss", Locale.forLanguageTag("es-PE")))
+} ?: "Sin registro todavía"
+private fun dateRangeLabel(start: String, end: String): String {
+    val format = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.forLanguageTag("es-PE"))
+    val first = LocalDate.parse(start).format(format)
+    return if (start == end) first else "$first — ${LocalDate.parse(end).format(format)}"
+}
 private fun hasNotificationPermission(context: Context): Boolean {
     val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
     val component = ComponentName(context, YapeNotificationListenerService::class.java)
     return enabled.split(':').any { ComponentName.unflattenFromString(it) == component }
 }
-
-private fun openNotificationSettings(context: Context) {
-    context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-}
+private fun openNotificationSettings(context: Context) { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }

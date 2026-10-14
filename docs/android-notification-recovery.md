@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.0.2 (version code 3) keeps the existing application ID, preferences and
+FinTrack 1.1.0 (version code 6) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -12,9 +12,11 @@ listener reads expanded text first, with text-line fallback; ambiguous bodies
 containing multiple monetary amounts are rejected.
 
 Live callbacks and active notifications recovered on connection use the same
-capture path. Settings also offers **Revisar notificaciones activas** while
-connected. The transaction date is Android's publication time (`postTime`), in
-the device timezone, rather than processing time. This is not necessarily the
+capture path. While connected, recovery is also available under
+**Ajustes > Ver diagnóstico de captura > Revisar notificaciones aún visibles**.
+The transaction date uses the valid Android event timestamp (`when`), falling back
+to publication time (`postTime`), in the device timezone, rather than processing
+time. This is not necessarily the
 bank's operation time. Deleted notifications and bank history cannot be recovered.
 
 New hashes combine the Android notification key, event timestamp (`when`, falling
@@ -46,8 +48,9 @@ stored in transaction rows. Reverification upgrades only that credential's scope
 
 Legacy rows have no proven owner, so migration leaves them unassigned. Captures
 made without pairing, and notifications published or dated before the current pairing,
-are also unassigned. These rows remain available through **Revisar registros
-locales**. A pending row can be assigned individually using **Asignar a mi cuenta**
+are also unassigned. These rows remain available through **Movimientos > Sin cuenta**
+or **Inicio > Revisar movimientos**. A pending row can be assigned individually
+from its detail using **Asignar a mi cuenta**
 and an explicit confirmation in the app; its hash remains unchanged. Already
 synced legacy rows are retained for review and cannot be reassigned this way.
 No old pending row is automatically sent to a newly paired account.
@@ -61,11 +64,21 @@ credential before rotating it if such pending rows exist.
 
 ## Errors, connection and synchronization
 
-Connection status is in process memory and resets when the process starts. The
-UI distinguishes disabled permission, waiting for connection and connected, and
-shows last connection, supported notification, successful save, capture error and
-sync status separately. A disconnect requests a permission-checked rebind at most
-once per minute, without a repeating reconnection loop.
+Live connection and send status remain in process memory: reopening the process
+does not falsely restore a connected listener. Last connection, supported
+notification and successful-save timestamps are persisted, together with a bounded
+history of 30 diagnostic events. This separate local preference store contains only
+timestamps and fixed event types, never notification text, names, amounts or codes.
+Events distinguish receipt, recognition, rejection, group summaries, successful
+storage, deduplication/recovery and a server-confirmed upload. The history is a
+chronological activity log, not a per-payment audit trail. Successful storage or
+deduplication clears previous processing errors.
+
+A disconnect requests a permission-checked rebind at most once per minute,
+without a repeating reconnection loop. **Intentar reconectar** offers an explicit
+rebind when permission is enabled but the listener is disconnected. Merely opening
+the activity does not prove that the listener is connected. Capture does not require
+the activity to stay open or the server to be reachable.
 
 Capture persistence is serialized. Lock and disk I/O failures receive at most
 three attempts with the original entity/hash. Other failures are reported and
@@ -83,7 +96,31 @@ records. Only a successful response containing that record's hash marks it synce
 Authentication errors require pairing; other permanent HTTP errors preserve the
 record for review while allowing later records to proceed. Network/server failures
 retry up to five attempts per work request; manual synchronization can try again.
-The pending counter includes all current-account rows, not just the visible 50.
+The **Por enviar** counter includes all current-account rows. Queuing a send is
+shown separately from sending and server confirmation; rejected authorization
+offers **Volver a vincular cuenta**. Send state is not restored as a live task after
+process restart; the durable local rows determine which movements still need sending.
+
+## Mobile navigation
+
+- **Inicio** shows setup steps when needed, capture status, the last successful
+  save, send status, unassigned-review access and five recent account movements.
+- **Movimientos** reads the complete local history for the current owner, ordered
+  by transaction date. Search matches contact names without case sensitivity or
+  amount text. Date filters include both endpoints; selecting only a start date
+  filters that single day. Calendar values are interpreted in UTC as calendar dates
+  to avoid shifting a selected day to the previous day on the device.
+- Status filters are **Todos**, **Por enviar**, **Enviados** and **Sin cuenta**.
+  Unassigned rows are a separate scope; **Todos** does not mix accounts or include
+  unassigned rows. An empty review retains navigation and filters after assigning
+  its last record. This use of **Por enviar** is distinct from classification
+  pending work in the web dashboard.
+- Tapping a movement opens its amount, date, origin, owner and delivery state.
+  Ownership assignment still requires individual confirmation. Notification text
+  and security codes are not displayed in this detail.
+- **Ajustes** contains account linking, notification access, expandable diagnostic
+  activity and the installed version. QR linking is primary; manual token/server
+  fields are behind **Configuración manual**, with the token masked.
 
 ## Verification and device acceptance
 
@@ -95,9 +132,11 @@ From `android`:
 
 Unit regressions cover strict amounts/promotions, masked names, authorized
 packages, event identity, ownership scopes, HTTP acknowledgements, session changes,
-offline behavior, rejected records and bounded storage retries. Instrumented
+offline behavior, rejected records, bounded storage retries, inclusive date filters,
+movement-state filters and bounded diagnostic transitions. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
-ownership isolation, legacy hashes and pending counts beyond 50 rows. Compiling
+ownership isolation, legacy hashes, full owner-scoped history, empty review after
+assignment and pending counts beyond 50 rows. Compiling
 the instrumented test APK does not execute these database tests.
 
 Installation requires task authorization. Before an authorized upgrade, compare
