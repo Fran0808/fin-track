@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.1.2 (version code 8) keeps the existing application ID, preferences and
+FinTrack 1.1.3 (version code 9) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -8,7 +8,8 @@ metadata without deleting rows or changing their transaction hashes.
 
 Only `com.bcp.innovacxion.yapeapp` is accepted, including in debug builds. Shell
 notifications are not financial fixtures. Group summaries are ignored. The
-listener reads expanded text first, with text-line fallback; ambiguous bodies
+listener reads nonblank expanded text first, with text-line fallback even if the
+expanded field exists but is blank; ambiguous bodies
 containing multiple monetary amounts are rejected.
 
 Live callbacks and active notifications recovered on connection use the same
@@ -143,6 +144,12 @@ process restart; the durable local rows determine which movements still need sen
   activity and the installed version. QR linking is primary; manual token/server
   fields are behind **Configuración manual**, with the token masked.
 
+Feature headings use **Tus movimientos** and **Captura de movimientos** so the
+interface is not named after a single provider. Only authorized supported packages
+are processed; currently that provider remains Yape. A movement's actual source
+is still displayed in its detail and row. Generic feature copy does not enable
+capture from additional packages.
+
 ## Verification and device acceptance
 
 From `android`:
@@ -155,10 +162,12 @@ Unit regressions cover strict amounts/promotions, masked names, authorized
 packages, event identity, ownership scopes, HTTP acknowledgements, session changes,
 offline behavior, rejected records, bounded storage retries, inclusive date filters,
 movement-state filters, bounded diagnostic transitions, sanitized connection/HTTP
-failure reporting and serial execution of simultaneous manual/automatic attempts. Instrumented
+failure reporting, the anonymized screenshot receipt format, expanded-text fallback
+and serial execution of simultaneous manual/automatic attempts. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
 ownership isolation, legacy hashes, full owner-scoped history, empty review after
-assignment and pending counts beyond 50 rows. Compiling
+assignment, pending counts beyond 50 rows and an authorized synthetic receipt through
+parsing, idempotent storage, offline retry and explicit server acknowledgement. Compiling
 the instrumented test APK does not execute these database tests.
 
 Installation requires task authorization. Before an authorized upgrade, compare

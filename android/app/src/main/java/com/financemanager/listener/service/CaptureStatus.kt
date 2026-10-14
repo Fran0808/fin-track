@@ -22,7 +22,7 @@ data class CaptureState(
 enum class SyncPhase { IDLE, QUEUED, SENDING, COMPLETE, AUTH_REQUIRED, RETRY, REJECTED }
 
 enum class CaptureEvent(val label: String) {
-    RECEIVED("Notificación de Yape recibida"),
+    RECEIVED("Notificación compatible recibida"),
     RECOGNIZED("Movimiento reconocido"),
     UNRECOGNIZED("No se pudo identificar un movimiento"),
     GROUP_SUMMARY("Resumen de notificaciones omitido"),

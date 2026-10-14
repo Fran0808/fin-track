@@ -116,7 +116,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
             }
             if (tab == 0) {
-                item { Text("Tus movimientos de Yape", style = MaterialTheme.typography.titleLarge)
+                item { Text("Tus movimientos", style = MaterialTheme.typography.titleLarge)
                     Text("Se guardan en este teléfono antes de enviarse a la web.", color = Muted) }
                 if (session == null || !permission) item {
                     AppPanel {
@@ -131,7 +131,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 }
                 item {
                     AppPanel {
-                        Text("Captura de Yape", fontWeight = FontWeight.SemiBold)
+                        Text("Captura de movimientos", fontWeight = FontWeight.SemiBold)
                         Text(when { !permission -> "Acceso a notificaciones desactivado"; capture.connected -> "Acceso a notificaciones conectado"; else -> "Esperando conexión con Android" },
                             color = if (permission && capture.connected) Positive else Ink)
                         Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
@@ -222,7 +222,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         Text("Última conexión: ${formatDiagnosticTime(capture.lastConnection)}", color = Muted)
                         Text("Última notificación recibida: ${formatDiagnosticTime(capture.lastNotification)}", color = Muted)
                         Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
-                        Text("Recibir una notificación no significa que se haya reconocido un pago. Los avisos promocionales también pueden descartarse.", color = Muted)
+                        Text("Solo se procesan notificaciones de aplicaciones compatibles. Recibir una notificación no significa que se haya reconocido un pago; los avisos promocionales también pueden descartarse.", color = Muted)
                         OutlinedButton(onClick = { YapeNotificationListenerService.reviewActive() }, enabled = permission && capture.connected) { Text("Revisar notificaciones aún visibles") }
                         if (capture.history.isEmpty()) Text("Aún no hay actividad registrada.", color = Muted)
                         capture.history.forEach { event ->
