@@ -40,12 +40,17 @@ jobs:
   backend-ci:
     name: Backend API (Java 21 / Maven)
     runs-on: ubuntu-latest
+    env:
+      APP_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/fintrack_app_eval_ci
+      DEPLOYMENT_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/fintrack_deployment_eval_ci
+      TEST_DB_USER: postgres
+      TEST_DB_PASSWORD: admin
 
     services:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: finance_db
+          POSTGRES_DB: fintrack_app_eval_ci
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: admin
         ports:
@@ -67,9 +72,14 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Create disposable deployment test database
+        env:
+          PGPASSWORD: admin
+        run: createdb -h localhost -U postgres fintrack_deployment_eval_ci
+
       - name: Compile and Test Backend API
         working-directory: api
-        run: mvn clean test compile -Dspring.datasource.url=jdbc:postgresql://localhost:5432/finance_db -Dspring.datasource.username=postgres -Dspring.datasource.password=admin
+        run: mvn clean verify -Dmail.sync.enabled=false
 
   frontend-ci:
     name: Frontend Dashboard (React 19 / Vite)
