@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '../services/api';
 import type { UserProfile } from '../types';
 
@@ -17,10 +17,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const initialization = useRef<Promise<void> | null>(null);
+  const sessionGeneration = useRef(0);
 
   const logout = useCallback(() => {
+    sessionGeneration.current++;
     localStorage.removeItem('auth_token');
     setUser(null);
+    setLoading(false);
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -48,28 +52,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [logout]);
 
   useEffect(() => {
-    // 1. Check for token in URL callback
-    const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl = params.get('token');
-    const authStatus = params.get('auth');
-
-    if (tokenFromUrl) {
-      localStorage.setItem('auth_token', tokenFromUrl);
-      // Clean query params from URL without page reload
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (authStatus === 'google_error') {
-      setError('Error al autenticar con Google. Inténtalo de nuevo.');
-      window.history.replaceState({}, '', window.location.pathname);
+    // Session exchange is shared across StrictMode effect replays.
+    if (!initialization.current) {
+      const generation = sessionGeneration.current;
+      const params = new URLSearchParams(window.location.search);
+      const code = new URLSearchParams(window.location.hash.slice(1)).get('login_code');
+      const failed = params.get('auth') === 'google_error' || params.has('token');
+      if (code || params.has('auth') || params.has('token')) {
+        params.delete('auth');
+        params.delete('token');
+        const query = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+      }
+      initialization.current = (async () => {
+        try {
+          if (failed) setError('Error al autenticar con Google. Inténtalo de nuevo.');
+          if (code) {
+            const token = await api.redeemGoogleSession(code);
+            if (sessionGeneration.current !== generation) return;
+            localStorage.setItem('auth_token', token);
+          }
+          if (sessionGeneration.current === generation) await refreshUser();
+        } catch {
+          if (sessionGeneration.current === generation) {
+            setError('No se pudo completar el inicio de sesión. Inténtalo de nuevo.');
+            setLoading(false);
+          }
+        }
+      })();
     }
 
-    // 2. Listen for unauthorized 401 events from fetchWithAuth
     const handleUnauthorized = () => {
       logout();
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
-
-    // 3. Load user profile
-    refreshUser();
 
     return () => {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);

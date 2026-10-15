@@ -36,12 +36,28 @@ afterEach(() => {
 });
 
 describe('OAuth session initialization', () => {
-  it('waits for the callback token and profile before requesting financial data, including in StrictMode', async () => {
-    window.history.replaceState({}, '', '/?auth=google_connected&token=callback-token');
+  it('does not restore a session when code redemption finishes after logout', async () => {
+    window.history.replaceState({}, '', '/#login_code=single-use-code');
+    const response = deferred<Response>();
+    vi.stubGlobal('fetch', vi.fn(() => response.promise));
+    function SessionProbe() {
+      const { user, loading, logout } = useAuth();
+      return <><span>{loading ? 'Loading' : user?.email ?? 'Signed out'}</span><button onClick={logout}>Logout</button></>;
+    }
+    render(<AuthProvider><SessionProbe /></AuthProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Logout' }));
+    await act(async () => { response.resolve(json({ token: 'late-session' })); });
+    expect(screen.getByText('Signed out')).toBeTruthy();
+    expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
+  it('redeems a single-use code once and waits for the profile before requesting financial data, including in StrictMode', async () => {
+    window.history.replaceState({}, '', '/?auth=google_connected#login_code=single-use-code');
     const userResponse = deferred<void>();
     const requests: Array<{ url: string; authorization: string | null }> = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       requests.push({ url, authorization: new Headers(init?.headers).get('Authorization') });
+      if (url.endsWith('/auth/google/session')) return json({ token: 'callback-token' });
       if (url.endsWith('/auth/google/me')) {
         await userResponse.promise;
         return json(profile);
@@ -57,21 +73,33 @@ describe('OAuth session initialization', () => {
     render(<StrictMode><AuthProvider><App /></AuthProvider></StrictMode>);
 
     expect(screen.getByText('Verificando sesión...')).toBeTruthy();
-    expect(requests.length).toBeGreaterThan(0);
-    expect(requests.every(({ url }) => url.endsWith('/auth/google/me'))).toBe(true);
-    expect(requests.every(({ authorization }) => authorization === 'Bearer callback-token')).toBe(true);
+    await waitFor(() => expect(requests.some(({ url }) => url.endsWith('/auth/google/me'))).toBe(true));
+    expect(requests.filter(({ url }) => url.endsWith('/auth/google/session'))).toHaveLength(1);
+    expect(requests.every(({ url }) => url.endsWith('/auth/google/me') || url.endsWith('/auth/google/session'))).toBe(true);
+    expect(requests.filter(({ url }) => url.endsWith('/auth/google/me')).every(({ authorization }) => authorization === 'Bearer callback-token')).toBe(true);
     expect(window.location.search).toBe('');
 
     await act(async () => { userResponse.resolve(); });
     await screen.findByRole('heading', { name: 'Así se movió tu dinero' });
     await waitFor(() => expect(requests.some(({ url }) => url.includes('/transactions'))).toBe(true));
-    expect(requests.every(({ authorization }) => authorization === 'Bearer callback-token')).toBe(true);
+    expect(requests.filter(({ url }) => !url.endsWith('/auth/google/session')).every(({ authorization }) => authorization === 'Bearer callback-token')).toBe(true);
     expect(localStorage.getItem('auth_token')).toBe('callback-token');
 
     const clearPolling = vi.spyOn(globalThis, 'clearInterval');
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
     expect(screen.getByRole('heading', { name: 'Entra a tu panel' })).toBeTruthy();
     expect(clearPolling).toHaveBeenCalled();
+  });
+
+  it('does not accept an arbitrary bearer token injected in the URL', async () => {
+    window.history.replaceState({}, '', '/?token=untrusted-token');
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    render(<AuthProvider><App /></AuthProvider>);
+    await screen.findByRole('heading', { name: 'Entra a tu panel' });
+    expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(window.location.search).toBe('');
   });
 
   it('does not request private data or poll while on the login screen', async () => {

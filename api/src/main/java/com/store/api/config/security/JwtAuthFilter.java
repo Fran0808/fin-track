@@ -46,7 +46,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             boolean isVerifyEndpoint = "POST".equals(request.getMethod())
                     && "/api/v1/user/pairing-info/verify".equals(path);
 
-            if (publicAuthEndpoint || isVerifyEndpoint || CorsUtils.isPreFlightRequest(request)) {
+            boolean isSessionExchange = "POST".equals(request.getMethod())
+                    && "/api/v1/auth/google/session".equals(path);
+            if (publicAuthEndpoint || isSessionExchange || isVerifyEndpoint || CorsUtils.isPreFlightRequest(request)) {
                 filterChain.doFilter(request, response);
                 return;
             }

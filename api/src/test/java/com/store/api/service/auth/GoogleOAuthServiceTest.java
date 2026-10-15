@@ -7,6 +7,8 @@ import com.store.api.repository.GoogleOAuthTokenRepository;
 import com.store.api.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,6 +25,42 @@ class GoogleOAuthServiceTest {
     @AfterEach
     void clearContext() {
         UserContext.clear();
+    }
+
+    @Test
+    void failedOrUnverifiedProfileCannotCreateAUserOrStoreCredentials() {
+        var users = mock(UserRepository.class);
+        var securedService = new GoogleOAuthService(tokens, users, new ObjectMapper());
+        var builder = org.springframework.web.client.RestClient.builder();
+        var server = org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(securedService, "restClient", builder.build());
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://oauth2.googleapis.com/token"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(
+                        "{\"access_token\":\"synthetic-token\"}", org.springframework.http.MediaType.APPLICATION_JSON));
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://www.googleapis.com/oauth2/v2/userinfo"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withServerError());
+        assertThrows(IllegalStateException.class, () -> securedService.exchangeCodeForTokens("synthetic-code"));
+        verifyNoInteractions(users, tokens);
+        server.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"id\":\"subject\",\"email\":\"test@example.test\",\"verified_email\":false}",
+            "{\"email\":\"test@example.test\",\"verified_email\":true}"})
+    void incompleteIdentityCannotCreateAnAccount(String profile) {
+        var users = mock(UserRepository.class);
+        var securedService = new GoogleOAuthService(tokens, users, new ObjectMapper());
+        var builder = org.springframework.web.client.RestClient.builder();
+        var server = org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(securedService, "restClient", builder.build());
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://oauth2.googleapis.com/token"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(
+                        "{\"access_token\":\"synthetic-token\"}", org.springframework.http.MediaType.APPLICATION_JSON));
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://www.googleapis.com/oauth2/v2/userinfo"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(profile, org.springframework.http.MediaType.APPLICATION_JSON));
+        assertThrows(IllegalStateException.class, () -> securedService.exchangeCodeForTokens("synthetic-code"));
+        verifyNoInteractions(users, tokens);
+        server.verify();
     }
 
     @Test

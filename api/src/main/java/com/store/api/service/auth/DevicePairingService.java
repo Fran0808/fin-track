@@ -27,7 +27,7 @@ public class DevicePairingService {
         if (user.getDevicePairingToken() == null || user.getDevicePairingToken().isBlank()) {
             user.setDevicePairingToken(User.generateNewDevicePairingToken());
             user = userRepository.save(user);
-            log.info("Generated initial device pairing token for user [{}]", user.getEmail());
+            log.info("Initial device pairing token generated");
         }
 
         String qrPayload = buildQrPayload(user.getDevicePairingToken(), user.getEmail());
@@ -46,7 +46,7 @@ public class DevicePairingService {
         String newToken = User.generateNewDevicePairingToken();
         user.setDevicePairingToken(newToken);
         User savedUser = userRepository.save(user);
-        log.info("Regenerated device pairing token for user [{}]", savedUser.getEmail());
+        log.info("Device pairing token regenerated");
 
         String qrPayload = buildQrPayload(savedUser.getDevicePairingToken(), savedUser.getEmail());
 

@@ -48,14 +48,14 @@ public class GoogleOAuthService {
     private final GoogleOAuthTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = com.store.api.config.ExternalHttp.client();
 
     private Optional<GoogleOAuthToken> findTokenForCurrentContext() {
         User currentUser = UserContext.requireCurrentUser();
         return tokenRepository.findByUserId(currentUser.getId());
     }
 
-    public String buildAuthorizationUrl() {
+    public String buildAuthorizationUrl(String state) {
         if (clientId == null || clientId.isBlank()) {
             throw new IllegalStateException("GOOGLE_CLIENT_ID is not configured in .env");
         }
@@ -66,6 +66,7 @@ public class GoogleOAuthService {
                 + "&response_type=code"
                 + "&scope=" + URLEncoder.encode(GMAIL_OAUTH_SCOPES, StandardCharsets.UTF_8)
                 + "&access_type=offline"
+                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8)
                 + "&prompt=consent";
     }
 
@@ -93,29 +94,40 @@ public class GoogleOAuthService {
             String refreshToken = json.path("refresh_token").asText(null);
             long expiresIn = json.path("expires_in").asLong(3600);
             String scope = json.path("scope").asText("");
+            if (accessToken.isBlank()) throw new IllegalStateException("Google access token is missing");
 
             GoogleUserProfile profile = fetchUserProfile(accessToken);
             LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expiresIn);
 
-            User user = userRepository.findByEmail(profile.email())
+            User user = userRepository.findByGoogleSubId(profile.sub()).or(() -> userRepository.findByEmail(profile.email()))
                     .orElseGet(() -> {
-                        log.info("Registering new user for email: [{}]", profile.email());
+                        log.info("Registering verified Google user");
                         return User.builder()
                                 .email(profile.email())
                                 .build();
                     });
 
+            if (user.getGoogleSubId() != null && !user.getGoogleSubId().equals(profile.sub())) {
+                throw new IllegalStateException("Google identity does not match the existing user");
+            }
+
             user.setFullName(profile.name());
+            user.setEmail(profile.email());
             user.setPictureUrl(profile.picture());
             user.setGoogleSubId(profile.sub());
             user.setLastLoginAt(LocalDateTime.now());
             User savedUser = userRepository.save(user);
 
-            Optional<GoogleOAuthToken> existingOpt = tokenRepository.findByEmail(profile.email());
+            Optional<GoogleOAuthToken> existingOpt = tokenRepository.findByUserId(savedUser.getId())
+                    .or(() -> tokenRepository.findByEmail(profile.email()));
             GoogleOAuthToken token;
 
             if (existingOpt.isPresent()) {
                 token = existingOpt.get();
+                if (token.getUser() != null && !savedUser.getId().equals(token.getUser().getId())) {
+                    throw new IllegalStateException("Google credential owner does not match");
+                }
+                token.setEmail(profile.email());
                 token.setAccessToken(accessToken);
                 if (refreshToken != null && !refreshToken.isBlank()) {
                     token.setRefreshToken(refreshToken);
@@ -135,11 +147,11 @@ public class GoogleOAuthService {
             }
 
             GoogleOAuthToken saved = tokenRepository.save(token);
-            log.info("Successfully linked User [{}] with Google OAuth token", profile.email());
+            log.info("Google account linked successfully");
             return saved;
         } catch (Exception ex) {
-            log.error("Failed to parse Google OAuth token response", ex);
-            throw new RuntimeException("Error processing Google OAuth credentials: " + ex.getMessage(), ex);
+            log.warn("Google credentials could not be processed");
+            throw new IllegalStateException("Google credentials could not be processed");
         }
     }
 
@@ -154,15 +166,19 @@ public class GoogleOAuthService {
                     .body(String.class);
 
             JsonNode userInfo = objectMapper.readTree(userInfoRaw);
-            String email = userInfo.path("email").asText("unknown@gmail.com");
+            String email = userInfo.path("email").asText("");
             String name = userInfo.path("name").asText(null);
             String picture = userInfo.path("picture").asText(null);
             String sub = userInfo.has("id") ? userInfo.path("id").asText(null) : userInfo.path("sub").asText(null);
+            boolean verified = userInfo.path("verified_email").asBoolean(false) || userInfo.path("email_verified").asBoolean(false);
+            if (email.isBlank() || email.length() > 150 || sub == null || sub.isBlank() || sub.length() > 100 || !verified
+                    || (name != null && name.length() > 200)) {
+                throw new IllegalStateException("Google did not supply a verified identity");
+            }
 
             return new GoogleUserProfile(email, name, picture, sub);
         } catch (Exception ex) {
-            log.warn("Could not fetch user profile from Google UserInfo endpoint: {}", ex.getMessage());
-            return new GoogleUserProfile("unknown@gmail.com", null, null, null);
+            throw new IllegalStateException("Google identity could not be verified");
         }
     }
 
@@ -184,7 +200,7 @@ public class GoogleOAuthService {
             return Optional.empty();
         }
 
-        log.info("Google access token expired. Refreshing token for [{}]...", token.getEmail());
+        log.info("Refreshing Google access token");
         try {
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("client_id", clientId);
@@ -201,16 +217,17 @@ public class GoogleOAuthService {
 
             JsonNode json = objectMapper.readTree(rawResponse);
             String newAccessToken = json.path("access_token").asText();
+            if (newAccessToken.isBlank()) throw new IllegalStateException("Google refresh returned no access token");
             long expiresIn = json.path("expires_in").asLong(3600);
 
             token.setAccessToken(newAccessToken);
             token.setExpiresAt(LocalDateTime.now().plusSeconds(expiresIn));
             tokenRepository.save(token);
 
-            log.info("Successfully refreshed access token for [{}]", token.getEmail());
+            log.info("Google access token refreshed successfully");
             return Optional.of(newAccessToken);
         } catch (Exception ex) {
-            log.error("Failed to refresh Google OAuth token for [{}]", token.getEmail(), ex);
+            log.warn("Google access token could not be refreshed");
             return Optional.empty();
         }
     }
@@ -251,27 +268,12 @@ public class GoogleOAuthService {
         if (internalDateMs == null || internalDateMs <= 0) {
             return;
         }
-        Optional<GoogleOAuthToken> tokenOpt = findTokenForCurrentContext();
-        if (tokenOpt.isPresent()) {
-            GoogleOAuthToken token = tokenOpt.get();
-            Long current = token.getLastSyncedInternalDate();
-            if (current == null || internalDateMs > current) {
-                token.setLastSyncedInternalDate(internalDateMs);
-                tokenRepository.save(token);
-                log.info("Updated lastSyncedInternalDate to {} for user [{}]", internalDateMs, token.getEmail());
-            }
-        }
+        tokenRepository.advanceCursor(UserContext.requireCurrentUser().getId(), internalDateMs);
     }
 
     @Transactional
     public void recordSyncResult(boolean success) {
-        findTokenForCurrentContext().ifPresent(token -> {
-            token.setLastSyncFailed(!success);
-            if (success) {
-                token.setLastSuccessfulSyncAt(Instant.now());
-            }
-            tokenRepository.save(token);
-        });
+        tokenRepository.recordSyncResult(UserContext.requireCurrentUser().getId(), !success, Instant.now());
     }
 
     @Transactional
@@ -281,6 +283,6 @@ public class GoogleOAuthService {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
         }
         tokenRepository.findByUserId(currentUser.getId()).ifPresent(tokenRepository::delete);
-        log.info("Disconnected Google OAuth token for user [{}].", currentUser.getEmail());
+        log.info("Google account disconnected");
     }
 }

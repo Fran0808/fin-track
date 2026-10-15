@@ -8,6 +8,11 @@ import com.store.api.model.entity.GoogleOAuthToken;
 import com.store.api.model.entity.User;
 import com.store.api.service.auth.GoogleOAuthService;
 import com.store.api.service.auth.JwtService;
+import com.store.api.service.auth.OAuthLoginSession;
+import com.store.api.model.dto.auth.GoogleSessionRequest;
+import com.store.api.model.dto.auth.GoogleSessionResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +31,7 @@ public class GoogleAuthController {
 
     private final GoogleOAuthService googleOAuthService;
     private final JwtService jwtService;
+    private final OAuthLoginSession loginSession;
 
     @Value("${google.oauth.frontend-success-url:http://localhost:5173?auth=google_connected}")
     private String frontendSuccessUrl;
@@ -34,18 +40,21 @@ public class GoogleAuthController {
     private String frontendErrorUrl;
 
     @GetMapping("/url")
-    public ResponseEntity<GoogleAuthUrlResponse> getAuthorizationUrl() {
-        String url = googleOAuthService.buildAuthorizationUrl();
-        return ResponseEntity.ok(new GoogleAuthUrlResponse(url));
+    public ResponseEntity<GoogleAuthUrlResponse> getAuthorizationUrl(HttpServletRequest request) {
+        String state = loginSession.begin(request.getSession(true));
+        String url = googleOAuthService.buildAuthorizationUrl(state);
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(new GoogleAuthUrlResponse(url));
     }
 
     @GetMapping("/callback")
     public ResponseEntity<Void> handleCallback(
             @RequestParam(required = false) String code,
-            @RequestParam(required = false) String error
+            @RequestParam(required = false) String error,
+            @RequestParam(required = false) String state,
+            HttpServletRequest request
     ) {
-        if (error != null || code == null || code.isBlank()) {
-            log.warn("Google OAuth callback returned error or empty code: error={}", error);
+        if (!loginSession.consumeState(request.getSession(false), state) || error != null || code == null || code.isBlank()) {
+            log.warn("Google OAuth callback rejected");
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(URI.create(frontendErrorUrl));
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
@@ -54,18 +63,28 @@ public class GoogleAuthController {
         try {
             GoogleOAuthToken token = googleOAuthService.exchangeCodeForTokens(code);
             String jwt = jwtService.generateToken(token.getUser());
-            String targetUrl = frontendSuccessUrl.contains("?")
-                    ? frontendSuccessUrl + "&token=" + jwt
-                    : frontendSuccessUrl + "?token=" + jwt;
+            request.changeSessionId();
+            String handoff = loginSession.issueHandoff(request.getSession(false), jwt);
+            String targetUrl = frontendSuccessUrl + "#login_code=" + handoff;
             HttpHeaders headers = new HttpHeaders();
+            headers.setCacheControl("no-store");
+            headers.set("Referrer-Policy", "no-referrer");
             headers.setLocation(URI.create(targetUrl));
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
         } catch (Exception ex) {
-            log.error("Failed to process Google OAuth callback code", ex);
+            log.warn("Google OAuth callback could not be completed");
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(URI.create(frontendErrorUrl));
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
         }
+    }
+
+    @PostMapping("/session")
+    public ResponseEntity<GoogleSessionResponse> redeemSession(@Valid @RequestBody GoogleSessionRequest body,
+            HttpServletRequest request) {
+        String token = loginSession.redeem(request.getSession(false), body.getCode());
+        if (token == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(new GoogleSessionResponse(token));
     }
 
     @GetMapping("/me")

@@ -10,6 +10,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CorsConfigTest {
+    @org.junit.jupiter.api.Test
+    void rejectsUntrustedOrigins() throws Exception {
+        var request = new MockHttpServletRequest("OPTIONS", "/api/v1/transactions");
+        request.addHeader("Origin", "https://untrusted.example.test");
+        request.addHeader("Access-Control-Request-Method", "GET");
+        var response = new MockHttpServletResponse();
+        new CorsConfig().corsFilterRegistration().getFilter().doFilter(request, response,
+                (req, res) -> org.junit.jupiter.api.Assertions.fail("Untrusted origin reached the application"));
+        assertEquals(403, response.getStatus());
+    }
     @ParameterizedTest
     @ValueSource(strings = {
             "/api/v1/transactions/1/classification",

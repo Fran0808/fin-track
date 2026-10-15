@@ -21,9 +21,12 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(
-            @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}") String secret,
+            @Value("${jwt.secret:}") String secret,
             @Value("${jwt.expiration-ms:604800000}") long expirationMs
     ) {
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT_SECRET must be configured with at least 32 bytes");
+        }
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
@@ -52,7 +55,7 @@ public class JwtService {
                     .getPayload();
             return Optional.of(claims);
         } catch (Exception ex) {
-            log.warn("Invalid JWT token: {}", ex.getMessage());
+            log.debug("Invalid JWT token rejected");
             return Optional.empty();
         }
     }

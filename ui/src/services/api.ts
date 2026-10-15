@@ -217,9 +217,18 @@ export const api = {
   },
 
   async getGoogleAuthUrl(): Promise<string> {
-    const response = await fetch(`${BASE_URL}/auth/google/url`);
+    const response = await fetch(`${BASE_URL}/auth/google/url`, { credentials: 'same-origin', cache: 'no-store' });
     const data = await handleResponse<{ authUrl: string }>(response);
     return data.authUrl;
+  },
+
+  async redeemGoogleSession(code: string): Promise<string> {
+    const response = await fetch(`${BASE_URL}/auth/google/session`, {
+      method: 'POST', credentials: 'same-origin', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
+    });
+    const data = await handleResponse<{ token: string }>(response);
+    return data.token;
   },
 
   async getGoogleAuthStatus(): Promise<GoogleAuthStatus> {
