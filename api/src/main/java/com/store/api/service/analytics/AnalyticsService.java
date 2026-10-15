@@ -29,6 +29,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AnalyticsService {
 
+    @org.springframework.beans.factory.annotation.Value("${app.business-zone:America/Lima}")
+    private java.time.ZoneId businessZone = java.time.ZoneId.of("America/Lima");
+
     private final TransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
@@ -54,7 +57,7 @@ public class AnalyticsService {
         User currentUser = UserContext.requireCurrentUser();
         Long userId = currentUser.getId();
 
-        LocalDate now = LocalDate.now();
+        LocalDate now = LocalDate.now(businessZone);
         int targetYear = (year != null && year > 2000) ? year : now.getYear();
         int targetMonth = (month != null && month >= 1 && month <= 12) ? month : now.getMonthValue();
 
