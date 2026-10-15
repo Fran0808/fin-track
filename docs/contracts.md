@@ -11,6 +11,14 @@ generated OpenAPI specification.
 - Device credentials are limited to transaction sync and the app-update path allowed by `JwtAuthFilter`. They cannot access web analytics, email sync or transaction lists. Disallowed device access returns 403; invalid tokens return 401.
 - Android pairs only when verification confirms `valid` and a `userId`. Sync uses a fixed server/token snapshot and requires the response's `transactionHash` to match before acknowledging a local row; the payload is unchanged.
 - `GET /auth/google/url` and `GET /auth/google/callback` are public OAuth entry points.
+- `GET /auth/google/url` creates a browser session and a state valid for ten minutes.
+  The callback must present that state in the same session. Missing/unverified
+  Google identity fails authentication. The redirect contains `#login_code=...`,
+  never a JWT. `POST /auth/google/session` accepts JSON `{ "code": "..." }` and
+  returns `{ "token": "..." }` once, within sixty seconds and in that same session.
+  It is public only for POST; wrong/expired/reused codes return 401. Dashboard
+  requests preserve the session cookie. Old `?token=...` redirects are rejected.
+- CORS allows explicit configured origins; wildcard credentialed access is rejected.
 - `POST /user/pairing-info/verify` is a public verification route, but needs a valid candidate token in the header or request body to return a valid result.
 - CORS preflight and app-update access have special handling in [JwtAuthFilter](../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.
 - [CorsConfig](../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification and instrument assignment updates. Actual protected requests still require authentication.
@@ -43,14 +51,20 @@ hash is returned instead of a new record.
 
 | Field | Current requirement |
 | --- | --- |
-| `amount` | Required decimal number, at least `0.01`; direction is not encoded as a negative amount. |
+| `amount` | Required decimal number, `0.01`–`99999999.99`, at most two decimal places; direction is not encoded as a negative amount. |
 | `flowType` | Required `INCOME`, `EXPENSE` or `INTERNAL_TRANSFER`. |
-| `contactName` | Required nonblank string. |
-| `channel` | Optional string; blank values are normalized to `UNKNOWN`. |
-| `cardLast4` | Optional string; Android's current sync DTO does not send it. |
+| `contactName` | Required nonblank string, at most 150 characters. |
+| `channel` | Optional string, at most 50 characters; blank values are normalized to `UNKNOWN`. |
+| `cardLast4` | Optional string, at most 10 characters; Android's current sync DTO does not send it. |
 | `transactionDate` | Required ISO local date-time, without a timezone offset. |
-| `transactionHash` | Required nonblank identifier; preserve it on retries. |
-| `rawNotificationText` | Optional original text; financial and personal data handling applies. |
+| `transactionHash` | Required nonblank identifier, at most 64 characters; preserve it on retries. |
+| `rawNotificationText` | Optional original text, at most 65536 characters; financial and personal data handling applies. |
+
+Batches require 1–100 non-null valid entries. Listing requires page ≥ 0 and size
+1–100. Invalid ingestion requests return 400 before persistence. Simultaneous
+same-user/hash retries serialize in PostgreSQL and return the existing movement;
+they do not append duplicate raw logs. CSV exports allow up to 10000 matching
+movements and return 400 above that limit; narrow the filters to export more history.
 
 The response adds `id`, `createdAt` and nullable `financialInstrument`, and returns the transaction fields without
 the original text. It has no currency field. Backend DTOs currently use mutable

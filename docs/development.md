@@ -82,27 +82,37 @@ Cards and accounts have an opt-in PostgreSQL integration test. Its disposable
 database setup and schema changes are documented in
 [cards and accounts](domain/financial-instruments.md#schema-preparation-and-verification).
 
-The current `AppTests` starts a full context without a dedicated test profile.
-Default application configuration can update the database schema and enable email
-scheduling. Never assume `clean test` is isolated from the local financial database.
+`AppTests` now runs only when `APP_TEST_DATABASE_URL` names a disposable database
+matching `jdbc:postgresql://localhost:<port>/fintrack_app_eval_<suffix>`. It explicitly
+disables scheduling and uses `create-drop`: never point it at financial data.
+`DeploymentPersistenceTest` requires a separate, empty
+`DEPLOYMENT_TEST_DATABASE_URL` matching
+`jdbc:postgresql://localhost:<port>/fintrack_deployment_eval_<suffix>`. It initializes
+the versioned schema and starts the production profile with fake OAuth settings
+and `ddl-auto=validate`. Reusing a populated database fails deliberately.
 
-Until test isolation is implemented, select a separate test database with the
-expected schema, explicitly disable scheduling and use `ddl-auto=validate` to
-avoid schema changes during verification. These flags do not create or isolate
-the database; it must be configured first. Unit tests mock external clients.
+Both use `TEST_DB_USER` (default `postgres`) and `TEST_DB_PASSWORD`, independently
+of normal application database credentials. Other persistence suites retain their
+documented opt-in database settings. Never reuse real database names for tests.
+For ordinary unit/controller checks without a database, exclude context suites
+explicitly; external HTTP clients are mocked:
 
 ```powershell
 Push-Location api
 try {
-    .\mvnw.cmd clean test '-Dmail.sync.enabled=false' '-Dspring.jpa.hibernate.ddl-auto=validate'
+    .\mvnw.cmd test '-Dtest=*Test,!*PersistenceTest,!AppTests' '-Dmail.sync.enabled=false' '-Dspring.jpa.hibernate.ddl-auto=validate' '-Dspring.datasource.url=jdbc:postgresql://127.0.0.1:1/fintrack_review_no_database'
 } finally {
     Pop-Location
 }
 ```
 
-The Maven wrapper uses the configured environment and Java installation. CI has a
-disposable PostgreSQL service; local commands do not yet reproduce that isolation.
-First-time dependency downloads may require network access.
+After creating the two disposable databases, set their opt-in URL variables and
+test credentials, then run `./mvnw.cmd verify` from `api` for context and deployment
+checks as well. CI provisions both automatically. The new deployment test covers
+schema validation, concurrent retries, overlapping batches and monotonic cursors.
+See [production deployment](deployment.md) for setup and runtime limitations.
+The Maven wrapper uses the configured Java installation; first-time dependency
+downloads may require network access.
 
 ## Transaction category migration
 
@@ -172,5 +182,5 @@ this documentation update:
 
 CI behavior is defined in [.github/workflows/ci.yml](../.github/workflows/ci.yml).
 It runs module tests/builds and Docker checks, but currently omits frontend lint
-and skips workflows for Markdown-only changes. Script alignment, isolated tests
+and skips workflows for Markdown-only changes. Script alignment, broader test isolation
 and a read-only environment diagnostic command belong to the next stage.

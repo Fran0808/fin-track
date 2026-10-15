@@ -62,10 +62,14 @@ visible on the phone is not proof that the backend received it.
 ## Email ingestion
 
 `EmailIngestionService` resolves the current user and obtains messages through
-`GmailApiClient` when OAuth is available, or the configured IMAP fallback.
+`GmailApiClient` using only that user's Google OAuth credentials. An absent or
+expired authorization requires reconnecting Google; authenticated ingestion never
+falls back to the globally configured IMAP mailbox.
 `BankEmailParserDispatcher` selects a bank parser. A recognized financial operation
 is converted to a transaction request and persisted through `TransactionService`.
-Processed message IDs and the Gmail cursor support incremental ingestion.
+Processed message keys combine the user ID and Gmail message ID. Gmail pages are
+visited completely; a failed page, detail download or processing step prevents
+cursor advancement. Successful movements survive a partial run and retries deduplicate.
 `EmailSyncScheduler` invokes this workflow for connected users when enabled.
 
 The current parsers check mailbox domains and confirmation patterns, and reject
@@ -76,7 +80,10 @@ require a controlled reprocessing plan.
 ## Dashboard and authentication
 
 The dashboard uses Google OAuth and a JWT managed by `AuthContext` and the HTTP
-service. Vite proxies local `/api` calls to the backend. Analytics and transaction
+service. OAuth state is bound to a temporary browser session; a single-use code in
+the return fragment is exchanged for the JWT using that same session. Production
+uses one HTTPS origin for the dashboard and API. Vite proxies local `/api` calls
+to the backend. Analytics and transaction
 lists are scoped to the current user. Pairing obtains a separate device credential
 and a server address reachable from the phone. See [contracts](contracts.md).
 
@@ -85,4 +92,4 @@ and a server address reachable from the phone. See [contracts](contracts.md).
 - Existing Android application ID, database and preference names, Docker identifiers and `wp_dev_` tokens retain legacy names. Preserve them unless a migration is planned; details are in [the Docker guide](../docker/README.md#branding-and-compatibility).
 - The transaction hash is source-specific; the database index only deduplicates equal hashes for a user.
 - Raw notification logs and processed email markers currently lack a user foreign key, and raw logs are not directly linked to transactions. Improving diagnostic ownership and provenance requires a separate implementation.
-- The existing backend context test does not select an isolated test profile. See [verification precautions](development.md#backend-verification).
+- Full-context tests require explicit disposable database URLs and disable email scheduling. See [verification precautions](development.md#backend-verification).

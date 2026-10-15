@@ -31,6 +31,8 @@ excluded from expenses. Listen Service is the repository name.
 The local Docker setup runs PostgreSQL 17 and the API. The React dashboard runs
 separately with Vite. Commands below use PowerShell from the repository root.
 For native API execution, see the [development guide](docs/development.md).
+For hosting, use the [production deployment guide](docs/deployment.md); the local
+Compose defaults are intended for development.
 
 ### 1. Prerequisites
 
@@ -55,7 +57,7 @@ Edit the values using [.env.example](.env.example) as the reference:
 | Variable | Local setup |
 | --- | --- |
 | `DB_PASSWORD` | Required by Compose. Preserve the existing password when reusing an initialized database. |
-| `JWT_SECRET` | Required by Compose. Use a private random value of at least 32 bytes. |
+| `JWT_SECRET` | Required by the API in every environment. Use a private random value of at least 32 bytes. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Required by the current Compose configuration and Google sign-in. |
 | `GOOGLE_REDIRECT_URI` | Register the exact callback URL in Google; the default is `http://localhost:8080/api/v1/auth/google/callback`. |
 | `APP_SERVER_PUBLIC_URL` | Required by Compose. Use the API address reachable from Android; a physical phone needs your computer's LAN address. |
