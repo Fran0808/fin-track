@@ -169,8 +169,8 @@ class TransactionServiceTest {
                 .transactionHash("hash-export-1")
                 .build();
 
-        when(transactions.findAll(any(Specification.class), any(org.springframework.data.domain.Sort.class)))
-                .thenReturn(List.of(t1));
+        when(transactions.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(t1)));
 
         byte[] csvBytes = service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null);
         String csv = new String(csvBytes, java.nio.charset.StandardCharsets.UTF_8);
@@ -236,6 +236,27 @@ class TransactionServiceTest {
         assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.getPendingTransactions(reason, PageRequest.of(0, 10))).getStatusCode().value());
         verify(transactions, times(1)).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"=1+1\nnext", "  +1", "\t@SUM(1)"})
+    void exportedTextCannotBecomeASpreadsheetFormula(String contact) {
+        UserContext.setCurrentUser(User.builder().id(7L).build());
+        when(transactions.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(Transaction.builder().contactName(contact).build())));
+        String csv = new String(service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(csv.contains("\"'" + contact + "\""));
+    }
+
+    @Test
+    void oversizedCsvExportRequiresNarrowerFilters() {
+        UserContext.setCurrentUser(User.builder().id(7L).build());
+        when(transactions.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(Transaction.builder().build()),
+                        PageRequest.of(0, 10001), 10002));
+        assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.exportTransactionsCsv(
+                null, null, null, null, null, null, null, null, null, null)).getStatusCode().value());
     }
 
     private TransactionSyncRequest request() {

@@ -12,6 +12,9 @@ import com.store.api.service.transaction.TransactionService;
 import com.store.api.service.instrument.FinancialInstrumentService;
 import com.store.api.service.transaction.InstrumentAssignmentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -79,7 +82,7 @@ public class TransactionController {
 
     // Batch transaction ingestion (when recovering connection after offline mode)
     @PostMapping("/sync/batch")
-    public ResponseEntity<List<TransactionResponse>> syncBatchTransactions(@RequestBody List<@Valid TransactionSyncRequest> requests) {
+    public ResponseEntity<List<TransactionResponse>> syncBatchTransactions(@RequestBody @NotEmpty @Size(max = 100) List<@NotNull @Valid TransactionSyncRequest> requests) {
         List<TransactionResponse> responses = transactionService.processBatch(requests);
         return new ResponseEntity<>(responses, HttpStatus.CREATED);
     }
@@ -100,6 +103,8 @@ public class TransactionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
+        if (page < 0 || size < 1 || size > 100) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "La página no puede ser negativa y el tamaño debe estar entre 1 y 100.");
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate"));
         if (financialInstrumentId != null) {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());

@@ -25,6 +25,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +40,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
@@ -43,12 +49,16 @@ public class TransactionService {
     private final ClassificationRuleService classificationRules;
 
     @Transactional
-    public TransactionResponse processAndSave(TransactionSyncRequest request) {
+    public TransactionResponse processAndSave(@NotNull @Valid TransactionSyncRequest request) {
         User currentUser = UserContext.requireCurrentUser();
         String channel = (request.getChannel() != null && !request.getChannel().isBlank())
                 ? request.getChannel().trim()
                 : "UNKNOWN";
 
+        transactionRepository.lockTransactionHash(currentUser.getId(), request.getTransactionHash());
+        if (transactionRepository.existsByTransactionHashAndUser(request.getTransactionHash(), currentUser)) {
+            return mapToResponse(transactionRepository.findByTransactionHashAndUser(request.getTransactionHash(), currentUser).orElseThrow());
+        }
         if (request.getRawNotificationText() != null && !request.getRawNotificationText().isBlank()) {
             RawNotificationLog rawLog = RawNotificationLog.builder()
                     .rawText(request.getRawNotificationText())
@@ -56,15 +66,6 @@ public class TransactionService {
                     .isProcessed(true)
                     .build();
             rawNotificationRepository.save(rawLog);
-        }
-
-        boolean exists = transactionRepository.existsByTransactionHashAndUser(request.getTransactionHash(), currentUser);
-
-        if (exists) {
-            log.warn("Transaction with hash [{}] already exists for user [{}]. Skipping duplicate.",
-                    request.getTransactionHash(), currentUser.getEmail());
-            Transaction existing = transactionRepository.findByTransactionHashAndUser(request.getTransactionHash(), currentUser).orElseThrow();
-            return mapToResponse(existing);
         }
 
         Transaction transaction = Transaction.builder()
@@ -80,15 +81,15 @@ public class TransactionService {
 
         classificationRules.classifyNewTransaction(transaction);
         Transaction saved = transactionRepository.save(transaction);
-        log.info("Transaction saved successfully: ID={}, Amount={}, FlowType={}, Channel={}, User={}",
-                saved.getId(), saved.getAmount(), saved.getFlowType(), saved.getChannel(),
-                currentUser.getEmail());
+        log.info("Transaction stored successfully");
         return mapToResponse(saved);
     }
 
     @Transactional
-    public List<TransactionResponse> processBatch(List<TransactionSyncRequest> requests) {
-        UserContext.requireCurrentUser();
+    public List<TransactionResponse> processBatch(@NotEmpty @Size(max = 100) List<@NotNull @Valid TransactionSyncRequest> requests) {
+        User user = UserContext.requireCurrentUser();
+        requests.stream().map(TransactionSyncRequest::getTransactionHash).distinct().sorted()
+                .forEach(hash -> transactionRepository.lockTransactionHash(user.getId(), hash));
         List<TransactionResponse> responses = new ArrayList<>();
         for (TransactionSyncRequest req : requests) {
             responses.add(processAndSave(req));
@@ -124,8 +125,7 @@ public class TransactionService {
         }
 
         Transaction saved = transactionRepository.save(tx);
-        log.info("Transaction classification updated: ID={}, Category={}, Tags={}, User={}",
-                saved.getId(), saved.getCategory(), saved.getTags(), currentUser.getEmail());
+        log.info("Transaction classification updated");
         return mapToResponse(saved);
     }
 
@@ -250,7 +250,10 @@ public class TransactionService {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount);
         Sort sort = Sort.by(Sort.Direction.DESC, "transactionDate");
-        List<Transaction> list = transactionRepository.findAll(spec, sort);
+        Page<Transaction> exportPage = transactionRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(0, 10001, sort));
+        if (exportPage.getTotalElements() > 10000) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Reduce los filtros para exportar hasta 10000 movimientos.");
+        List<Transaction> list = exportPage.getContent();
 
         StringBuilder sb = new StringBuilder();
         // UTF-8 BOM so Excel opens with proper encoding
@@ -276,6 +279,9 @@ public class TransactionService {
 
     private static String escapeCsv(String value) {
         if (value == null) return "\"\"";
+        String trimmed = value.stripLeading();
+        if ((!trimmed.isEmpty() && "=+@-".indexOf(trimmed.charAt(0)) >= 0)
+                || value.startsWith("\t") || value.startsWith("\r")) value = "'" + value;
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 

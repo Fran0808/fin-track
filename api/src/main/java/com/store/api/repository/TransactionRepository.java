@@ -17,6 +17,9 @@ import java.util.Optional;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
 
+    @Query(value = "SELECT CAST(pg_advisory_xact_lock(hashtextextended(CAST(:userId AS text) || ':' || :hash, 0)) AS text)", nativeQuery = true)
+    String lockTransactionHash(@Param("userId") Long userId, @Param("hash") String hash);
+
     boolean existsByTransactionHashAndUser(String transactionHash, User user);
 
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
