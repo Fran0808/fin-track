@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Backend API (Java 21 / Spring Boot 3)
+# Multi-stage Dockerfile for Backend API (Java 21 / Spring Boot 4)
 
 # Stage 1: Build JAR artifact with Maven
 FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
@@ -15,6 +15,8 @@ RUN mvn clean package -DskipTests
 
 # Stage 2: Minimal Production Runtime
 FROM eclipse-temurin:21-jre-alpine AS runtime
+ENV TZ=America/Lima
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=America/Lima -XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError"
 
 # Run container with a dedicated non-root user for security
 RUN addgroup -S spring && adduser -S spring -G spring
