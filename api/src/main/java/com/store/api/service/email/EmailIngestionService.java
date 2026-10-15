@@ -42,6 +42,7 @@ public class EmailIngestionService {
     private int batchSize;
 
     public EmailConnectionTestResponse testConnection() {
+        UserContext.requireCurrentUser();
         Optional<String> googleToken = googleOAuthService.getValidAccessToken();
         if (googleToken.isPresent()) {
             return EmailConnectionTestResponse.builder()
@@ -49,7 +50,8 @@ public class EmailIngestionService {
                     .message("Conexión activa y autorizada con Google Gmail API (OAuth2)")
                     .build();
         }
-        return imapEmailClient.testConnection();
+        return EmailConnectionTestResponse.builder().status("ERROR")
+                .message("Conecta tu cuenta de Google para consultar el correo.").build();
     }
 
     public boolean hasActiveConnection() {
@@ -60,34 +62,44 @@ public class EmailIngestionService {
         UserContext.requireCurrentUser();
 
         try {
-            List<EmailMessageDto> messages;
             Optional<String> googleToken = googleOAuthService.getValidAccessToken();
 
-        if (googleToken.isEmpty() && UserContext.getCurrentUser() != null && googleOAuthService.getStatus().isConnected()) {
-            throw new IllegalStateException("The connected Gmail account is unavailable for synchronization");
+        if (googleToken.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                    "Conecta de nuevo tu cuenta de Google para sincronizar el correo.");
         }
 
-        if (googleToken.isPresent()) {
-            log.info("Synchronizing emails using Google Gmail REST API (OAuth2)...");
+            SyncProgress progress = new SyncProgress();
             Long lastSyncedInternalDate = googleOAuthService.getLastSyncedInternalDate().orElse(null);
-            messages = gmailApiClient.fetchFinancialEmails(
+            gmailApiClient.visitFinancialEmails(
                     googleToken.get(),
                     batchSize,
                     lastSyncedInternalDate,
-                    processedEmailRepository::existsById
+                    id -> processedEmailRepository.existsById(processedKey(id)),
+                    msg -> processMessage(msg, progress)
             );
-        } else {
-            log.info("Synchronizing emails using IMAP fallback client...");
-            messages = imapEmailClient.fetchFinancialEmails(batchSize);
+            if (progress.errors == 0 && progress.maxDate > 0) googleOAuthService.updateLastSyncedInternalDate(progress.maxDate);
+            googleOAuthService.recordSyncResult(progress.errors == 0);
+            return EmailSyncResponse.builder().status(progress.errors == 0 ? "SUCCESS" : "PARTIAL")
+                    .scannedCount(progress.scanned).processedInBatch(progress.scanned).savedCount(progress.saved)
+                    .transactions(progress.transactions).message(progress.errors == 0
+                            ? "Emails synchronized successfully" : "Some email messages could not be processed").build();
+        } catch (RuntimeException ex) {
+            googleOAuthService.recordSyncResult(false);
+            throw ex;
         }
-        int scannedCount = messages.size();
-        int savedCount = 0;
-        int processingErrors = 0;
-        List<TransactionResponse> savedTransactions = new ArrayList<>();
+    }
 
-        long maxInternalDateMs = 0L;
+    private static class SyncProgress {
+        int scanned;
+        int saved;
+        int errors;
+        long maxDate;
+        final List<TransactionResponse> transactions = new ArrayList<>();
+    }
 
-        for (EmailMessageDto msg : messages) {
+    private void processMessage(EmailMessageDto msg, SyncProgress progress) {
+            progress.scanned++;
             try {
                 Optional<ParsedEmailTransaction> parsedOpt = parserDispatcher.dispatchAndParse(
                         msg.getFrom(),
@@ -106,49 +118,37 @@ public class EmailIngestionService {
                     req.setCardLast4(parsed.getCardLast4());
                     req.setTransactionDate(parsed.getTransactionDate());
                     req.setTransactionHash(parsed.getTransactionHash());
-                    req.setRawNotificationText(parsed.getRawBody());
+                    String rawBody = parsed.getRawBody();
+                    req.setRawNotificationText(rawBody == null ? null : rawBody.substring(0,
+                            Math.min(rawBody.length(), TransactionSyncRequest.MAX_RAW_TEXT_LENGTH)));
 
                     TransactionResponse saved = transactionService.processAndSave(req);
-                    savedTransactions.add(saved);
-                    savedCount++;
+                    progress.transactions.add(saved);
+                    progress.saved++;
                 }
 
-                if (msg.getMessageId() != null && !processedEmailRepository.existsById(msg.getMessageId())) {
+                if (msg.getMessageId() != null && !processedEmailRepository.existsById(processedKey(msg.getMessageId()))) {
                     processedEmailRepository.save(ProcessedEmailMessage.builder()
-                            .messageId(msg.getMessageId())
+                            .messageId(processedKey(msg.getMessageId()))
                             .internalDateMs(msg.getInternalDateMs())
-                            .subject(msg.getSubject())
                             .build());
                 }
-                if (msg.getInternalDateMs() != null && msg.getInternalDateMs() > maxInternalDateMs) {
-                    maxInternalDateMs = msg.getInternalDateMs();
+                if (msg.getInternalDateMs() != null && msg.getInternalDateMs() > progress.maxDate) {
+                    progress.maxDate = msg.getInternalDateMs();
                 }
             } catch (Exception ex) {
-                processingErrors++;
-                log.warn("Error processing email message ID [{}]: {}", msg.getMessageId(), ex.getMessage());
+                progress.errors++;
+                log.warn("An email message could not be processed");
             }
-        }
+    }
 
-        if (processingErrors == 0 && maxInternalDateMs > 0) {
-            googleOAuthService.updateLastSyncedInternalDate(maxInternalDateMs);
-        }
-
-        log.info("Email synchronization completed: scanned={}, saved={}", scannedCount, savedCount);
-        googleOAuthService.recordSyncResult(processingErrors == 0);
-
-            return EmailSyncResponse.builder()
-                    .status(processingErrors == 0 ? "SUCCESS" : "PARTIAL")
-                    .scannedCount(scannedCount)
-                    .processedInBatch(messages.size())
-                    .savedCount(savedCount)
-                    .transactions(savedTransactions)
-                    .message(processingErrors == 0
-                            ? "Emails synchronized successfully"
-                            : "Some email messages could not be processed")
-                    .build();
-        } catch (RuntimeException ex) {
-            googleOAuthService.recordSyncResult(false);
-            throw ex;
+    private String processedKey(String messageId) {
+        String scope = UserContext.requireCurrentUser().getId() + ":" + messageId;
+        try {
+            return "v2:" + java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(scope.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is unavailable");
         }
     }
 }

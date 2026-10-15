@@ -23,14 +23,14 @@ public class BankEmailParserDispatcher {
     public Optional<ParsedEmailTransaction> dispatchAndParse(String sender, String subject, String body, LocalDateTime receivedDate) {
         for (BankEmailParser parser : parsers) {
             if (parser.supports(sender, subject)) {
-                log.debug("Dispatching email [{}] from [{}] to parser [{}]", subject, sender, parser.getBankName());
+                log.debug("Dispatching email to a supported parser");
                 ParsedEmailTransaction parsed = parser.parse(subject, body, receivedDate);
                 if (parsed != null) {
                     return Optional.of(parsed);
                 }
             }
         }
-        log.debug("No bank parser matched for email: subject=[{}], sender=[{}]", subject, sender);
+        log.debug("No supported email parser matched");
         return Optional.empty();
     }
 }

@@ -16,6 +16,8 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -61,5 +63,39 @@ class GmailApiClientTest {
                 + headerJson + "],\"body\":{\"data\":\"" + body + "\"}}}";
         server.expect(requestTo(endpoint + "/message-1?format=full")).andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(detail, MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    void followsNextPageEvenWhenFirstPageOnlyContainsProcessedMessages() {
+        String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+        server.expect(requestTo(startsWith(endpoint + "?"))).andRespond(withSuccess(
+                "{\"messages\":[{\"id\":\"processed\"}],\"nextPageToken\":\"next\"}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(org.hamcrest.Matchers.allOf(startsWith(endpoint + "?"), org.hamcrest.Matchers.containsString("pageToken=next"))))
+                .andRespond(withSuccess("{\"messages\":[{\"id\":\"unprocessed\"}]}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(endpoint + "/unprocessed?format=full")).andRespond(withSuccess(
+                "{\"internalDate\":1790876366000,\"payload\":{\"headers\":[],\"body\":{\"data\":\"\"}}}", MediaType.APPLICATION_JSON));
+        assertEquals(1, client.fetchFinancialEmails("synthetic-token", 20, null, "processed"::equals).size());
+        server.verify();
+    }
+
+    @Test
+    void detailFailureFailsTheFetchInsteadOfSilentlySkippingAMessage() {
+        String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+        server.expect(requestTo(startsWith(endpoint + "?"))).andRespond(withSuccess(
+                "{\"messages\":[{\"id\":\"unavailable\"}]}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(endpoint + "/unavailable?format=full")).andRespond(withServerError());
+        assertThrows(IllegalStateException.class, () -> client.fetchFinancialEmails("synthetic-token", 20));
+        server.verify();
+    }
+
+    @Test
+    void malformedBodyFailsTheFetchInsteadOfMarkingItAsProcessed() {
+        String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+        server.expect(requestTo(startsWith(endpoint + "?"))).andRespond(withSuccess(
+                "{\"messages\":[{\"id\":\"malformed\"}]}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(endpoint + "/malformed?format=full")).andRespond(withSuccess(
+                "{\"internalDate\":1790876366000,\"payload\":{\"body\":{\"data\":\"%%%\"}}}", MediaType.APPLICATION_JSON));
+        assertThrows(IllegalStateException.class, () -> client.fetchFinancialEmails("synthetic-token", 20));
+        server.verify();
     }
 }

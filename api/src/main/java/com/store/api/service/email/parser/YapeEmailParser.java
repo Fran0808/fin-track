@@ -103,7 +103,7 @@ public class YapeEmailParser implements BankEmailParser {
             lowerCombined.contains("actualizaste el monto") ||
             lowerCombined.contains("código de verificación") ||
             lowerCombined.contains("codigo de verificacion")) {
-            log.info("Ignoring Yape non-financial configuration email: [{}]", subject);
+            log.debug("Ignoring non-financial configuration email");
             return null;
         }
 
@@ -116,7 +116,7 @@ public class YapeEmailParser implements BankEmailParser {
 
         BigDecimal amount = extractAmount(cleanText);
         if (amount == null) {
-            log.warn("Could not extract valid amount from Yape email: [{}]", subject);
+            log.warn("Could not extract a valid operation amount from email");
             return null;
         }
 

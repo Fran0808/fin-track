@@ -11,6 +11,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Consumer;
+import java.util.HashSet;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -34,7 +36,7 @@ public class GmailApiClient {
     private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
 
     private final ObjectMapper objectMapper;
-    private final RestClient restClient = RestClient.create();
+    private final RestClient restClient = com.store.api.config.ExternalHttp.client();
 
     public List<EmailMessageDto> fetchFinancialEmails(String accessToken, int maxResults) {
         return fetchFinancialEmails(accessToken, maxResults, null, id -> false);
@@ -45,10 +47,14 @@ public class GmailApiClient {
             int maxResults,
             Long lastSyncedEpochMs,
             Predicate<String> isProcessedFilter) {
-        log.info("Fetching financial emails from Gmail REST API (maxResults={}, lastSyncedEpochMs={})...",
-                maxResults, lastSyncedEpochMs);
         List<EmailMessageDto> emailMessages = new ArrayList<>();
+        visitFinancialEmails(accessToken, maxResults, lastSyncedEpochMs, isProcessedFilter, emailMessages::add);
+        return emailMessages;
+    }
 
+    public void visitFinancialEmails(String accessToken, int pageSize, Long lastSyncedEpochMs,
+            Predicate<String> isProcessedFilter, Consumer<EmailMessageDto> consumer) {
+        if (pageSize < 1 || pageSize > 500) throw new IllegalArgumentException("Gmail page size must be between 1 and 500");
         try {
             String baseQuery = "BCP OR Yape OR constancia OR consumo OR notificacionesbcp.com.pe OR notificaciones@yape.pe OR yape.pe";
             String query = baseQuery;
@@ -62,50 +68,41 @@ public class GmailApiClient {
             }
 
             final String searchQuery = query;
-            log.info("Querying Gmail REST API with q=[{}] and maxResults=[{}]", searchQuery, maxResults);
-
+            String pageToken = null;
+            Set<String> seenPages = new HashSet<>();
+            do {
+            final String currentPage = pageToken;
             String listRaw = restClient.get()
                     .uri(GMAIL_MESSAGES_ENDPOINT, uriBuilder -> uriBuilder
                             .queryParam("q", searchQuery)
-                            .queryParam("maxResults", maxResults)
+                            .queryParam("maxResults", pageSize)
+                            .queryParamIfPresent("pageToken", java.util.Optional.ofNullable(currentPage))
                             .build())
                     .header("Authorization", "Bearer " + accessToken)
                     .retrieve()
                     .body(String.class);
 
-            log.info("Gmail API search response: {}", listRaw);
-
             JsonNode listJson = objectMapper.readTree(listRaw);
             JsonNode messagesNode = listJson.path("messages");
 
-            if (!messagesNode.isArray() || messagesNode.isEmpty()) {
-                log.info("No matching financial emails found via Gmail API query [{}].", query);
-                return emailMessages;
-            }
-
-            for (JsonNode msgRef : messagesNode) {
+            if (messagesNode.isArray()) for (JsonNode msgRef : messagesNode) {
                 String messageId = msgRef.path("id").asText();
                 if (isProcessedFilter != null && isProcessedFilter.test(messageId)) {
-                    log.debug("Skipping already processed Gmail message ID [{}]", messageId);
                     continue;
                 }
-                try {
                     EmailMessageDto dto = fetchMessageDetails(accessToken, messageId);
                     if (dto != null) {
-                        emailMessages.add(dto);
+                        consumer.accept(dto);
                     }
-                } catch (Exception ex) {
-                    log.warn("Error fetching details for Gmail message [{}]: {}", messageId, ex.getMessage());
-                }
             }
-
-            log.info("Successfully fetched [{}] financial emails via Gmail REST API.", emailMessages.size());
+            pageToken = listJson.path("nextPageToken").asText(null);
+            if (pageToken != null && pageToken.isBlank()) pageToken = null;
+            if (pageToken != null && !seenPages.add(pageToken)) throw new IllegalStateException("Gmail repeated a page token");
+            } while (pageToken != null);
         } catch (Exception ex) {
-            log.error("Failed to query Gmail REST API messages", ex);
-            throw new RuntimeException("Gmail API communication failure: " + ex.getMessage(), ex);
+            log.warn("Gmail synchronization could not finish");
+            throw new IllegalStateException("Gmail synchronization could not finish");
         }
-
-        return emailMessages;
     }
 
     private EmailMessageDto fetchMessageDetails(String accessToken, String messageId) throws Exception {
@@ -134,7 +131,8 @@ public class GmailApiClient {
             }
         }
 
-        long internalDateMs = msgJson.path("internalDate").asLong(System.currentTimeMillis());
+        long internalDateMs = msgJson.path("internalDate").asLong(0);
+        if (internalDateMs <= 0 || !payload.isObject()) throw new IllegalStateException("Gmail message is incomplete");
         LocalDateTime sentDate = LocalDateTime.ofInstant(Instant.ofEpochMilli(internalDateMs), PERU_ZONE);
 
         String body = extractBody(payload);
@@ -202,8 +200,7 @@ public class GmailApiClient {
             byte[] decoded = Base64.getUrlDecoder().decode(base64UrlString);
             return new String(decoded, StandardCharsets.UTF_8);
         } catch (Exception ex) {
-            log.warn("Failed to decode base64url email body chunk: {}", ex.getMessage());
-            return "";
+            throw new IllegalStateException("Gmail message body could not be decoded");
         }
     }
 }

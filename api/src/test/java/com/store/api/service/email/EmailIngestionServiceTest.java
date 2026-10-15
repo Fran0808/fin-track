@@ -90,8 +90,7 @@ class EmailIngestionServiceTest {
                 .sentDate(LocalDateTime.of(2026, 10, 1, 12, 39, 26))
                 .internalDateMs(1790876366000L)
                 .build();
-        when(gmailApiClient.fetchFinancialEmails(anyString(), anyInt(), isNull(), any()))
-                .thenReturn(List.of(survey));
+        stubGmail(null, List.of(survey));
 
         EmailSyncResponse response = emailIngestionService.syncEmails();
 
@@ -100,8 +99,24 @@ class EmailIngestionServiceTest {
         assertEquals(0, response.getSavedCount());
         verifyNoInteractions(transactionService);
         verify(processedEmailRepository).save(argThat(message ->
-                "survey-regression".equals(message.getMessageId())));
+                message.getMessageId().startsWith("v2:") && !message.getMessageId().contains("survey-regression")));
         verify(googleOAuthService).updateLastSyncedInternalDate(1790876366000L);
+    }
+
+    @Test
+    void largeEmailIsParsedInFullWhileOnlyTheStoredDiagnosticCopyIsBounded() {
+        String body = "x".repeat(70000);
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        stubGmail(null, List.of(EmailMessageDto.builder().messageId("large-template").body(body).build()));
+        when(parserDispatcher.dispatchAndParse(any(), any(), any(), any())).thenReturn(Optional.of(
+                ParsedEmailTransaction.builder().amount(new BigDecimal("2.30")).flowType(FlowType.EXPENSE)
+                        .merchantName("Example").transactionDate(LocalDateTime.of(2026, 10, 1, 12, 0))
+                        .transactionHash("full-body-hash").rawBody(body).build()));
+        when(transactionService.processAndSave(any())).thenReturn(TransactionResponse.builder().id(1L).build());
+        assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
+        verify(parserDispatcher).dispatchAndParse(any(), any(), eq(body), any());
+        verify(transactionService).processAndSave(argThat(request -> request.getRawNotificationText().length() == 65536
+                && "full-body-hash".equals(request.getTransactionHash()) && new BigDecimal("2.30").equals(request.getAmount())));
     }
 
     @Test
@@ -119,9 +134,7 @@ class EmailIngestionServiceTest {
                 .body("Monto total S/ 15.00")
                 .build();
 
-        when(gmailApiClient.fetchFinancialEmails(eq(token), anyInt(), eq(1700000000000L), any()))
-                .thenReturn(List.of(msg));
-        when(processedEmailRepository.existsById("msg_test_1001")).thenReturn(false);
+        stubGmail(1700000000000L, List.of(msg));
 
         ParsedEmailTransaction parsedTx = ParsedEmailTransaction.builder()
                 .amount(new BigDecimal("15.00"))
@@ -156,8 +169,7 @@ class EmailIngestionServiceTest {
         when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of(token));
         when(googleOAuthService.getLastSyncedInternalDate()).thenReturn(Optional.of(1700000000000L));
 
-        when(gmailApiClient.fetchFinancialEmails(eq(token), anyInt(), eq(1700000000000L), any()))
-                .thenReturn(List.of());
+        stubGmail(1700000000000L, List.of());
 
         EmailSyncResponse response = emailIngestionService.syncEmails();
 
@@ -177,8 +189,7 @@ class EmailIngestionServiceTest {
                 .messageId("failed_message")
                 .internalDateMs(1700000060000L)
                 .build();
-        when(gmailApiClient.fetchFinancialEmails(eq(token), anyInt(), isNull(), any()))
-                .thenReturn(List.of(message));
+        stubGmail(null, List.of(message));
         when(parserDispatcher.dispatchAndParse(any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("Malformed message"));
 
@@ -188,5 +199,43 @@ class EmailIngestionServiceTest {
         verify(googleOAuthService).recordSyncResult(false);
         verify(processedEmailRepository, never()).save(any());
         verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
+    }
+
+    private void stubGmail(Long cursor, List<EmailMessageDto> messages) {
+        doAnswer(invocation -> {
+            java.util.function.Consumer<EmailMessageDto> consumer = invocation.getArgument(4);
+            messages.forEach(consumer);
+            return null;
+        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), eq(cursor), any(), any());
+    }
+
+    @Test
+    void disconnectedUserCannotFallBackToGlobalImap() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.empty());
+        assertEquals(409, assertThrows(ResponseStatusException.class, emailIngestionService::syncEmails).getStatusCode().value());
+        assertEquals("ERROR", emailIngestionService.testConnection().getStatus());
+        verifyNoInteractions(imapEmailClient, gmailApiClient, processedEmailRepository, transactionService);
+    }
+
+    @Test
+    void failedPageDoesNotAdvanceCursor() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        doThrow(new IllegalStateException("simulated page failure")).when(gmailApiClient)
+                .visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any());
+        assertThrows(IllegalStateException.class, emailIngestionService::syncEmails);
+        verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
+        verify(googleOAuthService).recordSyncResult(false);
+    }
+
+    @Test
+    void messageMarkersAreNamespacedByUser() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        stubGmail(null, List.of(EmailMessageDto.builder().messageId("same-provider-id").build()));
+        emailIngestionService.syncEmails();
+        UserContext.setCurrentUser(User.builder().id(43L).build());
+        emailIngestionService.syncEmails();
+        var captor = org.mockito.ArgumentCaptor.forClass(com.store.api.model.entity.ProcessedEmailMessage.class);
+        verify(processedEmailRepository, times(2)).save(captor.capture());
+        assertNotEquals(captor.getAllValues().get(0).getMessageId(), captor.getAllValues().get(1).getMessageId());
     }
 }
