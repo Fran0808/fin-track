@@ -31,7 +31,7 @@ class DevicePairingServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(devicePairingService, "publicServerUrl", "http://192.168.1.5:8080");
+        ReflectionTestUtils.setField(devicePairingService, "publicServerUrl", "http://192.0.2.20:8080");
         testUser = User.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -47,8 +47,9 @@ class DevicePairingServiceTest {
         assertNotNull(response);
         assertEquals("wp_dev_testtoken123", response.getPairingToken());
         assertEquals("test@example.com", response.getUserEmail());
-        assertEquals("http://192.168.1.5:8080", response.getServerUrl());
+        assertEquals("http://192.0.2.20:8080", response.getServerUrl());
         assertTrue(response.getQrPayload().contains("wp_dev_testtoken123"));
+        assertTrue(response.getQrPayload().contains(response.getServerUrl()));
         verify(userRepository, never()).save(any());
     }
 

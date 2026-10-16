@@ -23,6 +23,20 @@ existing database password and JWT secret. Do not print resolved secrets or comm
 `.env`. `APP_SERVER_PUBLIC_URL` must be reachable from the Android device; its
 `localhost` refers to the phone, not the development computer.
 
+The API uses `APP_SERVER_PUBLIC_URL` for the web pairing field and QR payload.
+Android builds use the same process environment variable first, then the repository
+`.env` value, then legacy `BASE_URL` in `android/local.properties`, and finally a
+loopback development fallback. No LAN address is hardcoded as a shared default.
+Set the actual reachable API address before building an APK; changing `.env` does
+not modify an APK already installed or a pairing already saved on a phone. Use
+**Cambiar dirección del servidor** for an existing pairing. Placeholder addresses
+in manual fields are examples, not connection settings.
+
+The running backend retains its startup configuration. After updating `.env`, load
+it into the backend's launch environment and restart the backend when authorized;
+then reopen the web pairing dialog to obtain the updated default and QR. A new APK
+uses its compiled fallback only when no saved pairing address takes precedence.
+
 Compose loads `.env`; native Spring Boot does not load it automatically. Configure
 the IDE's environment, or load the simple `KEY=value` entries into the current
 PowerShell process before starting the API:
