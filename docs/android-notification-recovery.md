@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.1.4 (version code 10) keeps the existing application ID, preferences and
+FinTrack 1.2.0 (version code 11) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -55,6 +55,23 @@ from its detail using **Confirmar destino de envío**
 and an explicit confirmation in the app; its hash remains unchanged. Already
 synced legacy rows are retained for review and cannot be reassigned this way.
 No old pending row is automatically sent to a newly paired account.
+
+When the address of the same backend changes, use **Ajustes > Conexión con la web >
+Cambiar dirección del servidor**. Enter its full `http://` or `https://` address and
+select **Verificar y guardar**. The app verifies the existing device token at the
+new address, requires the same saved user ID when available, and rejects a response
+if pairing changed while verification was in progress. The new address must belong
+to the same trusted backend; this is an explicit correction, not server discovery.
+It preserves the token, pairing start time and local ownership scope without
+rewriting financial rows or hashes. After saving, use **Inicio > Enviar ahora**.
+
+Address corrections store a hashed owner alias for the verified server/user in the
+existing pairing preferences. The alias survives unpairing so linking the same
+user at the corrected address, including after credential rotation, still finds
+the existing movements. Unpairing removes active credentials and personal pairing
+details. Aliases contain no tokens, emails or financial values, and are never
+applied to another user or server. Ordinary QR linking does not infer that two
+server addresses represent the same backend.
 
 The normal history and pending counter query only the current ownership scope.
 Switching accounts retains the other account's rows but hides and excludes them
@@ -155,6 +172,14 @@ capture from additional packages.
 
 ## Verification and device acceptance
 
+For local connection failures, compare the address shown in Android settings with
+the PC's current LAN address. Test that address from the phone's browser on the
+same network; even an authentication error proves that the HTTP server responded.
+The web dashboard working at `localhost` does not verify access from the phone.
+If the PC address changed, correct it using the verified address-change dialog
+before sending pending movements. The QR's default address comes from
+`APP_SERVER_PUBLIC_URL`; its field can also be edited in the web pairing dialog.
+
 From `android`:
 
 ```powershell
@@ -168,7 +193,12 @@ movement-state filters, bounded diagnostic transitions, sanitized connection/HTT
 failure reporting, the anonymized screenshot receipt format, expanded-text fallback,
 direct manual execution, repeated taps, cancellation while waiting for an upload,
 retrying a failed manual attempt with the same hash and serial execution of
-simultaneous manual/automatic attempts. Instrumented
+simultaneous manual/automatic attempts, verified address changes, mismatched users,
+stale verification and invalid addresses. Instrumented `PairingAddressPreferencesTest`
+uses isolated preferences and an in-memory database to check pending-row preservation,
+address aliases, unpairing, credential rotation and user/server isolation.
+These tests require an authorized test device/emulator and are not executed by APK
+assembly. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
 ownership isolation, legacy hashes, full owner-scoped history, empty review after
 assignment, pending counts beyond 50 rows and an authorized synthetic receipt through
