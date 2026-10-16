@@ -56,6 +56,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var pairing by rememberSaveable { mutableStateOf(false) }
     var unpair by rememberSaveable { mutableStateOf(false) }
+    var changeServer by rememberSaveable { mutableStateOf(false) }
     var diagnostics by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var statusName by rememberSaveable { mutableStateOf(MovementStatus.ALL.name) }
@@ -208,7 +209,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     session?.let { Text("Servidor: ${it.serverUrl}", color = Muted, fontSize = 12.sp) }
                     Text("El QR o código de vinculación indica a qué usuario de la web se enviarán los movimientos. La captura en el teléfono funciona por separado.", color = Muted)
                     if (session == null) Button(onClick = { pairing = true }) { Text("Conectar con QR") }
-                    else OutlinedButton(onClick = { unpair = true }) { Text("Desvincular teléfono") }
+                    else {
+                        OutlinedButton(onClick = { changeServer = true }) { Text("Cambiar dirección del servidor") }
+                        OutlinedButton(onClick = { unpair = true }) { Text("Desvincular teléfono") }
+                    }
                 } }
                 item { AppPanel {
                     Text("Acceso a notificaciones", fontWeight = FontWeight.SemiBold)
@@ -236,6 +240,12 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 item { Text("FinTrack ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 12.sp) }
             }
         }
+    }
+    if (changeServer) session?.let { current ->
+        ServerAddressDialog(current, onDismiss = { changeServer = false }, onSaved = {
+            session = PairingPreferences.session(context)
+            changeServer = false
+        })
     }
     if (datePicker) {
         val range = rememberDateRangePickerState(

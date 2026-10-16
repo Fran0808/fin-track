@@ -26,8 +26,8 @@ android {
         applicationId = "com.financemanager.listener"
         minSdk = 26
         targetSdk = 37
-        versionCode = 10
-        versionName = "1.1.4"
+        versionCode = 11
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", "\"$serverBaseUrl\"")
