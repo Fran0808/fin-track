@@ -93,4 +93,24 @@ class PairingAddressPreferencesTest {
         }
         assertNull(PairingPreferences.session(context))
     }
+
+    @Test fun relinkingAtAnotherAddressHidesButDoesNotDeletePreviousPendingMovement() {
+        PairingPreferences.savePairing(context, "test-token", oldAddress, "test@example.test", 1)
+        val original = requireNotNull(PairingPreferences.session(context))
+        val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
+        try {
+            val dao = db.transactionDao()
+            dao.insert(LocalTransactionEntity(amount = "50.00", flowType = "INCOME", contactName = "Test Sender",
+                transactionDate = "2026-10-16T12:00:00", transactionHash = "previous-pending-hash",
+                rawText = "test", ownerKey = original.ownerKey))
+            PairingPreferences.clearPairing(context)
+            PairingPreferences.savePairing(context, "regenerated-test-token", newAddress, "test@example.test", 1)
+            val current = requireNotNull(PairingPreferences.session(context))
+            assertNotEquals(original.ownerKey, current.ownerKey)
+            assertTrue(dao.getUnsyncedTransactions(current.ownerKey).isEmpty())
+            assertEquals("previous-pending-hash", dao.getUnsyncedTransactions(original.ownerKey).single().transactionHash)
+        } finally {
+            db.close()
+        }
+    }
 }

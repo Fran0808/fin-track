@@ -313,7 +313,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         selected = null; assignment = null; openMovements(); tab = 0
     })
     if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Desvincular teléfono") },
-        text = { Text("Se detendrá el envío a ${email ?: "el destino configurado en la web"}. Los movimientos guardados se conservarán en este teléfono.") },
+        text = { Text("Se detendrá el envío a ${email ?: "el destino configurado en la web"}. Los movimientos guardados se conservarán en este teléfono. Si después vinculas otra dirección o cuenta, los movimientos del destino anterior pueden dejar de mostrarse. Para corregir la IP del mismo servidor, usa ‘Cambiar dirección del servidor’.") },
         confirmButton = { TextButton(onClick = {
             PairingPreferences.clearPairing(context); TransactionSyncWorker.cancel(context); ApiClient.resetService()
             CaptureStatus.sync("Conecta el teléfono con la web para enviar movimientos.")

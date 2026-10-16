@@ -14,7 +14,17 @@ val localProperties = Properties().apply {
     }
 }
 
-val serverBaseUrl = localProperties.getProperty("BASE_URL")?: "http://127.0.0.1:8080/"
+val workspaceEnvFile = rootProject.file("../.env")
+val workspacePublicUrl = if (workspaceEnvFile.exists()) {
+    workspaceEnvFile.readLines().firstNotNullOfOrNull { line ->
+        Regex("""^\s*APP_SERVER_PUBLIC_URL\s*=\s*(.*?)\s*$""").matchEntire(line)
+            ?.groupValues?.get(1)?.trim()?.trim('"', '\'')?.takeIf { it.isNotBlank() }
+    }
+} else null
+val serverBaseUrl = providers.environmentVariable("APP_SERVER_PUBLIC_URL").orNull?.takeIf { it.isNotBlank() }
+    ?: workspacePublicUrl
+    ?: localProperties.getProperty("BASE_URL")
+    ?: "http://127.0.0.1:8080/"
 
 android {
     namespace = "com.financemanager.listener"
@@ -26,8 +36,8 @@ android {
         applicationId = "com.financemanager.listener"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "1.2.0"
+        versionCode = 12
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", "\"$serverBaseUrl\"")

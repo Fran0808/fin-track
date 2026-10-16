@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.2.0 (version code 11) keeps the existing application ID, preferences and
+FinTrack 1.2.1 (version code 12) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -72,6 +72,13 @@ the existing movements. Unpairing removes active credentials and personal pairin
 details. Aliases contain no tokens, emails or financial values, and are never
 applied to another user or server. Ordinary QR linking does not infer that two
 server addresses represent the same backend.
+
+Unpairing and then linking a different address without first recording a verified
+address correction creates a different ownership scope, even if the user ID is the
+same. A payment can disappear from the current view while its unchanged pending
+row remains in Room under the previous scope. Regenerating the web token does not
+delete the local row, but revokes the original credential needed to verify that
+old pairing. Such rows are not automatically reassigned to the new destination.
 
 The normal history and pending counter query only the current ownership scope.
 Switching accounts retains the other account's rows but hides and excludes them
@@ -197,7 +204,9 @@ simultaneous manual/automatic attempts, verified address changes, mismatched use
 stale verification and invalid addresses. Instrumented `PairingAddressPreferencesTest`
 uses isolated preferences and an in-memory database to check pending-row preservation,
 address aliases, unpairing, credential rotation and user/server isolation.
-These tests require an authorized test device/emulator and are not executed by APK
+They also cover relinking a new address after unpairing: old pending rows remain
+stored and are excluded from the new ownership scope. These tests require an
+authorized test device/emulator and are not executed by APK
 assembly. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
 ownership isolation, legacy hashes, full owner-scoped history, empty review after

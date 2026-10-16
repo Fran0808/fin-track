@@ -122,7 +122,7 @@ fun PairingDialog(
                     value = manualServerUrl,
                     onValueChange = { manualServerUrl = it },
                     label = { Text("Dirección del servidor") },
-                    placeholder = { Text("http://192.168.1.5:8080") },
+                    placeholder = { Text("http://192.168.1.50:8080") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
