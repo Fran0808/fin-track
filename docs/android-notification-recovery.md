@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.1.3 (version code 9) keeps the existing application ID, preferences and
+FinTrack 1.1.4 (version code 10) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes.
 
@@ -97,15 +97,18 @@ records. Only a successful response containing that record's hash marks it synce
 Authentication errors require pairing; other permanent HTTP errors preserve the
 record for review while allowing later records to proceed. Network/server failures
 retry up to five attempts per work request; manual synchronization can try again.
-**Enviar ahora** creates a separate one-shot work request using `KEEP`, rather than
-appending behind the automatic chain's backoff. Repeated taps do not accumulate
-manual requests. Both paths require network connectivity and share a process-local
-mutex around reading and sending pending rows: a manual attempt does not cancel an
-in-flight automatic request or read a stale pending list concurrently. A manual
-failure completes that request; the user can immediately request another attempt,
-while scheduled automatic retries remain available. Android scheduling and network
-constraints still apply, so the button does not guarantee immediate execution.
-Unpairing cancels both unique work chains.
+**Enviar ahora** starts a coroutine directly on the I/O dispatcher in the application
+process. It contacts the configured server without waiting for WorkManager scheduling,
+automatic backoff or Android's internet-validation constraint, which can delay a
+request even when a local server is reachable. Repeated taps do not accumulate
+manual attempts. Both paths share a process-local mutex around reading and sending
+pending rows: a manual attempt waits for an in-flight automatic request and reads
+the pending list only after acquiring the lock. A manual failure reports the cause
+and allows another tap immediately; scheduled automatic retries remain available.
+Navigation does not cancel the manual attempt, but process termination can interrupt
+it; unconfirmed rows remain pending and automatic work stays durable. Unpairing
+cancels the manual coroutine and both unique work chains, including manual requests
+persisted by older versions. The existing worker still recognizes those requests.
 
 Failure messages distinguish connection refusal/unreachability, host lookup,
 timeout, TLS, HTTP status and a missing acknowledgement. They never include raw
@@ -162,8 +165,10 @@ Unit regressions cover strict amounts/promotions, masked names, authorized
 packages, event identity, ownership scopes, HTTP acknowledgements, session changes,
 offline behavior, rejected records, bounded storage retries, inclusive date filters,
 movement-state filters, bounded diagnostic transitions, sanitized connection/HTTP
-failure reporting, the anonymized screenshot receipt format, expanded-text fallback
-and serial execution of simultaneous manual/automatic attempts. Instrumented
+failure reporting, the anonymized screenshot receipt format, expanded-text fallback,
+direct manual execution, repeated taps, cancellation while waiting for an upload,
+retrying a failed manual attempt with the same hash and serial execution of
+simultaneous manual/automatic attempts. Instrumented
 `CaptureDatabaseTest` uses disposable databases to test migration, idempotency,
 ownership isolation, legacy hashes, full owner-scoped history, empty review after
 assignment, pending counts beyond 50 rows and an authorized synthetic receipt through
