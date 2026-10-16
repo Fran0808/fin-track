@@ -187,7 +187,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
                     type="url"
                     value={serverUrl}
                     onChange={(e) => setServerUrl(e.target.value)}
-                    placeholder="http://192.168.1.5:8080"
+                    placeholder="http://192.168.1.50:8080"
                     className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   />
                 </div>
