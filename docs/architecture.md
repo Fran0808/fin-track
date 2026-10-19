@@ -50,11 +50,11 @@ Package organization does not change HTTP routes, DTO fields or table names.
 
 1. `YapeNotificationListenerService` receives a notification.
 2. `NotificationParserDispatcher` rejects unsupported packages before parsing content.
-3. A bank-specific parser extracts financial fields; capture adds Android publication time and event identity.
-4. A `LocalTransactionEntity` is inserted in Room with its pairing scope. Active notifications are recovered on connection; legacy rows retain their hashes and require ownership review.
+3. A bounded snapshot and its capture-time ownership are committed to the Room capture inbox before parsing. Notification removal/reconciliation is ordered through that inbox.
+4. A bank-specific parser produces a structured result; the inbox processor atomically completes the observation and inserts a `LocalTransactionEntity` when unambiguous. Active notifications are recovered on connection and foreground entry. Reused active sources can require review; legacy rows retain their hashes and ownership requirements.
 5. `TransactionSyncWorker` sends only the current scope's pending records through `ApiClient` with a fixed device token.
 6. The API resolves the user, validates the payload and deduplicates by hash and user.
-7. A successful response confirming the hash lets Android mark the record as synced; transient failures receive bounded retries. See [Android recovery](android-notification-recovery.md).
+7. A successful response confirming the hash lets Android mark the record as synced; transient failures receive bounded retries. See [Android recovery](android-notification-recovery.md) and [capture delivery](android-capture-implementation.md).
 
 Capture, queuing and successful synchronization are distinct states. A payment
 visible on the phone is not proof that the backend received it.

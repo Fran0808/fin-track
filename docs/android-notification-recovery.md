@@ -1,8 +1,10 @@
 # Android notification capture and recovery
 
-FinTrack 1.2.1 (version code 12) keeps the existing application ID, preferences and
+FinTrack 1.3.0 (version code 13) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
-metadata without deleting rows or changing their transaction hashes.
+metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
+adds the capture inbox in the same database. Existing transactions and pairing
+preferences retain their identities. See [capture delivery](android-capture-implementation.md).
 
 ## Capture and identity
 
@@ -15,30 +17,31 @@ containing multiple monetary amounts are rejected.
 Live callbacks and active notifications recovered on connection use the same
 capture path. While connected, recovery is also available under
 **Ajustes > Ver diagnóstico de captura > Revisar notificaciones aún visibles**.
-The transaction date uses the valid Android event timestamp (`when`), falling back
-to publication time (`postTime`), in the device timezone, rather than processing
-time. This is not necessarily the
+The transaction date uses Android publication time (`postTime`) in the timezone
+saved at capture, rather than processing time. The valid `when` timestamp is used
+in event identity, not as the transaction date. This is not necessarily the
 bank's operation time. Deleted notifications and bank history cannot be recovered.
 
 New hashes combine the Android notification key, event timestamp (`when`, falling
 back to `postTime`) and a fingerprint of flow, normalized decimal amount, contact
 and security code when present. A security code is a distinguishing hint, not a
 guaranteed bank operation ID. Notification text and codes are never logged.
-The durable active-source match suppresses presentation updates even if their
-publication timestamp changes. Removal retires that active match; a new event
+An identical event identity is deduplicated. A different event identity with the
+same active source and financial fingerprint is retained for review rather than
+silently suppressed or automatically counted again. Removal retires that active match; a new event
 with a new timestamp can then be captured. Reconnection retires missing keys.
 Room's unique event and transaction-hash indexes make repeated recovery idempotent.
 
 Two notifications with different keys or different financial fingerprints remain
 separate even within the same minute. If Yape reuses an active key with identical
-payment data and no removal, the listener treats it as an update. This case is
-intrinsically ambiguous without a trustworthy operation identifier and must be
-validated using real Yape behavior. It is not a promise of universal deduplication.
+payment data and no removal, the inbox preserves the new observation as
+`REUSED_ACTIVE_SOURCE` for review. This case is intrinsically ambiguous without
+a trustworthy operation identifier; no second transaction is sent automatically. It is not a promise of universal deduplication.
 
 Legacy recovery compares financial fields/text and a two-minute timestamp window,
 attaches source metadata to an unambiguous old row, and preserves its old hash,
 date and sync flag. Ambiguous legacy matches stop recovery for that event and
-appear as a diagnostic error instead of creating another financial record.
+remain in the inbox for review instead of creating another financial record.
 
 ## Account ownership and existing records
 
@@ -96,19 +99,43 @@ history of 30 diagnostic events. This separate local preference store contains o
 timestamps and fixed event types, never notification text, names, amounts or codes.
 Events distinguish receipt, recognition, rejection, group summaries, successful
 storage, deduplication/recovery and a server-confirmed upload. The history is a
-chronological activity log, not a per-payment audit trail. Successful storage or
+chronological activity log, not a complete per-payment history. Successful storage or
 deduplication clears previous processing errors.
 
-A disconnect requests a permission-checked rebind at most once per minute,
-without a repeating reconnection loop. **Intentar reconectar** offers an explicit
-rebind when permission is enabled but the listener is disconnected. Merely opening
+A disconnect, foreground entry or **Intentar reconectar** triggers the same
+coordinator: at most three attempts per cycle, at least one minute apart, with
+permission and component-state checks before each attempt. A successful connection
+cancels the remaining attempts. No component is toggled and no periodic watchdog
+is installed. Merely opening
 the activity does not prove that the listener is connected. Capture does not require
 the activity to stay open or the server to be reachable.
 
-Capture persistence is serialized. Lock and disk I/O failures receive at most
-three attempts with the original entity/hash. Other failures are reported and
-do not stop later events. Destroying the listener cancels its scope; events not
-yet saved can only be recovered if their notifications remain active.
+Capture ingress is serialized in application scope, with a 256-entry precommit
+queue and checked admission. The snapshot is bounded to 32,768 characters total,
+8,192 per field and 20 lines. Clipped payloads require review, never automatic
+financial interpretation. Lock and disk I/O failures receive three write attempts;
+failed writes or queue saturation produce an explicit error. This precommit window
+cannot guarantee recovery if the process dies and the original notice disappears.
+
+The listener's destruction does not cancel application ingress. Once an observation
+is committed to Room, process death does not discard it. A no-network WorkManager
+job and an in-process processor resume pending observations. Completion and any
+financial insert share one Room transaction. Removal/reconciliation controls pass
+through the same ordered inbox. Opening the app, connecting the listener or
+successful pairing also resumes processing and pending synchronization.
+
+Raw inbox fields are cleared immediately after recognized, duplicate, control or
+nonfinancial completion. Review evidence is redacted after seven days on the next
+processing sweep, retaining identity/status. Pending observations are not purged.
+Completed duplicate/ignored/control metadata is pruned after 30 days. The database
+and sidecars are excluded from cloud backup and device transfer; existing local
+transactions remain on the phone. This is app-private storage, not a new layer of
+application-level encryption. General pairing-backup and transport hardening remain
+a separate delivery.
+
+**Ver capturas por revisar** displays up to 100 current-scope/unassigned observations
+and fixed reasons, outside the sanitized diagnostic log. It does not approve a
+payment, assign it to another user, or send ambiguous evidence to the server.
 
 Synchronization is queued after saving, requires network connectivity and uses
 `APPEND_OR_REPLACE` so a new capture does not cancel a running upload. Each run
