@@ -58,6 +58,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var unpair by rememberSaveable { mutableStateOf(false) }
     var changeServer by rememberSaveable { mutableStateOf(false) }
     var diagnostics by rememberSaveable { mutableStateOf(false) }
+    var inboxReview by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
     var statusName by rememberSaveable { mutableStateOf(MovementStatus.ALL.name) }
     var startDay by rememberSaveable { mutableStateOf<String?>(null) }
@@ -67,6 +68,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var assignment by remember { mutableStateOf<LocalTransactionEntity?>(null) }
     var assigning by remember { mutableStateOf(false) }
     val capture by CaptureStatus.state.collectAsState()
+    val inboxFlow = remember(session?.ownerKey) { AppDatabase.getDatabase(context).captureInboxDao().counts(session?.ownerKey) }
+    val inboxCounts by key(session?.ownerKey) { inboxFlow.collectAsState(com.financemanager.listener.data.InboxCounts(0, 0)) }
+    val reviewFlow = remember(session?.ownerKey) { AppDatabase.getDatabase(context).captureInboxDao().review(session?.ownerKey) }
+    val reviewCaptures by key(session?.ownerKey) { reviewFlow.collectAsState(emptyList()) }
     val ownedFlow = remember(session?.ownerKey) { dao.getTransactionsFlow(session?.ownerKey) }
     val owned by key(session?.ownerKey) { ownedFlow.collectAsState(emptyList()) }
     val unassigned by remember { dao.unassignedTransactions() }.collectAsState(emptyList())
@@ -89,9 +94,13 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                 if (session?.ownerKey != updated?.ownerKey) { selected = null; assignment = null }
                 session = updated
                 email = PairingPreferences.getPairedEmail(context)
+                com.financemanager.listener.service.ListenerHealthCoordinator.foreground(context)
             }
         }
         lifecycle.lifecycle.addObserver(observer)
+        if (lifecycle.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            com.financemanager.listener.service.ListenerHealthCoordinator.foreground(context)
+        }
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
     BackHandler(enabled = tab != 0) { tab = 0 }
@@ -135,7 +144,11 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         Text("Captura de movimientos", fontWeight = FontWeight.SemiBold)
                         Text(when { !permission -> "Acceso a notificaciones desactivado"; capture.connected -> "Acceso a notificaciones conectado"; else -> "Esperando conexión con Android" },
                             color = if (permission && capture.connected) Positive else Ink)
+                        Text("Última captura guardada: ${formatDiagnosticTime(capture.lastCaptured)}", color = Muted)
                         Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
+                        if (inboxCounts.pending > 0) Text("${inboxCounts.pending} capturas pendientes de procesar", color = Muted)
+                        if (inboxCounts.review > 0) Text("${inboxCounts.review} capturas por revisar; requieren atención y no se enviarán como movimientos nuevos.", color = Negative)
+                        if (inboxCounts.review > 0) TextButton(onClick = { tab = 2; diagnostics = true; inboxReview = true }) { Text("Ver capturas por revisar") }
                         if (permission && capture.connected) Text("Lista para recibir la próxima notificación. No necesitas mantener FinTrack abierta.", color = Muted)
                         if (permission && !capture.connected) OutlinedButton(onClick = { YapeNotificationListenerService.reconnect(context) }) { Text("Intentar reconectar") }
                         capture.lastError?.let { Text(it, color = Negative) }
@@ -225,7 +238,10 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     if (diagnostics) {
                         Text("Última conexión: ${formatDiagnosticTime(capture.lastConnection)}", color = Muted)
                         Text("Última notificación recibida: ${formatDiagnosticTime(capture.lastNotification)}", color = Muted)
+                        Text("Última captura guardada: ${formatDiagnosticTime(capture.lastCaptured)}", color = Muted)
                         Text("Último movimiento guardado: ${formatDiagnosticTime(capture.lastSaved)}", color = Muted)
+                        if (inboxCounts.pending > 0) Text("${inboxCounts.pending} capturas pendientes de procesar", color = Muted)
+                        if (inboxCounts.review > 0) Text("${inboxCounts.review} capturas por revisar; requieren atención y no se enviarán como movimientos nuevos.", color = Negative)
                         Text("Solo se procesan notificaciones de aplicaciones compatibles. Recibir una notificación no significa que se haya reconocido un pago; los avisos promocionales también pueden descartarse.", color = Muted)
                         OutlinedButton(onClick = { YapeNotificationListenerService.reviewActive() }, enabled = permission && capture.connected) { Text("Revisar notificaciones aún visibles") }
                         if (capture.history.isEmpty()) Text("Aún no hay actividad registrada.", color = Muted)
@@ -235,6 +251,26 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                             Text(formatDiagnosticTime(event.time), color = Muted, fontSize = 12.sp)
                         }
                         Text("Se conservan los últimos 30 eventos, sin nombres, importes ni códigos de seguridad.", color = Muted, fontSize = 12.sp)
+                        TextButton(onClick = { inboxReview = !inboxReview }) { Text(if (inboxReview) "Ocultar capturas por revisar" else "Ver capturas por revisar") }
+                        if (inboxReview) {
+                            Text("Evidencia local: no representa movimientos confirmados ni se envía automáticamente. Se muestran hasta 100 capturas.", color = Muted)
+                            reviewCaptures.forEach { observation ->
+                                HorizontalDivider(color = Line)
+                                Text(formatDiagnosticTime(observation.receivedAt), fontSize = 12.sp, color = Muted)
+                                Text(when (observation.reason) {
+                                    "REUSED_ACTIVE_SOURCE" -> "No se pudo diferenciar una actualización de otro pago."
+                                    "LEGACY_AMBIGUITY" -> "Coincide con varios registros antiguos."
+                                    "MULTIPLE_AMOUNTS", "CONFLICTING_DIRECTION" -> "El contenido financiero es ambiguo."
+                                    "CONTENT_LIMIT" -> "El aviso excede el tamaño admitido."
+                                    else -> "Formato pendiente de revisión."
+                                })
+                                observation.title?.let { Text(it, fontWeight = FontWeight.SemiBold) }
+                                val evidence = observation.bigText?.takeIf { it.isNotBlank() } ?: observation.text
+                                    ?: runCatching { com.financemanager.listener.capture.CaptureEncoding.decode(observation.lines).joinToString("\n").takeIf { it.isNotBlank() } }.getOrNull()
+                                if (evidence != null) Text(evidence, fontSize = 12.sp, maxLines = 8, overflow = TextOverflow.Ellipsis)
+                                else Text("El contenido ya no está disponible por la política de conservación.", color = Muted, fontSize = 12.sp)
+                            }
+                        }
                     }
                 } }
                 item { Text("FinTrack ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", color = Muted, fontSize = 12.sp) }
