@@ -13,6 +13,7 @@ data class CaptureState(
     val lastConnection: Long? = null,
     val lastNotification: Long? = null,
     val lastSaved: Long? = null,
+    val lastCaptured: Long? = null,
     val lastError: String? = null,
     val syncMessage: String = "El envío se realizará cuando haya conexión.",
     val history: List<DiagnosticEvent> = emptyList(),
@@ -23,6 +24,8 @@ enum class SyncPhase { IDLE, QUEUED, SENDING, COMPLETE, AUTH_REQUIRED, RETRY, RE
 
 enum class CaptureEvent(val label: String) {
     RECEIVED("Notificación compatible recibida"),
+    CAPTURED("Notificación guardada para procesar"),
+    REVIEW("Captura conservada para revisión"),
     RECOGNIZED("Movimiento reconocido"),
     UNRECOGNIZED("No se pudo identificar un movimiento"),
     GROUP_SUMMARY("Resumen de notificaciones omitido"),
@@ -37,6 +40,7 @@ data class DiagnosticEvent(val time: Long, val event: CaptureEvent)
 
 fun recordCapture(state: CaptureState, event: CaptureEvent, time: Long): CaptureState = state.copy(
     lastNotification = if (event == CaptureEvent.RECEIVED) time else state.lastNotification,
+    lastCaptured = if (event == CaptureEvent.CAPTURED) time else state.lastCaptured,
     lastSaved = if (event == CaptureEvent.SAVED) time else state.lastSaved,
     lastError = if (event == CaptureEvent.SAVED || event == CaptureEvent.DUPLICATE) null else state.lastError,
     history = (listOf(DiagnosticEvent(time, event)) + state.history).take(30)
@@ -62,7 +66,8 @@ object CaptureStatus {
         mutable.value = CaptureState(
             lastConnection = prefs.getLong("connection", 0).takeIf { it > 0 },
             lastNotification = prefs.getLong("notification", 0).takeIf { it > 0 },
-            lastSaved = prefs.getLong("saved", 0).takeIf { it > 0 }, history = history
+            lastSaved = prefs.getLong("saved", 0).takeIf { it > 0 },
+            lastCaptured = prefs.getLong("captured", 0).takeIf { it > 0 }, history = history
         )
     }
 
@@ -72,7 +77,7 @@ object CaptureStatus {
         val history = JSONArray()
         value.history.forEach { history.put(JSONObject().put("time", it.time).put("event", it.event.name)) }
         preferences?.edit()?.putLong("connection", value.lastConnection ?: 0)
-            ?.putLong("notification", value.lastNotification ?: 0)?.putLong("saved", value.lastSaved ?: 0)
+            ?.putLong("notification", value.lastNotification ?: 0)?.putLong("saved", value.lastSaved ?: 0)?.putLong("captured", value.lastCaptured ?: 0)
             ?.putString("history", history.toString())?.apply()
     }
 

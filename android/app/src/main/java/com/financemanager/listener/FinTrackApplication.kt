@@ -8,6 +8,7 @@ class FinTrackApplication : Application() {
         instance = this
         com.financemanager.listener.service.CaptureStatus.initialize(this)
         com.financemanager.listener.data.PairingPreferences.session(this)
+        com.financemanager.listener.capture.CaptureRuntime.get(this).resume()
     }
 
     companion object {

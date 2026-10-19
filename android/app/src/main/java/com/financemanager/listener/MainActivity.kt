@@ -233,8 +233,11 @@ private fun verifyAndSaveToken(
                 // Upgrade only rows already scoped to this verified credential, never unowned rows.
                 val credentialOwner = com.financemanager.listener.data.PairingScope.ownerKey(targetUrl, token, null)
                 val verifiedOwner = com.financemanager.listener.data.PairingScope.ownerKey(targetUrl, token, response.body()!!.userId)
-                com.financemanager.listener.data.AppDatabase.getDatabase(context).transactionDao()
-                    .upgradeVerifiedOwner(credentialOwner, verifiedOwner)
+                val database = com.financemanager.listener.data.AppDatabase.getDatabase(context)
+                database.runInTransaction {
+                    database.transactionDao().upgradeVerifiedOwner(credentialOwner, verifiedOwner)
+                    database.captureInboxDao().upgradeVerifiedOwner(credentialOwner, verifiedOwner)
+                }
             }
 
             withContext(Dispatchers.Main) {
@@ -244,7 +247,7 @@ private fun verifyAndSaveToken(
                     val email = body.userEmail ?: "Usuario Verificado"
                     PairingPreferences.savePairing(context, token, targetUrl, email, requireNotNull(body.userId))
                     ApiClient.resetService()
-                    com.financemanager.listener.worker.TransactionSyncWorker.enqueue(context)
+                    com.financemanager.listener.capture.CaptureRuntime.get(context).resume()
                     Toast.makeText(context, "Teléfono conectado con la web", Toast.LENGTH_SHORT).show()
                     onSuccess(email)
                 } else {
