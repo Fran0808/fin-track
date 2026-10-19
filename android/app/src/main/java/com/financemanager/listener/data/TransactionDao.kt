@@ -62,7 +62,11 @@ abstract class TransactionDao {
     abstract fun reactivateSource(id: Long)
 
     @Transaction
-    open fun persistNotification(entity: LocalTransactionEntity, recovering: Boolean): Long {
+    open fun persistNotification(entity: LocalTransactionEntity, recovering: Boolean): Long =
+        persistNotificationWithinTransaction(entity, recovering)
+
+    // Caller must hold a Room transaction. Kept separate so a review outcome does not roll back inbox completion.
+    fun persistNotificationWithinTransaction(entity: LocalTransactionEntity, recovering: Boolean): Long {
         val eventId = requireNotNull(entity.sourceEventId)
         val key = requireNotNull(entity.sourceKey)
         val fingerprint = requireNotNull(entity.sourceFingerprint)
@@ -72,7 +76,7 @@ abstract class TransactionDao {
             reactivateSource(existing.id)
             return -1
         }
-        if (findActiveEvent(key, fingerprint) != null) return -1
+        if (findActiveEvent(key, fingerprint) != null) throw com.financemanager.listener.capture.NotificationReviewRequired()
         if (recovering) {
             val candidates = legacyCandidates(entity.flowType, entity.channel).filter {
                 it.rawText == entity.rawText || (it.amount.toBigDecimalOrNull()?.compareTo(entity.amount.toBigDecimal()) == 0 &&

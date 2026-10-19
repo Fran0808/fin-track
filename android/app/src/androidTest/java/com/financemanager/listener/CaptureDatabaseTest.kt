@@ -33,7 +33,10 @@ class CaptureDatabaseTest {
             val dao = db.transactionDao()
             assertTrue(dao.persistNotification(entry(), true) > 0)
             assertEquals(-1L, dao.persistNotification(entry(), true))
-            assertEquals(-1L, dao.persistNotification(entry(hash = "updated-time"), false))
+            try {
+                dao.persistNotification(entry(hash = "updated-time"), false)
+                fail("An indistinguishable reused active source must require review")
+            } catch (_: com.financemanager.listener.capture.NotificationReviewRequired) { }
             assertTrue(dao.persistNotification(entry(hash = "event-2", key = "key-2"), false) > 0)
             dao.retireSource("key-1")
             assertTrue(dao.persistNotification(entry(hash = "event-3"), false) > 0)
@@ -135,7 +138,7 @@ class CaptureDatabaseTest {
                 }).build())
             helper.writableDatabase
             helper.close()
-            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(AppDatabase.MIGRATION_1_2).build().withDatabase { db ->
+            Room.databaseBuilder(context, AppDatabase::class.java, name).addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3).build().withDatabase { db ->
                 val saved = db.transactionDao().unassignedTransactions().first().single()
                 assertEquals("old-hash", saved.transactionHash)
                 assertEquals("50.00", saved.amount)
