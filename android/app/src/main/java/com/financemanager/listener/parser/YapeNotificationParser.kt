@@ -1,5 +1,7 @@
 package com.financemanager.listener.parser
 
+import com.financemanager.listener.capture.NotificationContent
+import com.financemanager.listener.capture.ParseResult
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.Locale
@@ -38,8 +40,51 @@ open class YapeNotificationParser : NotificationParser {
         // Do not reinterpret an invalid expanded amount using a truncated short body.
         val body = bigText?.takeIf { it.isNotBlank() } ?: text?.takeIf { it.isNotBlank() }
         val content = "${title.orEmpty()} ${body.orEmpty()}".trim()
-        return if (content.isBlank()) null else parseContent(content)
+        if (content.isBlank()) return null
+        if (negatedOperation(content)) return null
+        parseContent(content)?.let { return it }
+        // Only collapse one title mention and one body mention of the same amount.
+        // Multiple amounts within a body still require review; never rescue invalid expanded content.
+        val titleTokens = monetaryTokens(title.orEmpty())
+        val bodyTokens = monetaryTokens(body.orEmpty())
+        if (titleTokens.size == 1 && bodyTokens.size == 1 &&
+            titleTokens.single().compareTo(bodyTokens.single()) == 0 && !conflictingDirections(content)) {
+            val parsedBody = body?.let { parseContent(it) } ?: return null
+            val parsedTitle = title?.let { parseContent(it) }
+            if (parsedTitle != null && (parsedTitle.flowType != parsedBody.flowType ||
+                    (!parsedTitle.contactName.equals("Yape", true) && !parsedBody.contactName.equals("Yape", true) &&
+                        !parsedTitle.contactName.equals(parsedBody.contactName, true)))) return null
+            return parsedBody.copy(rawText = content)
+        }
+        return null
     }
+
+    override fun parseResult(content: NotificationContent): ParseResult {
+        val expanded = expandedNotificationText(content.bigText, content.lines)
+        val body = expanded ?: content.text
+        val joined = "${content.title.orEmpty()} ${body.orEmpty()}".trim()
+        parse(content.title, content.text, expanded)?.let { return ParseResult.Recognized(it) }
+        if (negatedOperation(joined)) return ParseResult.NonFinancial
+        if (conflictingDirections(joined)) return ParseResult.Ambiguous("CONFLICTING_DIRECTION")
+        val amounts = monetaryTokens(joined)
+        if (amounts.size > 1) return ParseResult.Ambiguous("MULTIPLE_AMOUNTS")
+        return if (!Regex("""S/|yape|envi[oó]|recibiste|pagaste""", RegexOption.IGNORE_CASE).containsMatchIn(joined))
+            ParseResult.NonFinancial else ParseResult.UnsupportedFormat("UNSUPPORTED_FORMAT")
+    }
+
+    private fun monetaryTokens(content: String): List<BigDecimal> =
+        Regex("""S/\.?\s*([0-9][0-9.,]*)""", RegexOption.IGNORE_CASE).findAll(content).mapNotNull {
+            val token = it.groupValues[1].removeSuffix(".")
+            if (Regex("""(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?""").matches(token)) sanitizeAmount(token) else null
+        }.toList()
+
+    private fun conflictingDirections(content: String): Boolean =
+        Regex("""\b(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(content) &&
+            Regex("""(?U)\b(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(content)
+
+    private fun negatedOperation(content: String): Boolean = Regex(
+        """(?U)\b(?:no|nunca)\s+(?:te\s+)?(?:yapeaste|enviaste|pagaste|recibiste|envi[oó]|yape[oó])\b""",
+        RegexOption.IGNORE_CASE).containsMatchIn(content)
 
     private fun parseContent(fullContent: String): ParsedTransaction? {
         // Validate complete monetary tokens before regex extraction can consume a prefix.

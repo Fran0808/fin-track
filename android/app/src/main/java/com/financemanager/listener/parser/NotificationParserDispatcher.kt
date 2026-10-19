@@ -15,6 +15,12 @@ class NotificationParserDispatcher(
         return matchedParser.parse(title, text, bigText)
     }
 
+    fun parseResult(packageName: String?, content: com.financemanager.listener.capture.NotificationContent): com.financemanager.listener.capture.ParseResult {
+        val parser = parsers.firstOrNull { packageName != null && it.canHandle(packageName) }
+            ?: return com.financemanager.listener.capture.ParseResult.UnsupportedFormat("UNSUPPORTED_PACKAGE")
+        return parser.parseResult(content)
+    }
+
     companion object {
         val defaultInstance = NotificationParserDispatcher()
     }
