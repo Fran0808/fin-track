@@ -27,7 +27,7 @@ if ($booted -ne '1') { throw 'The selected emulator has not finished booting.' }
 Push-Location $PSScriptRoot
 try {
     if (-not $SkipBuild) {
-        & .\gradlew.bat :app:testDebugUnitTest :app:testCaptureTestUnitTest :app:assembleCaptureTest :app:assembleCaptureTestAndroidTest :emitter:assembleDebug --offline
+        & .\gradlew.bat :app:testDebugUnitTest :app:testCaptureTestUnitTest :app:assembleCaptureTest :app:assembleCaptureTestAndroidTest :emitter:assembleDebug :emitter:assembleDebugAndroidTest --offline
         if ($LASTEXITCODE -ne 0) { throw 'The isolated test build failed.' }
     }
 
@@ -35,6 +35,7 @@ try {
         @{ Directory = 'app/build/outputs/apk/captureTest'; Package = 'com.financemanager.listener.capturetest' }
         @{ Directory = 'app/build/outputs/apk/androidTest/captureTest'; Package = 'com.financemanager.listener.capturetest.test' }
         @{ Directory = 'emitter/build/outputs/apk/debug'; Package = 'com.fintrack.capture.emitter' }
+        @{ Directory = 'emitter/build/outputs/apk/androidTest/debug'; Package = 'com.fintrack.capture.emitter.test' }
     )
     foreach ($artifact in $artifacts) {
         $metadataPath = Join-Path $artifact.Directory 'output-metadata.json'
@@ -65,8 +66,17 @@ try {
     if ($text -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed|shortMsg=' -or $text -notmatch 'OK \(\d+ tests?\)') {
         throw 'Instrumented tests failed or did not report a successful complete run.'
     }
+    $lifecycle = Invoke-IsolatedAdb -Arguments @('shell', 'am', 'instrument', '-w', '-r', '-e', 'class',
+        'com.fintrack.capture.emitter.CaptureLifecycleTest',
+        'com.fintrack.capture.emitter.test/androidx.test.runner.AndroidJUnitRunner')
+    $lifecycle | ForEach-Object { Write-Output $_ }
+    $lifecycleText = $lifecycle | Out-String
+    if ($lifecycleText -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed|shortMsg=' -or $lifecycleText -notmatch 'OK \(5 tests\)') {
+        throw 'Process-death or listener lifecycle tests failed or did not complete.'
+    }
 } finally {
-    Invoke-IsolatedAdb -Arguments @('shell', 'cmd', 'notification', 'disallow_listener',
-        'com.financemanager.listener.capturetest/com.financemanager.listener.service.YapeNotificationListenerService') | Out-Null
-    Pop-Location
+    try {
+        Invoke-IsolatedAdb -Arguments @('shell', 'cmd', 'notification', 'disallow_listener',
+            'com.financemanager.listener.capturetest/com.financemanager.listener.service.YapeNotificationListenerService') | Out-Null
+    } finally { Pop-Location }
 }

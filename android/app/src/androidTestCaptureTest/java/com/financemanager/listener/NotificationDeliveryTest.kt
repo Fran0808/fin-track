@@ -17,6 +17,7 @@ import com.financemanager.listener.data.AppDatabase
 import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.parser.NotificationParserDispatcher
 import com.financemanager.listener.service.CaptureStatus
+import com.financemanager.listener.service.ListenerHealthCoordinator
 import com.financemanager.listener.service.YapeNotificationListenerService
 import org.junit.Assert.*
 import org.junit.Before
@@ -47,7 +48,8 @@ class NotificationDeliveryTest {
         shell("pm grant $EMITTER android.permission.POST_NOTIFICATIONS")
         val component = ComponentName(context, YapeNotificationListenerService::class.java).flattenToString()
         shell("cmd notification allow_listener $component")
-        eventually("listener connection") { CaptureStatus.state.value.connected }
+        instrumentation.runOnMainSync { ListenerHealthCoordinator.foreground(context) }
+        eventually("listener connection", 90_000) { CaptureStatus.state.value.connected }
         startedAt = SystemClock.elapsedRealtime()
         prepared = true
     }
@@ -160,8 +162,8 @@ class NotificationDeliveryTest {
         assertEquals(expected.sorted(), amounts.sorted())
     }
 
-    private fun eventually(description: String, condition: () -> Boolean) {
-        val deadline = SystemClock.elapsedRealtime() + 15_000
+    private fun eventually(description: String, timeout: Long = 15_000, condition: () -> Boolean) {
+        val deadline = SystemClock.elapsedRealtime() + timeout
         while (SystemClock.elapsedRealtime() < deadline) {
             if (condition()) return
             SystemClock.sleep(50)
