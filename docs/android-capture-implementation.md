@@ -1,7 +1,42 @@
-# Android capture progress — FinTrack 1.3.2 (15)
+# Android capture progress — FinTrack 1.3.3 (16)
 
 Updated: October 19, 2026. This record tracks Android notification capture
-implementation, validation and remaining work for FinTrack 1.3.2 (15).
+implementation, validation and remaining work. The historical runtime evidence below
+belongs to FinTrack 1.3.2 (15); the follow-up build is FinTrack 1.3.3 (16).
+
+## Reconnect acceptance follow-up
+
+The external lifecycle suite now includes seven scenarios. The two added cases
+exercise a three-attempt exhausted reconnect cycle and a disabled Android listener
+component. The exhaustion case suppresses only the platform rebind call through an
+in-memory, captureTest-only fault control; production coordinator timeouts and the
+60-second cooldown remain unchanged. It observes another 65 seconds after exhaustion
+to reject a fourth automatic request, then releases the fault and checks explicit
+foreground recovery and capture. This is controlled nonconnection, not evidence of
+three real platform request failures or an OEM policy.
+
+The component case uses Android's package manager to disable only the isolated
+listener, checks absence of rebind and active-query attempts for 65 seconds, then
+restores the default state and checks active recovery and idempotent replay.
+Cleanup restores the component and releases fault controls. Normal builds always
+allow platform rebind and contain no mutable fault setting or control command.
+
+Both JVM variants passed 70 tests with zero failures, errors or skips. Normal and
+isolated APKs and both isolated instrumentation APKs compiled successfully. APK
+package metadata confirms 1.3.3 (16) and 1.3.3-capturetest (16). The two new runtime
+cases remain pending execution; compilation does not close their acceptance items.
+No emulator was initially connected and the usual AVD directory contained only
+`Pixel_8a`. A separate disposable `FinTrackCapture` AVD was created under ignored
+`android/build/capture-avd` using the installed SDK image. Two launch attempts
+remained ADB-offline; the diagnostic boot still lacked the Android activity service
+after 169 seconds. The emulator was stopped without installing any APK. Boot logs
+remain in that ignored directory. This environment failure does not establish a
+capture regression, and no new instrumented result is claimed.
+
+Follow-up normal APK SHA-256:
+`E6E9ABD97C30EBC992E4059540A35EF1D9FB545FE8C2B97F67E68FC562E26E0A`.
+Follow-up isolated APK SHA-256:
+`F1BAF0CC6F6D355D42567183D2B55CACEEC19EF8BD1CF44AA9CDEC36AD52F670`.
 
 ## Implemented scope
 

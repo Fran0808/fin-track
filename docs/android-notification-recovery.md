@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.3.2 (version code 15) keeps the existing application ID, preferences and
+FinTrack 1.3.3 (version code 16) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
