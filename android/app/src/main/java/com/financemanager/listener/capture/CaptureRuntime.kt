@@ -19,8 +19,10 @@ class CaptureRuntime private constructor(private val context: Context) {
     private val ingress = DurableCaptureQueue<() -> CaptureObservation>(scope,
         persist = { snapshot ->
             val observation = snapshot()
+            CaptureExecutionProbe.checkpoint("BEFORE_COMMIT", observation)
             val inserted = StorageRetry.run(isTransient = ::isTransientStorageError) { db.captureInboxDao().insert(observation) }
             if (inserted > 0 && observation.kind == "POSTED") CaptureStatus.event(CaptureEvent.CAPTURED)
+            CaptureExecutionProbe.checkpoint("AFTER_COMMIT", observation)
         },
         onCommitted = {
             wakeups.trySend(Unit)

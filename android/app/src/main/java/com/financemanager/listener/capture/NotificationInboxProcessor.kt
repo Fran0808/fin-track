@@ -20,6 +20,7 @@ class NotificationInboxProcessor(
             val batch = db.captureInboxDao().pending()
             if (batch.isEmpty()) break
             for (observation in batch) {
+                CaptureExecutionProbe.checkpoint("BEFORE_PROCESS", observation)
                 val result = db.withTransaction {
                     val current = db.captureInboxDao().get(observation.id)
                     if (current?.status != "PENDING") return@withTransaction ProcessedCapture("DUPLICATE")

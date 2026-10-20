@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.service.notification.NotificationListenerService
 import com.financemanager.listener.capture.CaptureRuntime
 import com.financemanager.listener.capture.RebindPolicy
+import com.financemanager.listener.capture.CaptureExecutionProbe
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 
@@ -33,6 +34,7 @@ object ListenerHealthCoordinator {
                 if (CaptureStatus.state.value.connected || !YapeNotificationListenerService.hasPermission(app)) return@launch
                 if (!componentEnabled(app)) return@launch
                 policy.attempted(SystemClock.elapsedRealtime())
+                CaptureExecutionProbe.lifecycle("REBIND")
                 runCatching { NotificationListenerService.requestRebind(ComponentName(app, YapeNotificationListenerService::class.java)) }
                     .onFailure { CaptureStatus.error("No se pudo solicitar la reconexión. Revisa el acceso a notificaciones.") }
                 withTimeoutOrNull(60_000) { CaptureStatus.state.first { it.connected } }

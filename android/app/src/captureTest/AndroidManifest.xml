@@ -3,5 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <uses-permission android:name="com.fintrack.capture.emitter.permission.EMIT" />
-    <application android:allowBackup="false" tools:replace="android:allowBackup" />
+    <application android:allowBackup="false" tools:replace="android:allowBackup">
+        <receiver android:name=".capture.LifecycleControlReceiver" android:exported="true"
+            android:permission="com.fintrack.capture.emitter.permission.EMIT" />
+    </application>
 </manifest>

@@ -1,9 +1,11 @@
 package com.financemanager.listener.service
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.financemanager.listener.capture.*
@@ -19,6 +21,7 @@ class YapeNotificationListenerService : NotificationListenerService() {
         super.onListenerConnected()
         current = this
         CaptureStatus.connected(true)
+        CaptureExecutionProbe.listenerConnected(this)
         ListenerHealthCoordinator.connected()
         reviewActiveNotifications()
         runtime.resume()
@@ -27,6 +30,7 @@ class YapeNotificationListenerService : NotificationListenerService() {
         super.onListenerDisconnected()
         if (current === this) current = null
         CaptureStatus.connected(false)
+        CaptureExecutionProbe.lifecycle("DISCONNECTED")
         ListenerHealthCoordinator.reconnect(applicationContext)
     }
     override fun onNotificationPosted(sbn: StatusBarNotification?) { if (sbn != null) accept(sbn, false) }
@@ -38,6 +42,7 @@ class YapeNotificationListenerService : NotificationListenerService() {
     private fun reviewActiveNotifications() {
         if (current !== this || !CaptureStatus.state.value.connected || !hasPermission(this)) return
         try {
+            CaptureExecutionProbe.lifecycle("ACTIVE_QUERY")
             val supported = activeNotifications?.filter { NotificationParserDispatcher.defaultInstance.isSupportedPackage(it.packageName) } ?: return
             val keys = supported.map { it.key }
             runtime.submit { CaptureObservation(observationKey = UUID.randomUUID().toString(), kind = "RECONCILE", lines = CaptureEncoding.encode(keys)) }
@@ -79,7 +84,12 @@ class YapeNotificationListenerService : NotificationListenerService() {
         } catch (_: Exception) { CaptureStatus.error("No se pudo leer una notificación compatible.") }
     }
     override fun onDestroy() {
-        if (current === this) { current = null; CaptureStatus.connected(false) }
+        CaptureExecutionProbe.lifecycle("DESTROYED")
+        if (current === this) {
+            current = null
+            CaptureStatus.connected(false)
+            ListenerHealthCoordinator.reconnect(applicationContext)
+        }
         // Application-owned ingress and committed processing outlive this service instance.
         super.onDestroy()
     }
@@ -88,8 +98,11 @@ class YapeNotificationListenerService : NotificationListenerService() {
         fun reviewActive() { current?.reviewActiveNotifications() }
         fun reconnect(context: Context) = ListenerHealthCoordinator.reconnect(context)
         fun hasPermission(context: Context): Boolean {
-            val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
             val component = ComponentName(context, YapeNotificationListenerService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                return context.getSystemService(NotificationManager::class.java).isNotificationListenerAccessGranted(component)
+            }
+            val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
             return enabled.split(':').any { ComponentName.unflattenFromString(it) == component }
         }
     }
