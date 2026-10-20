@@ -1,7 +1,7 @@
-# Android capture progress — FinTrack 1.3.1 (14)
+# Android capture progress — FinTrack 1.3.2 (15)
 
-Updated: October 18, 2026. This record tracks Android notification capture
-implementation, validation and remaining work for FinTrack 1.3.1 (14).
+Updated: October 19, 2026. This record tracks Android notification capture
+implementation, validation and remaining work for FinTrack 1.3.2 (15).
 
 ## Implemented scope
 
@@ -13,9 +13,9 @@ transaction hashes and backend contract are preserved.
 
 | Workstream | Implemented changes | Validation still required |
 |---|---|---|
-| Capture durability | Room v3 inbox; non-destructive 1→2→3 migration; bounded application-owned ingress with checked admission; processing after the first durable write. | Android process-death and real storage-failure tests. |
+| Capture durability | Room v3 inbox; non-destructive 1→2→3 migration; bounded application-owned ingress with checked admission; processing after the first durable write. Kernel-kill recovery is checked before/after commit. | Real storage failures and unattended restart/scheduling behavior. |
 | Identity | Separate observations from transactions; atomic processing completion and financial insertion; reused active sources with a different event identity can require review. Synthetic Android updates and active replay are tested. | Current provider update behavior; indistinguishable payments cannot be resolved universally. |
-| Listener health | Shared reconnect coordinator for disconnect, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. | Real NLS lifecycle, revoked access, reboot, force-stop, Doze and OEM behavior. |
+| Listener health | Shared reconnect coordinator for disconnect, active-instance destruction, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. | Exhausted retry cycles, disabled components, reboot, force-stop, Doze and OEM behavior. |
 | Parsing | Separate title/text/expanded/lines; explicit recognized, nonfinancial, ambiguous and unsupported results; compatible repeated title/body amounts; summaries excluded. Portable Unicode regex guards execute on Android. | Current provider formats; grouped synthetic delivery is verified only on the tested emulator. |
 | Recovery and sync | Resume inbox processing and existing pending uploads on application startup, listener connection and successful pairing. | Scheduling behavior under device restrictions. |
 | UI | Separate durable capture, saved movement, processing backlog, upload backlog and local review evidence. | Device UI validation; manual payment approval is not implemented. |
@@ -60,17 +60,17 @@ second payment. Network failure remains distinct from capture failure.
 | Check | Result | Limit |
 |---|---|---|
 | JVM suites | 70 tests each for `debug` and `captureTest`, zero failures/errors/skips. | The shared 69 cases execute in both suites; these are not 140 distinct scenarios. |
-| Android instrumented suite | 29 tests passed on a disposable x86_64 emulator, SDK 37, in 8.067 seconds. | 19 Room/preferences cases, two parser platform regressions and eight OS notification-delivery cases. No physical-device validation. |
+| Android instrumented suite | 29 existing tests and five external lifecycle cases passed without failures on a disposable x86_64 emulator, SDK 37. | 19 Room/preferences cases, two parser platform regressions, eight OS delivery cases and five lifecycle scenarios. No physical-device validation. |
 | Room runtime | Migration 1→2→3 preserves an existing row and validates the schema; reopen, rollback, replay, ownership, retention and timezone checks pass. | Reopening a database does not simulate process death. |
 | Synthetic notification delivery | Receipt, active replay, presentation update, ambiguous reuse, grouped children/summary, expanded text, lines, nonfinancial and content-limit outcomes pass. Shell-origin notification is rejected. | Fixed synthetic fixtures; no claim about all current Yape formats. |
 | Network isolation | Capture succeeds without pairing or Internet permission; rows remain unsynced. Existing sync assertions use fake failures/acknowledgements. | No real HTTP or backend persistence was exercised. |
 | APK isolation | Normal ID and listener permission preserved; normal DEX contains no emitter package identity. Isolated app has a separate ID, no Internet permission and backup disabled. | No normal application installation or upgrade was performed. |
 
-Normal artifact: `android/app/build/outputs/apk/debug/app-debug.apk`, FinTrack 1.3.1 (14).
-SHA-256: `3909250E621BF7BFF02BC28B37EF376B493A1419D231E8ACEB314B6B07BBD773`.
+Normal artifact: `android/app/build/outputs/apk/debug/app-debug.apk`, FinTrack 1.3.2 (15).
+SHA-256: `A14F68DCC9DA68288057A31C128AEFA13210ED5151E8EB07B1D34B8207BBABAB`.
 Isolated artifact: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
-FinTrack 1.3.1-capturetest (14).
-SHA-256: `FC74D7F4D62155EAD4195F78E8CC5953BF5A629A0BDB7F30343A284B3BD00079`.
+FinTrack 1.3.2-capturetest (15).
+SHA-256: `FAF9BB0A240F5B16432BBD5D98EF09E472724BC844510F211F401CBF1DA8D1FB`.
 
 Only isolated test APKs were installed on the disposable emulator. Validation used
 fabricated fixtures; no bank service, live financial data or configured backend was used.
@@ -86,12 +86,33 @@ receiver requires a signature permission shared with the isolated app.
 
 `android/run-capture-tests.ps1` requires an explicit `emulator-*` serial and verifies
 the booted AVD name is `FinTrackCapture`. It validates artifact identities before
-installing only the isolated app, its instrumented test APK and the emitter. It
+installing only the isolated app, emitter and their two instrumented test APKs. It
 revokes the isolated listener grant after the run. It does not create an AVD or
 install SDK components. Instrumented delivery checks use unique fixture tags and
 query the actual Room results without injecting listener callbacks or wiping shared
 tables. Reported durations cover each scenario, not callback-to-commit latency or
 a reliability guarantee.
+
+The emitter now carries `CaptureLifecycleTest`, so terminating the capture app does
+not terminate its test driver. A signature-protected, `captureTest`-only
+`LifecycleControlReceiver` supports fixed commands and tag-scoped queries of counts,
+synthetic hashes and lifecycle events. It rejects a paired target or an APK with
+Internet permission. It cannot accept arbitrary notification content or SQL.
+`CaptureExecutionProbe` pauses only the selected synthetic observation before its
+Room insert or after commit, with processing held outside a database transaction.
+The gate survives process replacement until explicitly released; a checkpoint
+fails after two minutes if unreleased. Normal builds compile an inert probe and have no control receiver,
+gate preferences or synthetic source identity in their DEX.
+
+The driver verifies the original PID disappears after `run-as`/`SIGKILL`, then
+reopens the actual isolated activity and checks the replacement process and Room
+results. This establishes recovery on app reopening; it does not demonstrate that
+Android always restarts a background process by itself. Listener setup invokes the
+foreground coordinator and allows its real cooldown instead of assuming that a
+permission grant immediately restores a previously unbound service. The test runner
+also builds and installs the emitter's instrumented APK. The successful run uses
+3,072 MiB and four virtual CPUs; an initial 2,048 MiB run exited before test startup
+with Android's `LOW_MEMORY` reason.
 
 ### Platform defect corrected
 
@@ -104,12 +125,49 @@ negated operations, conflicting directions and accented word endings. The correc
 instrumented suite and both JVM suites pass; pending committed observations can be
 processed by the corrected parser on the next sweep.
 
+### Listener destruction recovery
+
+The system-unbind regression exposed an incomplete recovery path: reconnect was
+requested after `onListenerDisconnected`, but destruction of the current service
+instance only cleared the connected flag. Destruction now delegates to the same
+bounded coordinator. Permission and component checks still apply; no component is
+toggled. A destroyed old instance cannot clear a newer instance's connected state.
+
+On API 27 and later, access checks now use
+[`NotificationManager.isNotificationListenerAccessGranted`](https://developer.android.com/reference/android/app/NotificationManager#isNotificationListenerAccessGranted(android.content.ComponentName))
+for FinTrack's own component. API 26 keeps the component-specific secure-setting
+fallback. The permission-return regression exposed a window in which the setting
+read still reflected the previous grant state and skipped the connected active
+query. The modern API removes that setting-cache dependency. Android may redeliver
+an already visible notification as a live callback after access returns; the test
+therefore checks one durable movement, an active query after connection, and an
+explicit idempotent replay rather than requiring the first observation to carry
+the internal recovery flag. The API 26 fallback was not exercised by this SDK 37 run.
+
+### Lifecycle acceptance evidence
+
+| Scenario | Verified result | Boundary |
+|---|---|---|
+| Commit completed, source removed, process killed | Reopening FinTrack processes the pending inbox into one movement. A second kill/reopen preserves its hash and does not duplicate it. | App reopening is explicit; autonomous background restart is not established. |
+| Before commit, source removed, process killed | No posted inbox observation or movement remains; an independent tagged receipt confirms the replacement process is working. | This demonstrates the precommit loss window rather than eliminating it. |
+| Before commit, source still visible, process killed | Android active replay recovers the receipt; repeated foreground recovery preserves a single movement and hash. | Removed notifications and bank history are not recoverable through this route. |
+| Notification access revoked and restored | Repeated foreground/review actions produce no rebind or active-query attempts while access is revoked. After regrant, one movement is retained and explicit replay remains idempotent. | Access grant, connection and financial persistence are separate assertions. |
+| Two real system unbinds | Destruction/disconnect recovery reconnects the listener. Repeated requests coalesce; the second request observes the real 60-second cooldown and capture works afterward. | This does not exhaust the complete three-failure cycle or simulate every OEM policy. |
+
+Executed results are retained in the ignored build output
+`android/app/build/outputs/capture-tests/instrumentation-lifecycle.txt`.
+The existing suite completed in 8.651 seconds and the external lifecycle suite in
+159.741 seconds. The real unbind case recorded two rebind requests after unbinding,
+with a measured interval of 60,018 ms. This interval is one observed emulator result,
+not a universal reconnect-time guarantee. Both JVM variants passed 70 tests each;
+normal instrumented APK assembly and release Kotlin compilation also succeeded.
+
 ## Remaining work and acceptance criteria
 
 | Priority | Open work | Acceptance evidence |
 |---|---|---|
-| P1 | Exercise listener disconnect/rebind and access revocation. | Bounded rebind attempts and respected permission revocation on Android. Initial connection and connected active replay are verified; disconnected lifecycle paths remain open. |
-| P1 | Test interruption and scheduling. | Distinguish death before/after commit, listener destruction, reboot, force-stop and Doze; committed observations and financial rows remain recoverable. Reopening a database alone is insufficient proof. |
+| P1 | Exercise exhausted reconnect cycles and disabled components. | Three-attempt termination and component-disabled behavior on Android; successful unbind/reconnect and cooldown are covered separately. |
+| P1 | Test remaining interruption and scheduling paths. | Reboot, force-stop, Doze, unattended background restart and listener destruction during an in-flight capture. Kernel kill followed by app reopening does not establish these behaviors. |
 | P1 | Validate production transport and backup policy. | HTTPS restrictions and credential-backup behavior verified separately; do not treat inbox exclusions as complete security hardening. |
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |

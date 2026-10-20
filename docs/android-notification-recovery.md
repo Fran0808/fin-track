@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.3.1 (version code 14) keeps the existing application ID, preferences and
+FinTrack 1.3.2 (version code 15) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
@@ -109,7 +109,7 @@ storage, deduplication/recovery and a server-confirmed upload. The history is a
 chronological activity log, not a complete per-payment history. Successful storage or
 deduplication clears previous processing errors.
 
-A disconnect, foreground entry or **Intentar reconectar** triggers the same
+A disconnect, destruction of the active listener instance, foreground entry or **Intentar reconectar** triggers the same
 coordinator: at most three attempts per cycle, at least one minute apart, with
 permission and component-state checks before each attempt. A successful connection
 cancels the remaining attempts. No component is toggled and no periodic watchdog
@@ -178,6 +178,17 @@ The **Por enviar** counter includes all current-account rows. Queuing a send is
 shown separately from sending and server confirmation; rejected authorization
 offers **Conectar de nuevo con la web**. Send state is not restored as a live task after
 process restart; the durable local rows determine which movements still need sending.
+
+The isolated lifecycle suite uses a separate emitter process and real `SIGKILL`
+termination of only the capture-test app. It distinguishes a committed observation
+whose source notification has disappeared from an uncommitted snapshot, and reopens
+the actual app to resume processing. Keeping the source visible enables active
+notification recovery after a precommit kill; removing it does not make the snapshot
+durable. The tests also revoke/regrant notification access and call the real system
+unbind API. Returning to the app invokes the same foreground coordinator used by
+the test control. Successful kernel-kill recovery does not establish behavior after
+force-stop, reboot, Doze or every OEM restriction. See the
+[current verification record](android-capture-implementation.md).
 
 ## Mobile navigation
 

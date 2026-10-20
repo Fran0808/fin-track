@@ -74,6 +74,15 @@ The serial-bound test runner accepts only a disposable emulator named
 `FinTrackCapture`. These tests validate the shared capture pipeline, not compatibility
 with the current provider application or successful backend synchronization.
 
+The emitter's lifecycle tests run in a different process from FinTrack. The
+`captureTest`-only, signature-protected `LifecycleControlReceiver` can pause a
+tag-scoped synthetic observation before its inbox commit or after commit but
+before processing. The corresponding normal-build probe is inert and contains
+no gates or command receiver. Tests kill only the isolated application UID and
+verify persisted results in a new process. Listener connection, active queries
+and rebind requests are traced only inside the isolated variant, without raw
+notification contents or credentials.
+
 ## Email ingestion
 
 `EmailIngestionService` resolves the current user and obtains messages through
