@@ -3,6 +3,7 @@ package com.financemanager.listener.capture
 import android.Manifest
 import android.app.Activity
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -36,6 +37,14 @@ class LifecycleControlReceiver : BroadcastReceiver() {
                     "review" -> withContext(Dispatchers.Main) { YapeNotificationListenerService.reviewActive() }
                     "unbind" -> withContext(Dispatchers.Main) { CaptureExecutionProbe.unbind() }
                     "block_rebind" -> CaptureExecutionProbe.blockRebind()
+                    "component_disable", "component_restore" -> withContext(Dispatchers.Main) {
+                        val state = if (intent.getStringExtra("command") == "component_disable") {
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                        } else PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+                        context.packageManager.setComponentEnabledSetting(
+                            ComponentName(context, YapeNotificationListenerService::class.java),
+                            state, PackageManager.DONT_KILL_APP)
+                    }
                     else -> error("Unknown synthetic lifecycle command")
                 }
                 val db = AppDatabase.getDatabase(context)
@@ -43,6 +52,8 @@ class LifecycleControlReceiver : BroadcastReceiver() {
                     .put("connected", CaptureStatus.state.value.connected)
                     .put("permission", YapeNotificationListenerService.hasPermission(context))
                     .put("last_error", CaptureStatus.state.value.lastError ?: "")
+                    .put("component_state", context.packageManager.getComponentEnabledSetting(
+                        ComponentName(context, YapeNotificationListenerService::class.java)))
                 val key = arrayOf<Any>("%$run%")
                 for ((name, sql) in mapOf(
                     "posted" to "SELECT COUNT(*) FROM capture_inbox WHERE kind = 'POSTED' AND sourceKey LIKE ?",

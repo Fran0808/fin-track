@@ -53,7 +53,7 @@ class CaptureLifecycleTest {
 
     @After fun releaseOnlyOwnFixtures() {
         if (prepared) {
-            shell("pm default-state --user 0 $COMPONENT")
+            control("component_restore")
             NotificationFixtures.publish(context, "clear", runId, eventTime)
             control("release")
             shell("cmd notification allow_listener $COMPONENT")
@@ -212,9 +212,14 @@ class CaptureLifecycleTest {
     }
 
     @Test fun g_disabledComponentPreventsRequestsAndRecoversWhenRestored() {
-        shell("pm disable --user 0 $COMPONENT")
+        val changed = control("component_disable")
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, changed.getInt("component_state"))
         try {
+            // Android may keep an already bound instance alive after a component change.
+            // A real unbind starts recovery while PackageManager still reports disabled.
+            if (changed.getBoolean("connected")) control("unbind")
             val disabled = awaitState("disabled listener disconnected") { !it.getBoolean("connected") }
+            assertTrue("Keep notification access granted to exercise the component guard", disabled.getBoolean("permission"))
             val attempts = eventTimes(disabled, "REBIND").size
             val queries = eventTimes(disabled, "ACTIVE_QUERY").size
             repeat(8) { control("foreground"); control("review") }
@@ -222,13 +227,14 @@ class CaptureLifecycleTest {
             val quietUntil = SystemClock.elapsedRealtime() + 65_000
             while (SystemClock.elapsedRealtime() < quietUntil) {
                 val state = control()
+                assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, state.getInt("component_state"))
                 assertFalse(state.getBoolean("connected"))
                 assertEquals(attempts, eventTimes(state, "REBIND").size)
                 assertEquals(queries, eventTimes(state, "ACTIVE_QUERY").size)
                 assertEquals(0, state.getInt("posted"))
                 SystemClock.sleep(500)
             }
-        } finally { shell("pm default-state --user 0 $COMPONENT") }
+        } finally { control("component_restore") }
         shell("cmd notification allow_listener $COMPONENT")
         control("foreground")
         val recovered = awaitState("active capture after component restoration", 90_000) {
@@ -237,6 +243,36 @@ class CaptureLifecycleTest {
         val hashes = recovered.getJSONArray("hashes").toString()
         control("review")
         await("idempotent replay after component restoration") { control().getInt("recovering") > 0 }
+        assertEquals(hashes, control().getJSONArray("hashes").toString())
+    }
+
+    @Test fun h_listenerDestructionDoesNotCancelAnAdmittedPrecommitCapture() {
+        control("arm", "BEFORE_COMMIT")
+        publish()
+        val admitted = awaitState("capture admitted before its first write") {
+            it.optString("reached") == "BEFORE_COMMIT"
+        }
+        assertEquals(0, admitted.getInt("posted"))
+        val destroyed = eventTimes(admitted, "DESTROYED").size
+        control("unbind")
+        val stopped = awaitState("actual listener destruction during precommit capture") {
+            !it.getBoolean("connected") && eventTimes(it, "DESTROYED").size > destroyed
+        }
+        assertEquals("Listener destruction must not replace the application process",
+            admitted.getInt("pid"), stopped.getInt("pid"))
+        assertEquals(0, stopped.getInt("posted"))
+        cancelAndVerifyGone()
+        control("release")
+        val saved = awaitState("application-owned ingress commits after listener destruction") {
+            it.getInt("movements") == 1 && it.getInt("pending") == 0
+        }
+        assertEquals(admitted.getInt("pid"), saved.getInt("pid"))
+        assertEquals(1, saved.getInt("posted"))
+        assertEquals(0, saved.getInt("synced"))
+        val hashes = saved.getJSONArray("hashes").toString()
+        control("foreground")
+        awaitState("listener restored after in-flight capture", 90_000) { it.getBoolean("connected") }
+        control("review")
         assertEquals(hashes, control().getJSONArray("hashes").toString())
     }
 
