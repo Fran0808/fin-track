@@ -80,10 +80,10 @@ open class YapeNotificationParser : NotificationParser {
 
     private fun conflictingDirections(content: String): Boolean =
         Regex("""\b(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(content) &&
-            Regex("""(?U)\b(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(content)
+            Regex("""(?<![\p{L}\p{N}_])(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)(?![\p{L}\p{N}_])""", RegexOption.IGNORE_CASE).containsMatchIn(content)
 
     private fun negatedOperation(content: String): Boolean = Regex(
-        """(?U)\b(?:no|nunca)\s+(?:te\s+)?(?:yapeaste|enviaste|pagaste|recibiste|envi[oó]|yape[oó])\b""",
+        """(?<![\p{L}\p{N}_])(?:no|nunca)\s+(?:te\s+)?(?:yapeaste|enviaste|pagaste|recibiste|envi[oó]|yape[oó])(?![\p{L}\p{N}_])""",
         RegexOption.IGNORE_CASE).containsMatchIn(content)
 
     private fun parseContent(fullContent: String): ParsedTransaction? {
@@ -94,9 +94,9 @@ open class YapeNotificationParser : NotificationParser {
         val token = amounts.single().groupValues[1].removeSuffix(".")
         if (!Regex("""(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:\.[0-9]{1,2})?""").matches(token)) return null
         if (sanitizeAmount(token)?.let { it < BigDecimal("0.01") || it > BigDecimal("99999999.99") } != false) return null
-        if (Regex("""(?U)\b(?:no|nunca)\s+(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
+        if (Regex("""(?<![\p{L}\p{N}_])(?:no|nunca)\s+(?:yapeaste|enviaste|pagaste)(?![\p{L}\p{N}_])""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
         if (Regex("""\b(?:yapeaste|enviaste|pagaste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent) &&
-            Regex("""(?U)\b(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)\b""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
+            Regex("""(?<![\p{L}\p{N}_])(?:te\s+(?:envi[oó]|enviaron|yape[oó]|yapearon)|recibiste)(?![\p{L}\p{N}_])""", RegexOption.IGNORE_CASE).containsMatchIn(fullContent)) return null
         // 1. Try explicit sender income
         incomeWithSenderRegex.find(fullContent)?.let { match ->
             val rawContact = match.groupValues[1].trim()
