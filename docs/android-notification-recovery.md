@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.3.0 (version code 13) keeps the existing application ID, preferences and
+FinTrack 1.3.1 (version code 14) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
@@ -8,11 +8,18 @@ preferences retain their identities. See [capture delivery](android-capture-impl
 
 ## Capture and identity
 
-Only `com.bcp.innovacxion.yapeapp` is accepted, including in debug builds. Shell
+Only `com.bcp.innovacxion.yapeapp` is accepted in normal debug and release builds. Shell
 notifications are not financial fixtures. Group summaries are ignored. The
 listener reads nonblank expanded text first, with text-line fallback even if the
 expanded field exists but is blank; ambiguous bodies
 containing multiple monetary amounts are rejected.
+
+The separate `captureTest` build accepts only the synthetic notification emitter,
+uses its own application ID and app-private storage, and has no Internet permission.
+It cannot capture the production provider. Its debug-only emitter publishes fixed
+fixtures through Android; the normal app never authorizes that emitter. See the
+[capture verification record](android-capture-implementation.md) for executed
+checks and remaining lifecycle validation.
 
 Live callbacks and active notifications recovered on connection use the same
 capture path. While connected, recovery is also available under

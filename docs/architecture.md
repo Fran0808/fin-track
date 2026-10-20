@@ -59,6 +59,21 @@ Package organization does not change HTTP routes, DTO fields or table names.
 Capture, queuing and successful synchronization are distinct states. A payment
 visible on the phone is not proof that the backend received it.
 
+`CaptureSourceRegistry` selects the runtime parser set at build time. The normal
+`debug` and `release` builds accept only the authorized Yape package. The separate
+`captureTest` build uses application ID `com.financemanager.listener.capturetest`,
+accepts only `com.fintrack.capture.emitter`, disables backup and has no Internet
+permission. It uses its own app-private database and preferences. No runtime
+setting can enable synthetic sources in the normal app.
+
+`android/emitter` is a debug-only Android application with fixed synthetic
+notification scenarios and no Internet permission. A signature permission protects
+its command receiver. Instrumented delivery tests post through Android's notification
+manager and inspect persisted results; they do not inject callbacks into the listener.
+The serial-bound test runner accepts only a disposable emulator named
+`FinTrackCapture`. These tests validate the shared capture pipeline, not compatibility
+with the current provider application or successful backend synchronization.
+
 ## Email ingestion
 
 `EmailIngestionService` resolves the current user and obtains messages through
