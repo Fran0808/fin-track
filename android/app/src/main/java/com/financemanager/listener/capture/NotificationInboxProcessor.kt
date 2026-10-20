@@ -10,7 +10,10 @@ data class ProcessedCapture(val status: String, val hash: String? = null)
 class NotificationReviewRequired : RuntimeException()
 
 /** Only committed observations reach this processor. Financial writes and completion are atomic. */
-class NotificationInboxProcessor(private val db: AppDatabase) {
+class NotificationInboxProcessor(
+    private val db: AppDatabase,
+    private val dispatcher: NotificationParserDispatcher = NotificationParserDispatcher.defaultInstance
+) {
     suspend fun drain(onProcessed: (ProcessedCapture) -> Unit = {}): Boolean = lock.withLock {
         var inserted = false
         while (true) {
@@ -45,7 +48,6 @@ class NotificationInboxProcessor(private val db: AppDatabase) {
             "POSTED" -> Unit
             else -> return finish("REVIEW", "UNKNOWN_KIND")
         }
-        val dispatcher = NotificationParserDispatcher.defaultInstance
         if (!dispatcher.isSupportedPackage(observation.packageName)) return finish("IGNORED", "UNSUPPORTED_PACKAGE")
         if (observation.groupSummary) return finish("IGNORED", "GROUP_SUMMARY")
         if (observation.truncated) return finish("REVIEW", "CONTENT_LIMIT")

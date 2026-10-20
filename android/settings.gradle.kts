@@ -23,4 +23,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "FinTrack"
-include(":app")
+include(":app", ":emitter")

@@ -12,7 +12,7 @@ import java.math.BigDecimal
 
 class NotificationParserDispatcherTest {
 
-    private val dispatcher = NotificationParserDispatcher.defaultInstance
+    private val dispatcher = NotificationParserDispatcher()
 
     @Test
     fun isSupportedPackage_withYapePackage_returnsTrue() {

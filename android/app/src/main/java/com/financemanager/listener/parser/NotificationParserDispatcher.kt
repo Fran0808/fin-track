@@ -22,6 +22,6 @@ class NotificationParserDispatcher(
     }
 
     companion object {
-        val defaultInstance = NotificationParserDispatcher()
+        val defaultInstance = NotificationParserDispatcher(CaptureSourceRegistry.parsers())
     }
 }

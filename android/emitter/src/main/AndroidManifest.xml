@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <permission android:name="com.fintrack.capture.emitter.permission.EMIT"
+        android:protectionLevel="signature" />
+    <application android:allowBackup="false" android:label="FinTrack Notification Emitter"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".EmitterActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".EmitterReceiver" android:exported="true"
+            android:permission="com.fintrack.capture.emitter.permission.EMIT" />
+    </application>
+</manifest>

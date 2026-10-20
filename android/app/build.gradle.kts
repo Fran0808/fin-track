@@ -36,19 +36,32 @@ android {
         applicationId = "com.financemanager.listener"
         minSdk = 26
         targetSdk = 37
-        versionCode = 13
-        versionName = "1.3.0"
+        versionCode = 14
+        versionName = "1.3.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", "\"$serverBaseUrl\"")
     }
 
     buildTypes {
+        create("captureTest") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".capturetest"
+            versionNameSuffix = "-capturetest"
+            matchingFallbacks += listOf("debug")
+            buildConfigField("String", "BASE_URL", "\"http://127.0.0.1:1/\"")
+        }
         release {
             optimization {
                 enable = false
             }
         }
+    }
+    sourceSets {
+        getByName("debug").kotlin.directories.add("src/standard/java")
+        getByName("release").kotlin.directories.add("src/standard/java")
+        maybeCreate("testDebug").kotlin.directories.add("src/testStandard/java")
+        maybeCreate("testRelease").kotlin.directories.add("src/testStandard/java")
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -57,6 +70,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+androidComponents {
+    beforeVariants(selector().withBuildType("captureTest")) {
+        it.enableAndroidTest = true
+        it.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
     }
 }
 
