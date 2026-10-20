@@ -16,6 +16,10 @@ internal object CaptureExecutionProbe {
     private val prefs get() = FinTrackApplication.instance.getSharedPreferences("synthetic_lifecycle", Context.MODE_PRIVATE)
     private var listener = WeakReference<NotificationListenerService>(null)
     private val events = mutableListOf<JSONObject>()
+    @Volatile private var rebindBlocked = false
+
+    fun allowRebind() = !rebindBlocked
+    fun blockRebind() { rebindBlocked = true }
 
     suspend fun checkpoint(stage: String, observation: CaptureObservation) {
         if (observation.kind != "POSTED") return
@@ -38,7 +42,10 @@ internal object CaptureExecutionProbe {
             .putLong("expires", System.currentTimeMillis() + 120_000).commit())
     }
 
-    fun release() { check(prefs.edit().remove("gate").remove("run").commit()) }
+    fun release() {
+        rebindBlocked = false
+        check(prefs.edit().remove("gate").remove("run").commit())
+    }
     fun reset() { release(); synchronized(events) { events.clear() } }
     fun listenerConnected(service: NotificationListenerService) {
         listener = WeakReference(service)
@@ -46,7 +53,7 @@ internal object CaptureExecutionProbe {
     }
     fun unbind() { checkNotNull(listener.get()).requestUnbind() }
     fun lifecycle(event: String) = synchronized(events) {
-        require(event in setOf("CONNECTED", "DISCONNECTED", "DESTROYED", "ACTIVE_QUERY", "REBIND"))
+        require(event in setOf("CONNECTED", "DISCONNECTED", "DESTROYED", "ACTIVE_QUERY", "REBIND", "REBIND_EXHAUSTED"))
         if (events.size == 200) events.removeAt(0)
         events.add(JSONObject().put("type", event).put("elapsed", SystemClock.elapsedRealtime()))
         Unit

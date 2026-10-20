@@ -35,11 +35,16 @@ object ListenerHealthCoordinator {
                 if (!componentEnabled(app)) return@launch
                 policy.attempted(SystemClock.elapsedRealtime())
                 CaptureExecutionProbe.lifecycle("REBIND")
-                runCatching { NotificationListenerService.requestRebind(ComponentName(app, YapeNotificationListenerService::class.java)) }
+                runCatching {
+                    if (CaptureExecutionProbe.allowRebind()) {
+                        NotificationListenerService.requestRebind(ComponentName(app, YapeNotificationListenerService::class.java))
+                    }
+                }
                     .onFailure { CaptureStatus.error("No se pudo solicitar la reconexión. Revisa el acceso a notificaciones.") }
                 withTimeoutOrNull(60_000) { CaptureStatus.state.first { it.connected } }
                 if (CaptureStatus.state.value.connected) return@launch
             }
+            CaptureExecutionProbe.lifecycle("REBIND_EXHAUSTED")
             CaptureStatus.error("Android no ha conectado la captura. Revisa el acceso a notificaciones e intenta reconectar.")
         }
     }

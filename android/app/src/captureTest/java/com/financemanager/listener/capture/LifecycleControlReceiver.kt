@@ -35,12 +35,14 @@ class LifecycleControlReceiver : BroadcastReceiver() {
                     "foreground" -> withContext(Dispatchers.Main) { ListenerHealthCoordinator.foreground(context) }
                     "review" -> withContext(Dispatchers.Main) { YapeNotificationListenerService.reviewActive() }
                     "unbind" -> withContext(Dispatchers.Main) { CaptureExecutionProbe.unbind() }
+                    "block_rebind" -> CaptureExecutionProbe.blockRebind()
                     else -> error("Unknown synthetic lifecycle command")
                 }
                 val db = AppDatabase.getDatabase(context)
                 val result = CaptureExecutionProbe.snapshot().put("pid", Process.myPid())
                     .put("connected", CaptureStatus.state.value.connected)
                     .put("permission", YapeNotificationListenerService.hasPermission(context))
+                    .put("last_error", CaptureStatus.state.value.lastError ?: "")
                 val key = arrayOf<Any>("%$run%")
                 for ((name, sql) in mapOf(
                     "posted" to "SELECT COUNT(*) FROM capture_inbox WHERE kind = 'POSTED' AND sourceKey LIKE ?",

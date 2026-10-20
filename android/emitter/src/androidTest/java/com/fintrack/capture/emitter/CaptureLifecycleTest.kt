@@ -53,6 +53,7 @@ class CaptureLifecycleTest {
 
     @After fun releaseOnlyOwnFixtures() {
         if (prepared) {
+            shell("pm default-state --user 0 $COMPONENT")
             NotificationFixtures.publish(context, "clear", runId, eventTime)
             control("release")
             shell("cmd notification allow_listener $COMPONENT")
@@ -179,6 +180,64 @@ class CaptureLifecycleTest {
         })
         publish()
         await("capture after the restored connection") { control().getInt("movements") == 1 }
+    }
+
+    @Test fun f_exhaustedCycleStopsAfterThreeAttemptsAndAllowsExplicitRetry() {
+        control("block_rebind")
+        val baseline = eventTimes(control(), "REBIND").size
+        control("unbind")
+        awaitState("listener disconnected for failed reconnect cycle") { !it.getBoolean("connected") }
+        repeat(8) { control("foreground") }
+        val exhausted = awaitState("three-attempt cycle exhausted with real timeouts", 250_000) {
+            eventTimes(it, "REBIND_EXHAUSTED").isNotEmpty()
+        }
+        val times = eventTimes(exhausted, "REBIND").drop(baseline)
+        assertEquals(3, times.size)
+        times.zipWithNext().forEach { (first, second) -> assertTrue(second - first >= 60_000) }
+        assertFalse(exhausted.getBoolean("connected"))
+        assertTrue(exhausted.getString("last_error").contains("Android no ha conectado"))
+        // Observe longer than a full retry interval, without generating a new foreground trigger.
+        val quietUntil = SystemClock.elapsedRealtime() + 65_000
+        while (SystemClock.elapsedRealtime() < quietUntil) {
+            val state = control()
+            assertEquals(baseline + 3, eventTimes(state, "REBIND").size)
+            assertEquals(1, eventTimes(state, "REBIND_EXHAUSTED").size)
+            SystemClock.sleep(500)
+        }
+        control("release")
+        control("foreground")
+        awaitState("explicit retry after exhausted cycle", 90_000) { it.getBoolean("connected") }
+        publish()
+        await("capture after exhausted-cycle recovery") { control().getInt("movements") == 1 }
+    }
+
+    @Test fun g_disabledComponentPreventsRequestsAndRecoversWhenRestored() {
+        shell("pm disable --user 0 $COMPONENT")
+        try {
+            val disabled = awaitState("disabled listener disconnected") { !it.getBoolean("connected") }
+            val attempts = eventTimes(disabled, "REBIND").size
+            val queries = eventTimes(disabled, "ACTIVE_QUERY").size
+            repeat(8) { control("foreground"); control("review") }
+            publish()
+            val quietUntil = SystemClock.elapsedRealtime() + 65_000
+            while (SystemClock.elapsedRealtime() < quietUntil) {
+                val state = control()
+                assertFalse(state.getBoolean("connected"))
+                assertEquals(attempts, eventTimes(state, "REBIND").size)
+                assertEquals(queries, eventTimes(state, "ACTIVE_QUERY").size)
+                assertEquals(0, state.getInt("posted"))
+                SystemClock.sleep(500)
+            }
+        } finally { shell("pm default-state --user 0 $COMPONENT") }
+        shell("cmd notification allow_listener $COMPONENT")
+        control("foreground")
+        val recovered = awaitState("active capture after component restoration", 90_000) {
+            it.getBoolean("connected") && it.getInt("movements") == 1
+        }
+        val hashes = recovered.getJSONArray("hashes").toString()
+        control("review")
+        await("idempotent replay after component restoration") { control().getInt("recovering") > 0 }
+        assertEquals(hashes, control().getJSONArray("hashes").toString())
     }
 
     private fun publish() = NotificationFixtures.publish(context, "basic", runId, eventTime)
