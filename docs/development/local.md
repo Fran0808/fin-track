@@ -1,14 +1,14 @@
 # Local development and verification
 
 Commands use PowerShell and start at the repository root unless stated otherwise.
-The [Docker guide](../docker/README.md) covers container setup and existing volumes.
+The [Docker guide](../../docker/README.md) covers container setup and existing volumes.
 
 ## Prerequisites and configuration
 
 - Java 21 for the backend and Android CI target; use the Maven and Gradle wrappers.
 - Node.js 24 and npm for the dashboard; install locked dependencies with `npm ci`.
 - PostgreSQL for native backend execution, or Docker Desktop with Linux containers.
-- Android SDK levels declared in [Gradle](../android/app/build.gradle.kts), with platform-tools for authorized device diagnostics.
+- Android SDK levels declared in [Gradle](../../android/app/build.gradle.kts), with platform-tools for authorized device diagnostics.
 
 Create `.env` only if it does not already exist:
 
@@ -18,7 +18,7 @@ if (-not (Test-Path -LiteralPath .env)) {
 }
 ```
 
-Configure the required values from [.env.example](../.env.example). Preserve an
+Configure the required values from [.env.example](../../.env.example). Preserve an
 existing database password and JWT secret. Do not print resolved secrets or commit
 `.env`. `APP_SERVER_PUBLIC_URL` must be reachable from the Android device; its
 `localhost` refers to the phone, not the development computer.
@@ -94,7 +94,7 @@ and firewall configuration. Check installed version name and code before diagnos
 
 Cards and accounts have an opt-in PostgreSQL integration test. Its disposable
 database setup and schema changes are documented in
-[cards and accounts](domain/financial-instruments.md#schema-preparation-and-verification).
+[cards and accounts](../domain/financial-instruments.md#schema-preparation-and-verification).
 
 `AppTests` now runs only when `APP_TEST_DATABASE_URL` names a disposable database
 matching `jdbc:postgresql://localhost:<port>/fintrack_app_eval_<suffix>`. It explicitly
@@ -132,7 +132,7 @@ downloads may require network access.
 
 Older databases may still have `transactions_category_check`, which only accepts
 the former fixed enum. Hibernate schema updates do not remove this legacy check.
-The [manual migration](../scripts/migrations/20261008_transaction_categories.sql)
+The [manual migration](../../scripts/migrations/20261008_transaction_categories.sql)
 drops only that check and expands `category` to 100 characters to match the catalog.
 It preserves existing rows and category values, runs in a transaction with bounded
 lock/statement timeouts, and can be repeated safely.
@@ -150,7 +150,7 @@ The updated dashboard sends an empty category to explicitly remove an assignment
 Do not restore the old check after new category values have been saved; that rollback
 would reject those values.
 
-The [SQL regression test](../scripts/migrations/test_transaction_categories.sql)
+The [SQL regression test](../../scripts/migrations/test_transaction_categories.sql)
 creates a synthetic `public.transactions` table. Run it only in a newly created,
 disposable database with no financial data. It checks the original failure,
 idempotency, preservation of existing values, custom names and unclassified rows.
@@ -168,8 +168,8 @@ the changed code. Report compilation, installation and runtime checks separately
 
 ## Branding assets
 
-The shared logo master lives in [assets/branding](../assets/branding).
-Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/export-brand-assets.ps1` from the repository
+The shared logo master lives in [assets/branding](../../assets/branding).
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/assets/export-brand-assets.ps1` from the repository
 root on Windows to regenerate the web logo, favicon, Apple touch icon and Android
 launcher assets. The script uses System.Drawing, preserves the logo's proportions
 and transparency, and adds safe padding for adaptive launcher masks.
@@ -183,18 +183,27 @@ when replacing the logo; only the two Android PNG assets need regeneration.
 
 ## Existing scripts
 
-These scripts are existing tools, with limitations that have not been fixed by
-this documentation update:
+All developer script implementations are in [scripts/](../../scripts/README.md).
+The catalogue records prerequisites, effects and supported commands.
+Scripts are grouped by purpose under `checks/`, `android/`, `operations/`,
+`assets/`, `lib/` and `migrations/`. Maven and Gradle wrappers stay with their
+build files. There is no longer an Android-module compatibility entry point.
 
-| Script | Current behavior and limitation |
-| --- | --- |
-| [verify-all.ps1](../scripts/verify-all.ps1) | Runs backend tests, UI tests/build and Android unit tests. It uses system Maven, does not isolate the backend database, and omits frontend lint and APK assembly. |
-| [build-apk.ps1](../scripts/build-apk.ps1) | Builds/copies an APK and optionally installs it. It reports SHA-256 but not verified APK version metadata; installation failure can still end with a success message. |
-| [test-api.ps1](../scripts/test-api.ps1) | Can select the first real user's token, insert a transaction and attempt cleanup using a fixed local password. Reported failures do not reliably determine its exit code. Do not use it as a safe default test. |
-| [test-email-sync.ps1](../scripts/test-email-sync.ps1) | Calls live email ingestion and can write financial records. Its current requests do not supply the required web JWT. It is an operational script, not an isolated parser test. |
-| [test-yape-notification.ps1](../scripts/test-yape-notification.ps1) | Clears logcat and posts a shell notification; it does not reproduce an authorized Yape package notification. Worker log presence is not proof of successful synchronization. |
+From the repository root, preview or run routine checks:
 
-CI behavior is defined in [.github/workflows/ci.yml](../.github/workflows/ci.yml).
-It runs module tests/builds and Docker checks, but currently omits frontend lint
-and skips workflows for Markdown-only changes. Script alignment, broader test isolation
-and a read-only environment diagnostic command belong to the next stage.
+```powershell
+.\scripts\checks\verify-all.ps1 -Plan
+.\scripts\checks\verify-all.ps1
+.\scripts\checks\test-scripts.ps1
+```
+
+The default verifier uses the Maven wrapper with context/persistence suites
+excluded, disabled email scheduling and an unreachable database URL. It includes
+UI tests, lint and build, plus Android unit tests and APK assembly. Integration,
+real email ingestion and device installation remain separate explicit operations.
+There is no Make dependency. Use the module skip flags for focused changes.
+
+CI behavior is defined in [.github/workflows/ci.yml](../../.github/workflows/ci.yml).
+It runs module tests/builds, frontend lint, Docker checks and Windows script
+regressions. Markdown-only changes still skip workflows. See
+[project progress](../PROGRESS.md) for current evidence and remaining work.

@@ -2,17 +2,17 @@
 
 Listen Service is the repository name; FinTrack is the displayed product name.
 It records personal cashflow from wallet notifications and financial emails.
-The financial meaning of these records is defined in [cashflow rules](domain/cashflow.md).
+The financial meaning of these records is defined in [cashflow rules](../domain/cashflow.md).
 
 ## Modules and sources of truth
 
 | Module | Responsibility | Version or configuration source |
 | --- | --- | --- |
-| `api/` | Authentication, ingestion, persistence and analytics | [pom.xml](../api/pom.xml), [application.properties](../api/src/main/resources/application.properties) |
-| `android/` | Authorized notification capture, local storage, pairing and background sync | [app Gradle file](../android/app/build.gradle.kts), [version catalog](../android/gradle/libs.versions.toml) |
-| `ui/` | Authentication UI, cashflow dashboard and device pairing | [package.json](../ui/package.json), [Vite configuration](../ui/vite.config.ts) |
-| `scripts/` | Developer verification, diagnostics and APK delivery | [Development guide](development.md#existing-scripts) |
-| `docker/` | Container image and environment guidance | [Docker guide](../docker/README.md) |
+| `api/` | Authentication, ingestion, persistence and analytics | [pom.xml](../../api/pom.xml), [application.properties](../../api/src/main/resources/application.properties) |
+| `android/` | Authorized notification capture, local storage, pairing and background sync | [app Gradle file](../../android/app/build.gradle.kts), [version catalog](../../android/gradle/libs.versions.toml) |
+| `ui/` | Authentication UI, cashflow dashboard and device pairing | [package.json](../../ui/package.json), [Vite configuration](../../ui/vite.config.ts) |
+| `scripts/` | Developer verification, diagnostics and APK delivery | [Development guide](../development/local.md#existing-scripts) |
+| `docker/` | Container image and environment guidance | [Docker guide](../../docker/README.md) |
 
 The backend targets Java 21 and currently uses Spring Boot 4.1.1 with PostgreSQL.
 Android uses Kotlin and Jetpack Compose; the frontend uses React, TypeScript,
@@ -54,7 +54,7 @@ Package organization does not change HTTP routes, DTO fields or table names.
 4. A bank-specific parser produces a structured result; the inbox processor atomically completes the observation and inserts a `LocalTransactionEntity` when unambiguous. Active notifications are recovered on connection and foreground entry. Reused active sources can require review; legacy rows retain their hashes and ownership requirements.
 5. `TransactionSyncWorker` sends only the current scope's pending records through `ApiClient` with a fixed device token.
 6. The API resolves the user, validates the payload and deduplicates by hash and user.
-7. A successful response confirming the hash lets Android mark the record as synced; transient failures receive bounded retries. See [Android recovery](android-notification-recovery.md) and [capture delivery](android-capture-implementation.md).
+7. A successful response confirming the hash lets Android mark the record as synced; transient failures receive bounded retries. See [Android recovery](../android/notification-recovery.md) and [capture delivery](../android/capture-progress.md).
 
 Capture, queuing and successful synchronization are distinct states. A payment
 visible on the phone is not proof that the backend received it.
@@ -113,7 +113,7 @@ and a server address reachable from the phone. See [contracts](contracts.md).
 
 ## Compatibility and current limitations
 
-- Existing Android application ID, database and preference names, Docker identifiers and `wp_dev_` tokens retain legacy names. Preserve them unless a migration is planned; details are in [the Docker guide](../docker/README.md#branding-and-compatibility).
+- Existing Android application ID, database and preference names, Docker identifiers and `wp_dev_` tokens retain legacy names. Preserve them unless a migration is planned; details are in [the Docker guide](../../docker/README.md#branding-and-compatibility).
 - The transaction hash is source-specific; the database index only deduplicates equal hashes for a user.
 - Raw notification logs and processed email markers currently lack a user foreign key, and raw logs are not directly linked to transactions. Improving diagnostic ownership and provenance requires a separate implementation.
-- Full-context tests require explicit disposable database URLs and disable email scheduling. See [verification precautions](development.md#backend-verification).
+- Full-context tests require explicit disposable database URLs and disable email scheduling. See [verification precautions](../development/local.md#backend-verification).

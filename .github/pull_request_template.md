@@ -17,7 +17,7 @@
 - [ ] `scripts` / DevOps (`.github/workflows`)
 
 ## Verification Checklist
-- [ ] Run affected-module checks using `docs/development.md`; confirm the backend test database and disabled email scheduler
+- [ ] Run affected-module checks using `docs/development/local.md`; confirm the backend test database and disabled email scheduler
 - [ ] Backend tests passing (`mvn test` in `api/`)
 - [ ] Frontend unit tests, lint and build passing (`npm test`, `npm run lint`, `npm run build` in `ui/`)
 - [ ] Android unit tests and build passing (`gradlew testDebugUnitTest assembleDebug` in `android/`)

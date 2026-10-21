@@ -4,7 +4,7 @@ FinTrack 1.3.4 (version code 17) keeps the existing application ID, preferences 
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
-preferences retain their identities. See [capture delivery](android-capture-implementation.md).
+preferences retain their identities. See [capture delivery](capture-progress.md).
 
 ## Capture and identity
 
@@ -18,7 +18,7 @@ The separate `captureTest` build accepts only the synthetic notification emitter
 uses its own application ID and app-private storage, and has no Internet permission.
 It cannot capture the production provider. Its debug-only emitter publishes fixed
 fixtures through Android; the normal app never authorizes that emitter. See the
-[capture verification record](android-capture-implementation.md) for executed
+[capture verification record](capture-progress.md) for executed
 checks and remaining lifecycle validation.
 
 Live callbacks and active notifications recovered on connection use the same
@@ -192,7 +192,7 @@ During a three-second observation without control broadcasts, the tested emulato
 restarted the process for the bound listener. This is not a guarantee of unattended
 processing or recovery on every device: the processing gate remained active until
 explicit reopening. Reboot, Doze and OEM restrictions remain unverified. See the
-[current verification record](android-capture-implementation.md).
+[current verification record](capture-progress.md).
 
 ## Mobile navigation
 

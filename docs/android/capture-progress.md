@@ -184,7 +184,7 @@ and release builds accept only Yape. The debug-only `android/emitter` applicatio
 publishes fixed fixtures and has no Internet permission. Its explicit command
 receiver requires a signature permission shared with the isolated app.
 
-`android/run-capture-tests.ps1` requires an explicit `emulator-*` serial and verifies
+`scripts/android/run-capture-tests.ps1` requires an explicit `emulator-*` serial and verifies
 the booted AVD name is `FinTrackCapture`. It validates artifact identities before
 installing only the isolated app, emitter and their two instrumented test APKs. It
 revokes the isolated listener grant after the run. It does not create an AVD or
@@ -271,5 +271,5 @@ normal instrumented APK assembly and release Kotlin compilation also succeeded.
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |
 
-Current source behavior is described in [Android recovery](android-notification-recovery.md)
-and [architecture](architecture.md).
+Current source behavior is described in [Android recovery](notification-recovery.md)
+and [architecture](../architecture/overview.md).

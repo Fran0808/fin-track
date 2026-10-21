@@ -20,8 +20,8 @@ generated OpenAPI specification.
   requests preserve the session cookie. Old `?token=...` redirects are rejected.
 - CORS allows explicit configured origins; wildcard credentialed access is rejected.
 - `POST /user/pairing-info/verify` is a public verification route, but needs a valid candidate token in the header or request body to return a valid result.
-- CORS preflight and app-update access have special handling in [JwtAuthFilter](../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.
-- [CorsConfig](../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification and instrument assignment updates. Actual protected requests still require authentication.
+- CORS preflight and app-update access have special handling in [JwtAuthFilter](../../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.
+- [CorsConfig](../../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification and instrument assignment updates. Actual protected requests still require authentication.
 
 ## Client endpoints
 
@@ -29,19 +29,19 @@ Paths below are relative to `/api/v1`.
 
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
-| `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
-| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
-| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
-| `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
-| `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
-| `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
-| `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
+| `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
+| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
+| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
+| `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
+| `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
+| `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
+| `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
 
 ## Transaction ingestion payload
 
@@ -71,7 +71,7 @@ the original text. It has no currency field. Backend DTOs currently use mutable
 Lombok classes; immutability is not an established contract requirement.
 
 Product currency is fixed to PEN and does not add currency to captured transactions.
-See [cards and accounts](domain/financial-instruments.md) for registration fields,
+See [cards and accounts](../domain/financial-instruments.md) for registration fields,
 ownership checks, suggestions and schema preparation.
 
 ## Transaction classification
@@ -85,7 +85,7 @@ An empty or whitespace-only category clears it; null or an omitted category leav
 it unchanged. Names are trimmed and retain their submitted casing.
 Unexpected server errors return a generic Spanish message without SQL or financial details.
 
-Existing databases need the [category schema migration](development.md#transaction-category-migration).
+Existing databases need the [category schema migration](../development/local.md#transaction-category-migration).
 
 ## Pending movements and rules
 
@@ -98,16 +98,16 @@ device credentials cannot manage rules or read the inbox. Foreign rule IDs retur
 404; invalid category targets return 400. An existing inactive target may be kept
 only when saving the rule disabled.
 
-See [classification behavior and schema preparation](domain/classification.md).
+See [classification behavior and schema preparation](../domain/classification.md).
 
 ## Sources to update together
 
-- [TransactionSyncRequest](../api/src/main/java/com/store/api/model/dto/transaction/TransactionSyncRequest.java) and [TransactionResponse](../api/src/main/java/com/store/api/model/dto/transaction/TransactionResponse.java).
-- [Android TransactionSyncDto](../android/app/src/main/java/com/financemanager/listener/network/TransactionSyncDto.kt) and [ApiClient](../android/app/src/main/java/com/financemanager/listener/network/ApiClient.kt).
-- [Frontend types](../ui/src/types/index.ts) and [HTTP service](../ui/src/services/api.ts).
+- [TransactionSyncRequest](../../api/src/main/java/com/store/api/model/dto/transaction/TransactionSyncRequest.java) and [TransactionResponse](../../api/src/main/java/com/store/api/model/dto/transaction/TransactionResponse.java).
+- [Android TransactionSyncDto](../../android/app/src/main/java/com/financemanager/listener/network/TransactionSyncDto.kt) and [ApiClient](../../android/app/src/main/java/com/financemanager/listener/network/ApiClient.kt).
+- [Frontend types](../../ui/src/types/index.ts) and [HTTP service](../../ui/src/services/api.ts).
 - Related controller, validation, authentication and client tests.
 
 For other response schemas, use the corresponding classes in
-[backend DTOs](../api/src/main/java/com/store/api/model/dto). TypeScript interfaces
+[backend DTOs](../../api/src/main/java/com/store/api/model/dto). TypeScript interfaces
 do not validate runtime responses. Test optional values, errors and authentication
 when changing a contract, and record breaking changes explicitly.

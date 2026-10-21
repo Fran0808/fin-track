@@ -101,5 +101,5 @@ try {
 
 The new persistence test is skipped without the opt-in variable. Existing
 `AppTests` still needs an isolated target; see
-[development precautions](../development.md#backend-verification).
+[development precautions](../development/local.md#backend-verification).
 Afterward, remove only the disposable database you created.

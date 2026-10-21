@@ -6,7 +6,7 @@ local HTTP and schema updates; they are not a production configuration.
 ## Required environment
 
 Configure private environment variables through the hosting provider. Never commit
-the resolved values. See [.env.example](../.env.example) for local names.
+the resolved values. See [.env.example](../../.env.example) for local names.
 
 | Variable | Production requirement |
 | --- | --- |
@@ -57,7 +57,7 @@ Production validates the schema and never alters it automatically. Back up an
 existing database and confirm its host, database and role before applying SQL.
 
 For a **new empty database only**, initialize all current tables and indexes with
-[the initial schema](../scripts/migrations/20261014_empty_database.sql):
+[the initial schema](../../scripts/migrations/20261014_empty_database.sql):
 
 ```powershell
 psql -X -v ON_ERROR_STOP=1 -d fintrack -f scripts/migrations/20261014_empty_database.sql
@@ -68,9 +68,9 @@ PostgreSQL's password file. The script runs transactionally and deliberately fai
 if an application table already exists. Do not run it against an existing installation.
 
 For an existing installation, retain all rows and apply only needed incremental
-changes: [category migration](development.md#transaction-category-migration),
-[classification rules](domain/classification.md) and
-[financial instruments](domain/financial-instruments.md#schema-preparation-and-verification).
+changes: [category migration](local.md#transaction-category-migration),
+[classification rules](../domain/classification.md) and
+[financial instruments](../domain/financial-instruments.md#schema-preparation-and-verification).
 Do not temporarily enable Hibernate `update` in production to bypass validation.
 Hibernate validation does not inspect every index/check: verify the unique
 `idx_tx_hash_user` index and absence of the old `transactions_category_check` too.
@@ -92,13 +92,13 @@ currently synchronous and the response collects saved movement summaries.
 
 PostgreSQL transaction-level advisory locks serialize equal user/hash ingestion.
 Batch locks are acquired in stable order. The existing unique index remains the
-final constraint. Input and export limits are in [the API contract](contracts.md).
+final constraint. Input and export limits are in [the API contract](../architecture/contracts.md).
 Cross-source deduplication still depends on matching hashes; this change does not
 merge different email and Android identities automatically.
 
 ## Verification and rollout
 
-Run [the documented checks](development.md#backend-verification) against disposable
+Run [the documented checks](local.md#backend-verification) against disposable
 databases. `DeploymentPersistenceTest` applies the empty schema and starts a
 production-profile context with fake credentials, validating concurrent retries,
 tenant isolation, batches and cursor updates. CI provisions fresh databases for

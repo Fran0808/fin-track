@@ -6,7 +6,7 @@ It uses React, TypeScript, Vite and Tailwind; exact versions live in
 
 ## Setup and verification
 
-Follow the [local development guide](../docs/development.md) for prerequisites,
+Follow the [local development guide](../docs/development/local.md) for prerequisites,
 backend configuration, startup commands and module checks. The development server
 runs on port 5173 and proxies `/api` to `localhost:8080` through
 [vite.config.ts](vite.config.ts). Keep the proxy and OAuth URLs aligned when changing ports.
@@ -41,4 +41,4 @@ for matching, priority and category lifecycle behavior.
 
 Read [dashboard instructions](AGENTS.md) before changes. Use the
 [cashflow rules](../docs/domain/cashflow.md) for financial interpretation and
-[contracts](../docs/contracts.md) for changes involving backend responses.
+[contracts](../docs/architecture/contracts.md) for changes involving backend responses.
