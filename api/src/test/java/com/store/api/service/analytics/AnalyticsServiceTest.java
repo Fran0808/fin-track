@@ -14,12 +14,18 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,9 +35,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 
 @ExtendWith(MockitoExtension.class)
 class AnalyticsServiceTest {
+
+    private static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Lima");
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 19);
+    private MockedStatic<Clock> clocks;
 
     @Mock
     private TransactionRepository transactionRepository;
@@ -42,11 +54,19 @@ class AnalyticsServiceTest {
     @BeforeEach
     public void authenticate() {
         UserContext.setCurrentUser(User.builder().id(42L).build());
+        clocks = mockStatic(Clock.class, CALLS_REAL_METHODS);
+        freezeAt("2026-10-20T03:25:39.113Z");
     }
 
     @AfterEach
     public void clearContext() {
+        clocks.close();
         UserContext.clear();
+    }
+
+    private void freezeAt(String instant) {
+        Clock fixed = Clock.fixed(Instant.parse(instant), BUSINESS_ZONE);
+        clocks.when(() -> Clock.system(BUSINESS_ZONE)).thenReturn(fixed);
     }
 
     @Test
@@ -59,9 +79,16 @@ class AnalyticsServiceTest {
         verifyNoInteractions(transactionRepository);
     }
 
-    @Test
-    void currentMonthUsesDailyExpensesAndComparesThroughSameDay() {
-        LocalDate today = LocalDate.now();
+    @ParameterizedTest
+    @CsvSource({
+            "2026-10-20T03:25:39.113Z, 2026-10-19",
+            "2026-03-01T02:00:00Z, 2026-02-28",
+            "2024-03-31T15:00:00Z, 2024-03-31",
+            "2027-01-01T05:00:00Z, 2027-01-01"
+    })
+    void currentMonthUsesDailyExpensesAndComparesThroughSameDay(String instant, String businessDate) {
+        freezeAt(instant);
+        LocalDate today = LocalDate.parse(businessDate);
         YearMonth previousMonth = YearMonth.from(today).minusMonths(1);
         int comparisonDay = Math.min(today.getDayOfMonth(), previousMonth.lengthOfMonth());
 
@@ -94,7 +121,7 @@ class AnalyticsServiceTest {
 
     @Test
     void futureMonthHasNoVisibleExpenseOrComparison() {
-        YearMonth future = YearMonth.now().plusMonths(1);
+        YearMonth future = YearMonth.from(TODAY).plusMonths(1);
         when(transactionRepository.sumAmountByFlowTypeAndDateRange(any(), any(), any(), eq(42L)))
                 .thenReturn(BigDecimal.ZERO);
         when(transactionRepository.findLatestExpense(eq(42L))).thenReturn(Optional.empty());
