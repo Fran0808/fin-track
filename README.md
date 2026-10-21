@@ -30,8 +30,8 @@ excluded from expenses. Listen Service is the repository name.
 
 The local Docker setup runs PostgreSQL 17 and the API. The React dashboard runs
 separately with Vite. Commands below use PowerShell from the repository root.
-For native API execution, see the [development guide](docs/development.md).
-For hosting, use the [production deployment guide](docs/deployment.md); the local
+For native API execution, see the [development guide](docs/development/local.md).
+For hosting, use the [production deployment guide](docs/development/deployment.md); the local
 Compose defaults are intended for development.
 
 ### 1. Prerequisites
@@ -100,17 +100,17 @@ Adminer is optional: run `docker compose --profile tools up -d adminer` and open
 
 ### 5. Connect Android
 
-Build the Android app using the [development guide](docs/development.md#dashboard-and-android-verification),
+Build the Android app using the [development guide](docs/development/local.md#dashboard-and-android-verification),
 install it on your intended device, pair it using the dashboard's QR code and enable
 notification access. For a physical phone, check that the configured API URL is
-reachable from the device. See [notification capture and recovery](docs/android-notification-recovery.md)
+reachable from the device. See [notification capture and recovery](docs/android/notification-recovery.md)
 for synchronization behavior and device verification.
 
 ## Updating an existing installation
 
 Back up the intended database before schema changes. Older databases can retain a
 fixed category constraint that rejects current catalog names; follow the
-[transaction category migration](docs/development.md#transaction-category-migration).
+[transaction category migration](docs/development/local.md#transaction-category-migration).
 Hibernate schema updates alone do not remove that legacy constraint.
 
 For Docker deployments, rebuild the API with `docker compose up -d --build api`
@@ -132,11 +132,23 @@ volumes with `docker compose down -v` deletes the stored database.
 
 ## Documentation and verification
 
+For current priorities, checkpoints and remaining acceptance work, read
+[PROGRESS.md](docs/PROGRESS.md). Developer tools are catalogued in
+[scripts/README.md](scripts/README.md). PowerShell is the supported task runner;
+no Make installation is required.
+
+```powershell
+# Preview checks without running them:
+.\scripts\checks\verify-all.ps1 -Plan
+# Run database-free backend tests, UI tests/lint/build and Android tests/APK assembly:
+.\scripts\checks\verify-all.ps1
+```
+
 Start with the [documentation index](docs/README.md). Detailed references:
 
-- [Architecture](docs/architecture.md): service boundaries and ingestion flow.
-- [Development](docs/development.md): local setup, module checks and test isolation precautions.
-- [API contracts](docs/contracts.md): authentication, endpoints and client coordination.
+- [Architecture](docs/architecture/overview.md): service boundaries and ingestion flow.
+- [Development](docs/development/local.md): local setup, module checks and test isolation precautions.
+- [API contracts](docs/architecture/contracts.md): authentication, endpoints and client coordination.
 - [Cashflow rules](docs/domain/cashflow.md): financial interpretation and deduplication.
 - [Cards and accounts](docs/domain/financial-instruments.md): registration and assignment behavior.
 - [CI configuration](.github/workflows/ci.yml): checks currently run in GitHub Actions.
@@ -144,13 +156,12 @@ Start with the [documentation index](docs/README.md). Detailed references:
 
 For dashboard changes, run `npm test`, `npm run lint` and `npm run build` from `ui/`.
 Before backend context tests, select an isolated test database and disable email
-scheduling as described in [backend verification](docs/development.md#backend-verification).
+scheduling as described in [backend verification](docs/development/local.md#backend-verification).
 
-Review the [script limitations](docs/development.md#existing-scripts) before running
-developer automation. `verify-all.ps1` does not cover every documented check or
-isolate the backend database. `test-api.ps1` can select a real user and insert a
-movement; email-sync scripts can import real financial data. They are not ordinary
-unit tests. `build-apk.ps1` can also install an APK when requested through its options.
+Review the [script catalogue](scripts/README.md) before running developer automation.
+The default verifier excludes database integration and device installation.
+API probes do not insert movements. Email ingestion and device installation are
+explicit operational options requiring task authorization.
 
 ## Current limitations
 
