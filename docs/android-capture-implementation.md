@@ -1,12 +1,44 @@
 # Android capture progress — FinTrack 1.3.4 (17)
 
-Updated: October 19, 2026. This record tracks Android notification capture
+Updated: October 21, 2026. This record tracks Android notification capture
 implementation, validation and remaining work. The historical runtime evidence below
 belongs to FinTrack 1.3.2 (15); the follow-up build is FinTrack 1.3.4 (17).
 
-## Reconnect acceptance follow-up
+## Force-stop acceptance follow-up — October 21
 
-The external lifecycle suite now includes eight scenarios. Three added cases
+The external lifecycle suite now contains nine scenarios. Only the emitter's
+instrumented test driver and runner changed; FinTrack remains 1.3.4 (17), with the
+same application APKs and hashes recorded below.
+
+The new scenario pauses after the first inbox commit, removes the synthetic source
+notification, and invokes Android's real `am force-stop --user 0` for only the
+isolated capture app. It verifies that the original PID disappears. For three
+seconds it queries only the package manager and process list, without sending a
+control broadcast or opening the app. It then explicitly reopens the real activity,
+releases the gate and checks one movement, one posted observation, no pending
+observation and no synchronization. A second force-stop/reopen preserves the single
+movement and its transaction hash. Captures are unpaired synthetic fixtures; no
+backend or real financial data is involved.
+
+The focused execution passed this scenario and the existing committed-capture
+SIGKILL regression: two tests, zero failures, 13.215 seconds on the disposable
+x86_64 SDK 37 emulator. The updated driver compiled successfully. The complete
+nine-case suite was not rerun for this test-driver-only change. Output is retained
+in ignored `android/app/build/outputs/capture-tests/force-stop.txt`.
+
+The first attempt incorrectly required the package to stay stopped for the whole
+observation period. Android instead restarted the process for the bound notification
+listener. The test now records this outcome rather than assuming persistent stopped
+state. In the passing execution, process restart was observed without an explicit
+launch, while `stopped=true` was not sampled. The first failed attempt remains in
+`force-stop-initial.txt` beside the final output. This establishes preservation and
+recovery after explicit reopening; the processing gate prevents claiming autonomous
+financial processing. A three-second observation on one emulator does not establish
+restart behavior on every Android/OEM version, reboot or Doze.
+
+## Reconnect acceptance follow-up — October 19
+
+The October 19 external lifecycle suite included eight scenarios. Three added cases
 exercise a three-attempt exhausted reconnect cycle, a disabled Android listener
 component and listener destruction during an admitted precommit capture.
 The exhaustion case suppresses only the platform rebind call through an
@@ -234,7 +266,7 @@ normal instrumented APK assembly and release Kotlin compilation also succeeded.
 
 | Priority | Open work | Acceptance evidence |
 |---|---|---|
-| P1 | Test remaining interruption and scheduling paths. | Reboot, force-stop, Doze and unattended background restart. Kernel kill followed by app reopening and same-process listener destruction do not establish these behaviors. |
+| P1 | Test remaining interruption and scheduling paths. | Reboot, Doze and unattended processing/restart across device restrictions. Force-stop followed by explicit reopening is covered; its bounded restart observation does not establish universal autonomous recovery. |
 | P1 | Validate production transport and backup policy. | HTTPS restrictions and credential-backup behavior verified separately; do not treat inbox exclusions as complete security hardening. |
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |

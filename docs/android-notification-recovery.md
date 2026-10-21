@@ -186,8 +186,12 @@ the actual app to resume processing. Keeping the source visible enables active
 notification recovery after a precommit kill; removing it does not make the snapshot
 durable. The tests also revoke/regrant notification access and call the real system
 unbind API. Returning to the app invokes the same foreground coordinator used by
-the test control. Successful kernel-kill recovery does not establish behavior after
-force-stop, reboot, Doze or every OEM restriction. See the
+the test control. A separate real force-stop case verifies committed-inbox recovery
+after explicit activity reopening and hash preservation across a second stop/reopen.
+During a three-second observation without control broadcasts, the tested emulator
+restarted the process for the bound listener. This is not a guarantee of unattended
+processing or recovery on every device: the processing gate remained active until
+explicit reopening. Reboot, Doze and OEM restrictions remain unverified. See the
 [current verification record](android-capture-implementation.md).
 
 ## Mobile navigation
