@@ -71,7 +71,7 @@ try {
         'com.fintrack.capture.emitter.test/androidx.test.runner.AndroidJUnitRunner')
     $lifecycle | ForEach-Object { Write-Output $_ }
     $lifecycleText = $lifecycle | Out-String
-    if ($lifecycleText -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed|shortMsg=' -or $lifecycleText -notmatch 'OK \(8 tests\)') {
+    if ($lifecycleText -match 'FAILURES!!!|INSTRUMENTATION_FAILED|Process crashed|shortMsg=' -or $lifecycleText -notmatch 'OK \(9 tests\)') {
         throw 'Process-death or listener lifecycle tests failed or did not complete.'
     }
 } finally {

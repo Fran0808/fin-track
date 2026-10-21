@@ -53,6 +53,7 @@ class CaptureLifecycleTest {
 
     @After fun releaseOnlyOwnFixtures() {
         if (prepared) {
+            if (targetIsStopped()) reopenTarget()
             control("component_restore")
             NotificationFixtures.publish(context, "clear", runId, eventTime)
             control("release")
@@ -274,6 +275,61 @@ class CaptureLifecycleTest {
         awaitState("listener restored after in-flight capture", 90_000) { it.getBoolean("connected") }
         control("review")
         assertEquals(hashes, control().getJSONArray("hashes").toString())
+    }
+
+    @Test fun i_committedCaptureSurvivesForceStopAndExplicitReopening() {
+        control("arm", "AFTER_COMMIT")
+        publish()
+        val committed = awaitState("capture committed before force-stop") {
+            it.optString("reached") == "AFTER_COMMIT" && it.getInt("pending") == 1
+        }
+        assertEquals(0, committed.getInt("movements"))
+        cancelAndVerifyGone()
+        var observedStopped = forceStopTarget(committed.getInt("pid"))
+        var restartedWithoutLaunch = false
+        // Do not send control broadcasts during observation: Android may restart a bound listener.
+        val quietUntil = SystemClock.elapsedRealtime() + 3_000
+        while (SystemClock.elapsedRealtime() < quietUntil) {
+            observedStopped = targetIsStopped() || observedStopped
+            restartedWithoutLaunch = shell("pidof $TARGET").isNotBlank() || restartedWithoutLaunch
+            SystemClock.sleep(100)
+        }
+        instrumentation.sendStatus(0, Bundle().apply {
+            putBoolean("force_stop_observed_stopped", observedStopped)
+            putBoolean("force_stop_restart_without_launch", restartedWithoutLaunch)
+            putLong("force_stop_observation_ms", 3_000)
+        })
+        reopenTarget()
+        assertFalse("Explicit launch must clear the stopped state", targetIsStopped())
+        val resumed = control("release")
+        assertNotEquals(committed.getInt("pid"), resumed.getInt("pid"))
+        val saved = awaitState("committed inbox processed after force-stop and reopening") {
+            it.getInt("movements") == 1 && it.getInt("pending") == 0
+        }
+        assertEquals(1, saved.getInt("posted"))
+        assertEquals(0, saved.getInt("synced"))
+        val hashes = saved.getJSONArray("hashes").toString()
+        forceStopTarget(saved.getInt("pid"))
+        reopenTarget()
+        control("foreground")
+        val replayed = awaitState("listener connected after repeated force-stop", 90_000) {
+            it.getBoolean("connected")
+        }
+        assertEquals(1, replayed.getInt("movements"))
+        assertEquals(0, replayed.getInt("pending"))
+        assertEquals(hashes, replayed.getJSONArray("hashes").toString())
+    }
+
+    private fun targetIsStopped(): Boolean = Regex("(?m)^\\s*User 0:.*\\bstopped=true\\b")
+        .containsMatchIn(shell("dumpsys package $TARGET"))
+
+    private fun forceStopTarget(oldPid: Int): Boolean {
+        assertTrue("Could not force-stop the isolated app", shell("am force-stop --user 0 $TARGET").isBlank())
+        val observedStopped = targetIsStopped()
+        await("force-stopped process terminated") {
+            !shell("pidof $TARGET").trim().split(' ').contains(oldPid.toString())
+        }
+        return observedStopped
     }
 
     private fun publish() = NotificationFixtures.publish(context, "basic", runId, eventTime)
