@@ -1,7 +1,15 @@
 $ErrorActionPreference = 'Stop'
-$projectRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Add-Type -AssemblyName System.Drawing
-Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
+$drawingReferences = @('System.Drawing')
+if ($PSVersionTable.PSVersion.Major -ge 6) {
+    # Modern .NET forwards Bitmap to System.Drawing.Common; include its actual assembly.
+    $drawingReferences = @((Get-ChildItem -LiteralPath (Join-Path $PSHOME 'ref') -Filter '*.dll').FullName)
+    $drawingReferences += [System.Drawing.Bitmap].Assembly.Location
+    $drawingReferences += @(Get-ChildItem -LiteralPath $PSHOME -Filter 'System.Private.Windows.*.dll' |
+        Select-Object -ExpandProperty FullName)
+}
+Add-Type -ReferencedAssemblies $drawingReferences -TypeDefinition @'
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;

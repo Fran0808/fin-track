@@ -24,7 +24,7 @@ if ($deviceName -ne 'FinTrackCapture') { throw 'Use the disposable FinTrackCaptu
 $booted = (Invoke-IsolatedAdb -Arguments @('shell', 'getprop', 'sys.boot_completed') | Out-String).Trim()
 if ($booted -ne '1') { throw 'The selected emulator has not finished booting.' }
 
-Push-Location $PSScriptRoot
+Push-Location (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'android')
 try {
     if (-not $SkipBuild) {
         & .\gradlew.bat :app:testDebugUnitTest :app:testCaptureTestUnitTest :app:assembleCaptureTest :app:assembleCaptureTestAndroidTest :emitter:assembleDebug :emitter:assembleDebugAndroidTest --offline
@@ -80,3 +80,4 @@ try {
             'com.financemanager.listener.capturetest/com.financemanager.listener.service.YapeNotificationListenerService') | Out-Null
     } finally { Pop-Location }
 }
+
