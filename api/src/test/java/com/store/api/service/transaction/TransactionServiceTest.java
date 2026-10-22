@@ -78,6 +78,41 @@ class TransactionServiceTest {
     }
 
     @Test
+    void rawEvidenceBelongsToTheAuthenticatedUserAndSavedMovement() {
+        var captor = org.mockito.ArgumentCaptor.forClass(com.store.api.model.entity.RawNotificationLog.class);
+        when(transactions.save(any())).thenAnswer(call -> {
+            Transaction transaction = call.getArgument(0);
+            transaction.setId(transaction.getUser().getId() * 10);
+            return transaction;
+        });
+        for (long userId : List.of(10L, 20L)) {
+            UserContext.setCurrentUser(User.builder().id(userId).build());
+            service.processAndSave(request());
+        }
+        verify(rawNotifications, times(2)).save(captor.capture());
+        for (var raw : captor.getAllValues()) {
+            assertSame(raw.getUser(), raw.getTransaction().getUser());
+            assertEquals(raw.getUser().getId() * 10, raw.getTransaction().getId());
+            assertEquals("Test notification", raw.getRawText());
+        }
+        assertNotEquals(captor.getAllValues().get(0).getUser().getId(),
+                captor.getAllValues().get(1).getUser().getId());
+    }
+
+    @Test
+    void retryDoesNotAppendEvidenceAndFailedMovementDoesNotSaveEvidence() {
+        User owner = User.builder().id(10L).build();
+        UserContext.setCurrentUser(owner);
+        when(transactions.existsByTransactionHashAndUser("shared-hash", owner)).thenReturn(true, false);
+        when(transactions.findByTransactionHashAndUser("shared-hash", owner))
+                .thenReturn(Optional.of(Transaction.builder().id(100L).user(owner).build()));
+        service.processAndSave(request());
+        when(transactions.save(any())).thenThrow(new IllegalStateException("Synthetic persistence failure"));
+        assertThrows(IllegalStateException.class, () -> service.processAndSave(request()));
+        verifyNoInteractions(rawNotifications);
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void listingAlwaysIncludesTheCurrentUserPredicate() {
         Root<Transaction> root = mock(Root.class);

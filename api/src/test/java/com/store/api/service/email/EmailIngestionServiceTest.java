@@ -237,5 +237,7 @@ class EmailIngestionServiceTest {
         var captor = org.mockito.ArgumentCaptor.forClass(com.store.api.model.entity.ProcessedEmailMessage.class);
         verify(processedEmailRepository, times(2)).save(captor.capture());
         assertNotEquals(captor.getAllValues().get(0).getMessageId(), captor.getAllValues().get(1).getMessageId());
+        assertEquals(42L, captor.getAllValues().get(0).getUser().getId());
+        assertEquals(43L, captor.getAllValues().get(1).getUser().getId());
     }
 }

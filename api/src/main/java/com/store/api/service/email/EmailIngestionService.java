@@ -130,6 +130,7 @@ public class EmailIngestionService {
                 if (msg.getMessageId() != null && !processedEmailRepository.existsById(processedKey(msg.getMessageId()))) {
                     processedEmailRepository.save(ProcessedEmailMessage.builder()
                             .messageId(processedKey(msg.getMessageId()))
+                            .user(UserContext.requireCurrentUser())
                             .internalDateMs(msg.getInternalDateMs())
                             .build());
                 }

@@ -72,6 +72,14 @@ changes: [category migration](local.md#transaction-category-migration),
 [classification rules](../domain/classification.md) and
 [financial instruments](../domain/financial-instruments.md#schema-preparation-and-verification).
 Do not temporarily enable Hibernate `update` in production to bypass validation.
+Apply the [ingestion provenance migration](../../scripts/migrations/20261021_ingestion_provenance.sql)
+before deploying this backend to an existing validated schema. It adds nullable
+user references to raw logs and processed-email markers, and a transaction reference
+to raw logs. It preserves rows and existing hashes without guessing historical
+ownership. New writes populate these references; historical nulls remain unknown.
+The script is repeatable for the expected legacy schema; it does not repair
+pre-existing columns with incompatible types or missing constraints. No migration
+is applied by the agent as part of ordinary verification.
 Hibernate validation does not inspect every index/check: verify the unique
 `idx_tx_hash_user` index and absence of the old `transactions_category_check` too.
 The new code uses user-scoped processed-email keys in the existing column; old
@@ -102,7 +110,8 @@ Run [the documented checks](local.md#backend-verification) against disposable
 databases. `DeploymentPersistenceTest` applies the empty schema and starts a
 production-profile context with fake credentials, validating concurrent retries,
 tenant isolation, batches and cursor updates. CI provisions fresh databases for
-this test and `AppTests`. Reusing its schema intentionally fails initialization.
+this test, `AppTests`, instruments and classification, each in its own disposable
+database. Reusing the deployment test schema intentionally fails initialization.
 
 Build the backend image from `docker/Dockerfile.api` and dashboard with `npm run
 build`. The image uses Java 21, America/Lima and a heap capped at 60% of available

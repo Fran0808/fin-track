@@ -18,6 +18,15 @@ public class RawNotificationLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Nullable only for historical records whose owner cannot be established safely.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id")
+    private Transaction transaction;
+
     @Column(name = "raw_text", nullable = false, columnDefinition = "TEXT")
     private String rawText;
 

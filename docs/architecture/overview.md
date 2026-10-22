@@ -115,5 +115,9 @@ and a server address reachable from the phone. See [contracts](contracts.md).
 
 - Existing Android application ID, database and preference names, Docker identifiers and `wp_dev_` tokens retain legacy names. Preserve them unless a migration is planned; details are in [the Docker guide](../../docker/README.md#branding-and-compatibility).
 - The transaction hash is source-specific; the database index only deduplicates equal hashes for a user.
-- Raw notification logs and processed email markers currently lack a user foreign key, and raw logs are not directly linked to transactions. Improving diagnostic ownership and provenance requires a separate implementation.
+- New raw notification logs reference the authenticated user and saved transaction
+  within the ingestion transaction. New processed email markers reference their user
+  and retain the existing user-scoped message hashes. Historical evidence without
+  ownership remains unattributed; never assign it to the currently logged-in user.
+  Existing production schemas need the [provenance migration](../../scripts/migrations/20261021_ingestion_provenance.sql).
 - Full-context tests require explicit disposable database URLs and disable email scheduling. See [verification precautions](../development/local.md#backend-verification).

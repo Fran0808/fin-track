@@ -4,6 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -24,6 +27,11 @@ public class ProcessedEmailMessage {
     @Id
     @Column(name = "message_id", nullable = false, length = 100)
     private String messageId;
+
+    // Existing scoped hashes remain unchanged; legacy rows can have no known owner.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "internal_date_ms")
     private Long internalDateMs;

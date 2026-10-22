@@ -59,15 +59,6 @@ public class TransactionService {
         if (transactionRepository.existsByTransactionHashAndUser(request.getTransactionHash(), currentUser)) {
             return mapToResponse(transactionRepository.findByTransactionHashAndUser(request.getTransactionHash(), currentUser).orElseThrow());
         }
-        if (request.getRawNotificationText() != null && !request.getRawNotificationText().isBlank()) {
-            RawNotificationLog rawLog = RawNotificationLog.builder()
-                    .rawText(request.getRawNotificationText())
-                    .sourcePackage(channel)
-                    .isProcessed(true)
-                    .build();
-            rawNotificationRepository.save(rawLog);
-        }
-
         Transaction transaction = Transaction.builder()
                 .user(currentUser)
                 .amount(request.getAmount())
@@ -81,6 +72,15 @@ public class TransactionService {
 
         classificationRules.classifyNewTransaction(transaction);
         Transaction saved = transactionRepository.save(transaction);
+        if (request.getRawNotificationText() != null && !request.getRawNotificationText().isBlank()) {
+            rawNotificationRepository.save(RawNotificationLog.builder()
+                    .user(currentUser)
+                    .transaction(saved)
+                    .rawText(request.getRawNotificationText())
+                    .sourcePackage(channel)
+                    .isProcessed(true)
+                    .build());
+        }
         log.info("Transaction stored successfully");
         return mapToResponse(saved);
     }

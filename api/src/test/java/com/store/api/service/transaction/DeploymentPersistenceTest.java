@@ -88,6 +88,12 @@ class DeploymentPersistenceTest {
             try { assertNotEquals(id, service.processAndSave(request("concurrent-retry")).getId()); }
             finally { UserContext.clear(); }
             assertEquals(1, transactions.countByUserId(other.getId()));
+            var evidence = rawLogs.findAll().stream()
+                    .filter(raw -> raw.getTransaction() != null
+                            && raw.getTransaction().getId().equals(id)).toList();
+            assertEquals(1, evidence.size());
+            assertEquals(owner.getId(), evidence.getFirst().getUser().getId());
+            assertEquals(before + 2, rawLogs.count());
         }
     }
 
