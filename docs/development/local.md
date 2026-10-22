@@ -10,6 +10,25 @@ The [Docker guide](../../docker/README.md) covers container setup and existing v
 - PostgreSQL for native backend execution, or Docker Desktop with Linux containers.
 - Android SDK levels declared in [Gradle](../../android/app/build.gradle.kts), with platform-tools for authorized device diagnostics.
 
+### Values supplied outside the repository
+
+The repository cannot establish installed tools, valid Google credentials, the
+authorized database/volume, phone address or firewall reachability. Confirm these
+for the intended environment; never infer them from template values or old logs.
+Keep credentials outside Git and shared output.
+
+Configure a Google OAuth application and its consent screen/permitted users,
+enable Gmail API for email ingestion, and register `GOOGLE_REDIRECT_URI` exactly.
+The [OAuth service](../../api/src/main/java/com/store/api/service/auth/GoogleOAuthService.java)
+requests OpenID, profile, email and `gmail.readonly` access. Actual consent and
+provider access require verification in that Google project; no credentials or
+successful external configuration are supplied by the repository.
+
+Select the confirmed local database or existing Compose volume, supply its private
+password and a JWT secret of at least 32 bytes, and keep email scheduling disabled.
+For Android, supply the device-reachable API address and SDK location through the
+supported environment/local configuration. Do not commit workstation-specific paths.
+
 Create `.env` only if it does not already exist:
 
 ```powershell
@@ -122,7 +141,10 @@ try {
 
 After creating the two disposable databases, set their opt-in URL variables and
 test credentials, then run `./mvnw.cmd verify` from `api` for context and deployment
-checks as well. CI provisions both automatically. The new deployment test covers
+checks as well. To include instruments and classification, configure their separate
+opt-in URLs and credentials from the domain guides too; running `verify` alone
+does not enable those suites. CI provisions all four disposable databases and
+enables all four suites. The deployment test covers
 schema validation, concurrent retries, overlapping batches and monotonic cursors.
 See [production deployment](deployment.md) for setup and runtime limitations.
 The Maven wrapper uses the configured Java installation; first-time dependency
@@ -205,5 +227,6 @@ There is no Make dependency. Use the module skip flags for focused changes.
 
 CI behavior is defined in [.github/workflows/ci.yml](../../.github/workflows/ci.yml).
 It runs module tests/builds, frontend lint, Docker checks and Windows script
-regressions. Markdown-only changes still skip workflows. See
+regressions. Markdown-only changes skip application CI but run the separate
+[documentation reference workflow](../../.github/workflows/docs.yml). See
 [project progress](../PROGRESS.md) for current evidence and remaining work.

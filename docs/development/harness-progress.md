@@ -3,6 +3,10 @@
 Historical evidence from October 21, 2026, before the instruction-maintenance pass.
 For current work, read [progress](../PROGRESS.md).
 
+Historical commit statements below describe the original session, not the current
+working tree. The later repository-only evaluation found the tooling, documentation
+and CI groups committed as `83fc371`, `46dd43d` and `b53d137`, respectively.
+
 ## Previous checkpoint: documentation/script organization and analytics diagnostics
 
 - Owner: current chat. Scope: documentation routing and moves, script grouping,

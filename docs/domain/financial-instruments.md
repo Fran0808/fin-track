@@ -100,6 +100,7 @@ try {
 ```
 
 The new persistence test is skipped without the opt-in variable. Existing
-`AppTests` still needs an isolated target; see
+`AppTests` is independently opt-in and remains skipped unless its own disposable
+database URL is configured; see
 [development precautions](../development/local.md#backend-verification).
 Afterward, remove only the disposable database you created.

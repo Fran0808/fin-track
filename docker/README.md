@@ -61,10 +61,12 @@ before starting the consolidated stack:
 ```powershell
 docker ps -a --format '{{.Names}} {{.Label "com.docker.compose.project"}}'
 docker volume ls
-docker inspect walletpulse-postgres --format '{{json .Mounts}}'
+docker inspect CONFIRMED_CONTAINER_NAME --format '{{json .Mounts}}'
 ```
 
-Use the project label and mounted volume to identify the correct database.
+Replace `CONFIRMED_CONTAINER_NAME` with the existing container found above;
+the current root stack declares `wallet-pulse-postgres`, but a legacy stack may
+use another name. Use the project label and mounted volume to identify the correct database.
 If the old project was `docker` with volume `docker_postgres_data`, stop its old
 containers before starting the new stack and set `COMPOSE_PROJECT_NAME=docker`
 in `.env` to reuse that project's volume. For a custom project name, retain

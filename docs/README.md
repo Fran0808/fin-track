@@ -14,6 +14,7 @@ are defined by source and build files; update these documents when those change.
 | Change dashboard behavior | [UI guide](ui/README.md) |
 | Run locally or verify changes | [Local development](development/local.md), [scripts](../scripts/README.md) |
 | Maintain instructions or hand off agent work | [Instruction lifecycle](development/instruction-maintenance.md), [workflow](development/agent-workflow.md) |
+| Evaluate a new agent session using only the repository | [Evaluation record and repeat procedure](development/agent-evaluation.md) |
 | Deploy or prepare a database | [Deployment](development/deployment.md) |
 | Interpret money or classification | [Cashflow](domain/cashflow.md), then the relevant domain reference below |
 

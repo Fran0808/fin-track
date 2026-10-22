@@ -121,6 +121,22 @@ try {
         New-Item -ItemType Directory -Path (Join-Path $fixture $dir) -Force | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-all.ps1') -Destination (Join-Path $fixture 'scripts/checks')
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'test-docs.ps1') -Destination (Join-Path $fixture 'scripts/checks')
+    Test-Case 'Documentation checker rejects broken template references and listed Markdown links' {
+        function git {
+            $global:LASTEXITCODE = 0
+            return @('.env.example', 'README.md', 'docs/setup.md')
+        }
+        Set-Content -LiteralPath (Join-Path $fixture '.env.example') -Value '# See docs/missing.md'
+        Assert-Throws { & (Join-Path $fixture 'scripts/checks/test-docs.ps1') } 'docs/missing.md'
+        New-Item -ItemType Directory -Path (Join-Path $fixture 'docs') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $fixture 'docs/setup.md') -Value '# Setup'
+        Set-Content -LiteralPath (Join-Path $fixture '.env.example') -Value '# See docs/setup.md'
+        Set-Content -LiteralPath (Join-Path $fixture 'README.md') -Value '[Missing](docs/missing.md)'
+        Assert-Throws { & (Join-Path $fixture 'scripts/checks/test-docs.ps1') } 'README.md -> docs/missing.md'
+        Set-Content -LiteralPath (Join-Path $fixture 'README.md') -Value '[Setup](docs/setup.md#setup)'
+        & (Join-Path $fixture 'scripts/checks/test-docs.ps1') | Out-Null
+    }
     Copy-Item -LiteralPath (Join-Path $scriptsRoot 'lib/common.ps1') -Destination (Join-Path $fixture 'scripts/lib')
     $env:FINTRACK_SCRIPT_TEST_LOG = Join-Path $fixture 'commands.txt'
     $env:PATH = (Join-Path $fixture 'bin') + ';' + $env:PATH
