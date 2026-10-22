@@ -106,6 +106,11 @@ merge different email and Android identities automatically.
 
 ## Verification and rollout
 
+Use the local [persistence runner](../../scripts/checks/test-persistence.ps1) to
+reproduce all four opt-in suites and the repeatable incremental migration test
+in a newly created temporary PostgreSQL cluster. Actual local results and their
+limits are recorded in [validation evidence](persistence-progress.md).
+
 Run [the documented checks](local.md#backend-verification) against disposable
 databases. `DeploymentPersistenceTest` applies the empty schema and starts a
 production-profile context with fake credentials, validating concurrent retries,

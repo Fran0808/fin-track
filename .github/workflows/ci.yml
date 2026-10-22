@@ -97,6 +97,12 @@ jobs:
           createdb -h localhost -U postgres fintrack_deployment_eval_ci
           createdb -h localhost -U postgres fintrack_instruments_eval_ci
           createdb -h localhost -U postgres fintrack_classification_eval_ci
+          createdb -h localhost -U postgres fintrack_provenance_eval_ci
+
+      - name: Verify incremental ingestion provenance migration
+        env:
+          PGPASSWORD: admin
+        run: psql -X -h localhost -U postgres -v ON_ERROR_STOP=1 -d fintrack_provenance_eval_ci -f scripts/migrations/test_ingestion_provenance.sql
 
       - name: Compile and Test Backend API
         working-directory: api
