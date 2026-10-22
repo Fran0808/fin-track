@@ -117,7 +117,7 @@ $oldLog = $env:FINTRACK_SCRIPT_TEST_LOG
 $oldFail = $env:FINTRACK_SCRIPT_TEST_FAIL
 $oldPath = $env:PATH
 try {
-    foreach ($dir in @('scripts/lib', 'scripts/checks', 'scripts/android', 'scripts/assets', 'api', 'ui', 'android', 'bin')) {
+    foreach ($dir in @('scripts/lib', 'scripts/checks', 'scripts/setup', 'scripts/android', 'scripts/assets', 'api', 'ui', 'android', 'bin')) {
         New-Item -ItemType Directory -Path (Join-Path $fixture $dir) -Force | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-all.ps1') -Destination (Join-Path $fixture 'scripts/checks')
@@ -138,6 +138,34 @@ try {
         & (Join-Path $fixture 'scripts/checks/test-docs.ps1') | Out-Null
     }
     Copy-Item -LiteralPath (Join-Path $scriptsRoot 'lib/common.ps1') -Destination (Join-Path $fixture 'scripts/lib')
+    Copy-Item -LiteralPath (Join-Path $scriptsRoot 'setup/initialize-local.ps1') -Destination (Join-Path $fixture 'scripts/setup')
+    Test-Case 'Local initializer plan has no effects and setup preserves private configuration' {
+        function node { $global:LASTEXITCODE = 0; return 'v24.0.0' }
+        function docker { $global:LASTEXITCODE = 0; return '2.40.0' }
+        $initializer = Join-Path $fixture 'scripts/setup/initialize-local.ps1'
+        $configuration = Join-Path $fixture '.env'
+        $plan = & $initializer -Plan -InstallUiDependencies | Out-String
+        Assert-True (-not (Test-Path -LiteralPath $configuration)) 'Plan created configuration.'
+        Assert-True ($plan -match 'npm.cmd ci') 'Optional dependency action missing from plan.'
+        Set-Content -LiteralPath (Join-Path $fixture '.env.example') -Value 'DB_PASSWORD='
+        Assert-Throws { & $initializer } 'configure these .env entries privately'
+        Assert-True (Test-Path -LiteralPath $configuration) 'Initial configuration was not created.'
+        $privateSettings = "DB_PASSWORD=synthetic-private-password`nJWT_SECRET=synthetic-private-signing-key-at-least-32-bytes`nGOOGLE_CLIENT_ID=synthetic-client`nGOOGLE_CLIENT_SECRET=synthetic-private-client-secret`nAPP_SERVER_PUBLIC_URL=http://localhost:8080"
+        Set-Content -LiteralPath $configuration -Value $privateSettings
+        $before = [IO.File]::ReadAllBytes($configuration)
+        $output = & $initializer | Out-String
+        Assert-True ($output -notmatch 'synthetic-private') 'Initializer printed private settings.'
+        Assert-True ([Convert]::ToBase64String($before) -eq [Convert]::ToBase64String([IO.File]::ReadAllBytes($configuration))) 'Existing configuration changed.'
+        function docker { $global:LASTEXITCODE = 0; return '1.29.0' }
+        Assert-Throws { & $initializer } 'Compose v2 or later'
+        function docker { $global:LASTEXITCODE = 0; return '5.3.0' }
+        & $initializer | Out-Null
+        function node { $global:LASTEXITCODE = 0; return 'v20.0.0' }
+        Assert-Throws { & $initializer } 'Node.js 24'
+        function node { $global:LASTEXITCODE = 0; return 'v24.0.0' }
+        function npm.cmd { $global:LASTEXITCODE = 9 }
+        Assert-Throws { & $initializer -InstallUiDependencies } 'exit code 9'
+    }
     $env:FINTRACK_SCRIPT_TEST_LOG = Join-Path $fixture 'commands.txt'
     $env:PATH = (Join-Path $fixture 'bin') + ';' + $env:PATH
     $stub = "@echo off`r`necho %*>> `"%FINTRACK_SCRIPT_TEST_LOG%`"`r`nif `"%FINTRACK_SCRIPT_TEST_FAIL%`"==`"%1%`" exit /b 9`r`nexit /b 0`r`n"

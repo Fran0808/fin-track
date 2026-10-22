@@ -9,6 +9,7 @@ simulator have been removed. Use only the paths in this catalogue.
 | Folder | Responsibility |
 | --- | --- |
 | `checks/` | Routine verification, script regressions and non-writing API probes |
+| `setup/` | Local prerequisite and configuration preparation without service startup |
 | `android/` | APK delivery and isolated device capture tests |
 | `operations/` | Explicit operations that can access real user services/data |
 | `assets/` | Derived branding asset generation |
@@ -20,6 +21,7 @@ second command interface without adding isolation or verification guarantees.
 
 | Entry point | Prerequisites | Behavior and effects |
 | --- | --- | --- |
+| `setup/initialize-local.ps1` | Git, Node 24/npm; Docker Compose v2 or later (default) or Java 21/PostgreSQL client (`-Mode Native`) | Creates `.env` only if absent, preserves existing values, checks required setting names/JWT length without printing secrets. No services or database access. Missing settings return nonzero after template creation. `-InstallUiDependencies` explicitly runs `npm ci`; `-Plan` has no effects. |
 | `checks/verify-all.ps1` | Java 21, Node 24, installed UI dependencies, Android SDK; wrapper dependencies available | Runs database-free backend tests, UI tests/lint/build, Android JVM tests and debug APK assembly. No installation or live ingestion. Nonzero on any selected failure. |
 | `checks/test-scripts.ps1` | PowerShell | Parses scripts and exercises failure handling, command selection and mocked HTTP/command operations; exports branding only in a temporary repository. No real API, database or device. |
 | `checks/test-docs.ps1` | PowerShell, Git | Checks local Markdown file links, rooted script references and `docs/*.md` paths in `.env.example`, including untracked files; does not check web availability or heading fragments. |
@@ -32,6 +34,19 @@ second command interface without adding isolation or verification guarantees.
 | `lib/common.ps1` | PowerShell | Shared exit-code and API-origin validation, not a standalone command. |
 
 ## Routine verification
+
+For first-time local preparation:
+
+```powershell
+.\scripts\setup\initialize-local.ps1 -Plan
+.\scripts\setup\initialize-local.ps1
+# Optional dependency download/package lifecycle execution:
+.\scripts\setup\initialize-local.ps1 -InstallUiDependencies
+```
+
+Supply configuration privately when the initializer reports missing names. It does
+not generate/rotate credentials, validate OAuth or start the stack. Use `-Mode Native`
+instead of the default Docker prerequisites when running the API with Maven.
 
 ```powershell
 .\scripts\checks\verify-all.ps1 -Plan
