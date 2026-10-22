@@ -31,6 +31,24 @@ supported environment/local configuration. Do not commit workstation-specific pa
 
 Create `.env` only if it does not already exist:
 
+The [local initializer](../../scripts/setup/initialize-local.ps1) checks Git,
+Node.js 24/npm and Docker Compose v2 or later, creates the template only when absent and
+reports missing setting names without printing their values:
+
+```powershell
+.\scripts\setup\initialize-local.ps1 -Plan
+.\scripts\setup\initialize-local.ps1
+```
+
+Use `-Mode Native` to check Java 21 (respecting `JAVA_HOME`, as Maven does) and
+PostgreSQL client tools instead of Docker. Use `-InstallUiDependencies` only when
+you intend to run `npm ci`, including package downloads/lifecycle scripts. The
+initializer never starts services, migrates data, changes Android or rotates
+secrets. Missing settings return nonzero after initial template creation; fill
+them privately and rerun. It does not load `.env` into the launch environment.
+
+For manual template creation instead:
+
 ```powershell
 if (-not (Test-Path -LiteralPath .env)) {
     Copy-Item -LiteralPath .env.example -Destination .env
@@ -110,6 +128,26 @@ For Android, pair using an API address reachable from the device and check netwo
 and firewall configuration. Check installed version name and code before diagnosis.
 
 ## Backend verification
+
+For a fully isolated local run, use installed PostgreSQL tools with
+[the persistence runner](../../scripts/checks/test-persistence.ps1):
+
+```powershell
+.\scripts\checks\test-persistence.ps1 -Plan
+.\scripts\checks\test-persistence.ps1 -Offline
+# Select installed tools explicitly when needed:
+# .\scripts\checks\test-persistence.ps1 -PgBinPath 'C:\Program Files\PostgreSQL\17\bin' -JavaHome 'C:\path\to\jdk-21'
+```
+
+This creates a new temporary cluster and five databases: four for the JVM suites,
+and one for [the incremental migration regression](../../scripts/migrations/test_ingestion_provenance.sql).
+It enables every opt-in suite, disables email scheduling, restores its environment
+variables and stops/removes only its own cluster on exit. It never loads `.env`,
+reuses an existing server or installs tools. Java 21 and Maven dependencies must
+already be available; omit `-Offline` to permit Maven dependency downloads.
+See [the catalogue](../../scripts/README.md) for cleanup/failure behavior.
+
+For manually managed disposable databases, use the procedures below.
 
 Cards and accounts have an opt-in PostgreSQL integration test. Its disposable
 database setup and schema changes are documented in

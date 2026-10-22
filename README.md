@@ -36,13 +36,19 @@ Compose defaults are intended for development.
 
 ### 1. Prerequisites
 
-- Docker Desktop with Linux containers, or Docker Engine with Compose v2.
+- Docker Desktop with Linux containers, or Docker Engine with Compose v2 or later.
 - Node.js 24 and npm for the dashboard.
 - Google OAuth credentials for dashboard sign-in.
 - For Android development: Java 21, the Android SDK and a device or emulator
   supporting Android API 26 or later. See [Android instructions](android/AGENTS.md).
 
 ### 2. Configure the environment
+
+From the repository root, `./scripts/setup/initialize-local.ps1 -Plan` previews
+local preparation; run it without `-Plan` to check prerequisites and create `.env`
+only when absent. It preserves existing settings and reports missing names without
+printing secrets. It never starts services. See the [script catalogue](scripts/README.md)
+for native mode and optional UI dependency installation.
 
 Create `.env` only if it does not already exist:
 
