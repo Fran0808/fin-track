@@ -166,6 +166,10 @@ try {
         function npm.cmd { $global:LASTEXITCODE = 9 }
         Assert-Throws { & $initializer -InstallUiDependencies } 'exit code 9'
     }
+    Test-Case 'Persistence plan never starts PostgreSQL or Maven' {
+        $plan = & (Join-Path $PSScriptRoot 'test-persistence.ps1') -Plan | Out-String
+        Assert-True ($plan -match 'temporary PostgreSQL cluster' -and $plan -match 'four persistence suites') 'Persistence plan is incomplete.'
+    }
     $env:FINTRACK_SCRIPT_TEST_LOG = Join-Path $fixture 'commands.txt'
     $env:PATH = (Join-Path $fixture 'bin') + ';' + $env:PATH
     $stub = "@echo off`r`necho %*>> `"%FINTRACK_SCRIPT_TEST_LOG%`"`r`nif `"%FINTRACK_SCRIPT_TEST_FAIL%`"==`"%1%`" exit /b 9`r`nexit /b 0`r`n"

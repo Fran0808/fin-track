@@ -22,6 +22,7 @@ second command interface without adding isolation or verification guarantees.
 | Entry point | Prerequisites | Behavior and effects |
 | --- | --- | --- |
 | `setup/initialize-local.ps1` | Git, Node 24/npm; Docker Compose v2 or later (default) or Java 21/PostgreSQL client (`-Mode Native`) | Creates `.env` only if absent, preserves existing values, checks required setting names/JWT length without printing secrets. No services or database access. Missing settings return nonzero after template creation. `-InstallUiDependencies` explicitly runs `npm ci`; `-Plan` has no effects. |
+| `checks/test-persistence.ps1` | Java 21, installed PostgreSQL tools, cached Maven dependencies for `-Offline` | Creates its own temporary PostgreSQL cluster on a free loopback port, four suite databases and one SQL regression database. Runs provenance migration regression and full Maven `verify`, disables email scheduling, restores environment and stops/removes only its own cluster. No application database/device access. `-PgBinPath` and `-JavaHome` select installed tools; `-Plan` does not execute them. |
 | `checks/verify-all.ps1` | Java 21, Node 24, installed UI dependencies, Android SDK; wrapper dependencies available | Runs database-free backend tests, UI tests/lint/build, Android JVM tests and debug APK assembly. No installation or live ingestion. Nonzero on any selected failure. |
 | `checks/test-scripts.ps1` | PowerShell | Parses scripts and exercises failure handling, command selection and mocked HTTP/command operations; exports branding only in a temporary repository. No real API, database or device. |
 | `checks/test-docs.ps1` | PowerShell, Git | Checks local Markdown file links, rooted script references and `docs/*.md` paths in `.env.example`, including untracked files; does not check web availability or heading fragments. |
@@ -30,7 +31,7 @@ second command interface without adding isolation or verification guarantees.
 | `android/build-apk.ps1` | Java/SDK, SDK `aapt2`, Gradle dependencies | Builds debug APK; checks actual package/version against Gradle; copies to `android/build/deliveries/FinTrack.apk` by default and reports SHA-256. `-OutputPath` overrides destination. |
 | `android/run-capture-tests.ps1` | Disposable booted AVD named `FinTrackCapture`, explicit `-Serial emulator-N`, SDK/ADB | Builds and installs isolated test APKs and executes persisted capture/lifecycle tests. Revokes test listener access on exit. Requires task authorization for installation; never part of default verification. |
 | `assets/export-brand-assets.ps1` | Windows/.NET System.Drawing, master logo | Regenerates the five derived web/Android PNG assets. Overwrites those assets; does not build or install. |
-| `migrations/*.sql` | PostgreSQL client and explicitly confirmed target | Manual schema operations; back up real databases first. `test_transaction_categories.sql` requires an empty disposable database. See domain/deployment guides. |
+| `migrations/*.sql` | PostgreSQL client and explicitly confirmed target | Manual schema operations; back up real databases first. SQL regression files require empty disposable databases; `test_ingestion_provenance.sql` also checks the `fintrack_provenance_eval_` name. See domain/deployment guides. |
 | `lib/common.ps1` | PowerShell | Shared exit-code and API-origin validation, not a standalone command. |
 
 ## Routine verification
@@ -61,6 +62,20 @@ to Maven and Gradle only; cached dependencies are required. `-SkipApi`, `-SkipUi
 and `-SkipAndroid` select modules; skipping everything fails rather than reporting
 success. Full database integration remains the opt-in procedure in
 [development](../docs/development/local.md#backend-verification), not part of this runner.
+
+To reproduce all backend persistence checks without reusing any database:
+
+```powershell
+.\scripts\checks\test-persistence.ps1 -Plan
+.\scripts\checks\test-persistence.ps1 -Offline
+```
+
+The persistence runner starts only a newly initialized temporary PostgreSQL process,
+not a Windows service. It never reads `.env`. It sets test URLs/credentials and
+disables scheduling for its child process, then restores the previous environment.
+Temporary synthetic data is removed after the process stops; if shutdown fails,
+the directory is preserved and the command fails. Forcibly terminating PowerShell
+can bypass cleanup. It does not install PostgreSQL or Java.
 
 ## Operational commands
 
