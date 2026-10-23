@@ -1,12 +1,59 @@
-# Android capture progress — FinTrack 1.3.4 (17)
+# Android capture progress — FinTrack 1.3.5 (18)
 
 Updated: October 21, 2026. This record tracks Android notification capture
 implementation, validation and remaining work. The historical runtime evidence below
-belongs to FinTrack 1.3.2 (15); the follow-up build is FinTrack 1.3.4 (17).
+belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.5 (18).
+
+## Device reboot acceptance — October 21
+
+The separate host-driven reboot scenario passed on the disposable x86_64 SDK 37
+emulator. The host verified a changed Linux boot ID, rather than inferring reboot
+from a new app PID. Before reboot, one tagged synthetic observation was committed
+and pending, its source notification removed, and no financial movement existed.
+After boot, passive copies of the actual Room database and WAL showed one saved
+movement before any app activity, control broadcast or instrumentation was started.
+Explicit activity opening and repeated recovery retained that movement and hash.
+Observation identity, captured owner/timezone/timestamps and unassigned movement
+ownership were preserved; the movement remained unsynced. No backend was used.
+
+The observation window is up to 30 seconds after Android reports boot completion;
+this is one emulator result, not a startup SLA or proof for every OEM. Passive
+inspection uses `run-as` file reads, not Application startup. Two consecutive equal
+database/WAL reads are required before querying temporary host copies, which are
+closed and removed afterward. Only tagged fixture results are queried or reported.
+
+`scripts/android/test-capture-reboot.ps1` requires an explicit emulator serial,
+Python 3 and ADB, rejects AVDs other than `FinTrackCapture`, validates all artifact
+identities before installation and installs only isolated APKs. Its Python helper
+uses only the standard library. Preparation, explicit-launch verification and cleanup
+run as separate `CaptureRebootTest` instrumentation phases because reboot terminates
+the driver too. The runner revokes the isolated listener grant on exit.
+
+The captureTest-only `arm_reboot` command holds processing after the first commit
+and releases the gate on a changed Android boot count. Ordinary gates retain their
+existing behavior. Normal builds have neither the command nor its persistent flag.
+This is controlled pending-work recovery, not proof of notification delivery while
+the phone is powered off. The fixture is unpaired; cross-account cases remain
+covered by the existing Room tests, not this reboot scenario.
+
+Both JVM variants passed 70 tests. The host guard tests passed three cases: physical
+serial rejection, wrong AVD rejection and rejection of a normal APK before any
+installation. The first host attempt found a Windows temporary-copy cleanup defect;
+closing the SQLite connection explicitly fixed it before the successful reboot run.
+The complete nine-case lifecycle suite was not rerun. The existing committed-capture
+SIGKILL and force-stop scenarios passed together on the new artifact in 16.981
+seconds. Reports are in ignored
+`android/app/build/outputs/capture-tests/reboot-*.txt` and `reboot-result.json`.
+
+Current normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.5 (18).
+SHA-256: `1BEEB4BCE01016DD6A992E425B9D066650D849F2B4C011CACD01F49B86E36BEF`.
+Current isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
+1.3.5-capturetest (18).
+SHA-256: `EBBD8B9B896175E8036EBB239BD3D8B14A01EA28D6E40A039C9C387106119C8E`.
 
 ## Force-stop acceptance follow-up — October 21
 
-The external lifecycle suite now contains nine scenarios. Only the emitter's
+The October 21 force-stop follow-up contained nine scenarios. Only the emitter's
 instrumented test driver and runner changed; FinTrack remains 1.3.4 (17), with the
 same application APKs and hashes recorded below.
 
@@ -115,7 +162,7 @@ transaction hashes and backend contract are preserved.
 |---|---|---|
 | Capture durability | Room v3 inbox; non-destructive 1→2→3 migration; bounded application-owned ingress with checked admission; processing after the first durable write. Kernel-kill recovery is checked before/after commit. | Real storage failures and unattended restart/scheduling behavior. |
 | Identity | Separate observations from transactions; atomic processing completion and financial insertion; reused active sources with a different event identity can require review. Synthetic Android updates and active replay are tested. | Current provider update behavior; indistinguishable payments cannot be resolved universally. |
-| Listener health | Shared reconnect coordinator for disconnect, active-instance destruction, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. Exhaustion, disabled-component recovery and in-flight listener destruction have isolated Android coverage. | Reboot, force-stop, Doze, unattended restart and physical-device/OEM behavior. |
+| Listener health | Shared reconnect coordinator for disconnect, active-instance destruction, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. Exhaustion, disabled-component recovery, in-flight destruction and isolated reboot have Android coverage. | Doze, unattended restart under other restrictions and physical-device/OEM behavior. |
 | Parsing | Separate title/text/expanded/lines; explicit recognized, nonfinancial, ambiguous and unsupported results; compatible repeated title/body amounts; summaries excluded. Portable Unicode regex guards execute on Android. | Current provider formats; grouped synthetic delivery is verified only on the tested emulator. |
 | Recovery and sync | Resume inbox processing and existing pending uploads on application startup, listener connection and successful pairing. | Scheduling behavior under device restrictions. |
 | UI | Separate durable capture, saved movement, processing backlog, upload backlog and local review evidence. | Device UI validation; manual payment approval is not implemented. |
@@ -266,7 +313,7 @@ normal instrumented APK assembly and release Kotlin compilation also succeeded.
 
 | Priority | Open work | Acceptance evidence |
 |---|---|---|
-| P1 | Test remaining interruption and scheduling paths. | Reboot, Doze and unattended processing/restart across device restrictions. Force-stop followed by explicit reopening is covered; its bounded restart observation does not establish universal autonomous recovery. |
+| P1 | Test remaining interruption and scheduling paths. | Doze and unattended processing/restart across device restrictions and physical/OEM reboot behavior. One isolated reboot recovered automatically; force-stop followed by explicit reopening is covered. These bounded observations do not establish universal autonomous recovery. |
 | P1 | Validate production transport and backup policy. | HTTPS restrictions and credential-backup behavior verified separately; do not treat inbox exclusions as complete security hardening. |
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |

@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.3.4 (version code 17) keeps the existing application ID, preferences and
+FinTrack 1.3.5 (version code 18) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
@@ -191,7 +191,13 @@ after explicit activity reopening and hash preservation across a second stop/reo
 During a three-second observation without control broadcasts, the tested emulator
 restarted the process for the bound listener. This is not a guarantee of unattended
 processing or recovery on every device: the processing gate remained active until
-explicit reopening. Reboot, Doze and OEM restrictions remain unverified. See the
+explicit reopening. A separate real-reboot scenario verified committed pending
+work through passive Room/WAL copies before starting instrumentation or opening
+the activity: this emulator processed one movement automatically after boot, and
+explicit reopening preserved its hash and owner. Its test-only gate releases on
+a changed boot count. This does not recover notifications missed while powered off
+or establish reboot behavior on every device. Doze and OEM restrictions remain
+unverified. See the
 [current verification record](capture-progress.md).
 
 ## Mobile navigation
