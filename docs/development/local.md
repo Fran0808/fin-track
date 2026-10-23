@@ -217,6 +217,24 @@ idempotency, preservation of existing values, custom names and unclassified rows
 
 ## Dashboard and Android verification
 
+Android release requires HTTPS; debug permits local HTTP. Set the production
+endpoint to valid HTTPS when preparing deployment. Existing HTTP pairings must
+use the verified server-address change to preserve ownership when upgrading the
+same backend's transport. No variant follows API redirects or opts out of TLS
+certificate/hostname checks. Automatic backup is disabled and pairing credentials
+are explicitly excluded from legacy/cloud/device-transfer policies.
+
+For transport/backup changes, also run from `android`:
+
+```powershell
+.\gradlew.bat testDebugUnitTest testCaptureTestUnitTest testReleaseUnitTest assembleDebug assembleRelease
+```
+
+The TLS regression generates a temporary synthetic certificate using the running
+JDK's `keytool` and deletes its temporary keystore. Tests use only loopback sockets,
+not a real backend. Release assembly produces an unsigned APK; signing/deployment
+is a separate step. CI executes debug/release tests and builds both variants.
+
 From `ui`, run `npm test`, `npm run lint` and `npm run build` after application
 changes. From `android`, run `./gradlew.bat testDebugUnitTest assembleDebug` on
 Windows, or `./gradlew testDebugUnitTest assembleDebug` on Linux.

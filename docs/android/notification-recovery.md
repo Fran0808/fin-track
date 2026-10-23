@@ -1,6 +1,6 @@
 # Android notification capture and recovery
 
-FinTrack 1.3.6 (version code 19) keeps the existing application ID, preferences and
+FinTrack 1.3.7 (version code 20) keeps the existing application ID, preferences and
 `wallet_pulse_db`. Room migration 1 to 2 adds nullable ownership and notification
 metadata without deleting rows or changing their transaction hashes. Migration 2 to 3
 adds the capture inbox in the same database. Existing transactions and pairing
@@ -67,7 +67,8 @@ synced legacy rows are retained for review and cannot be reassigned this way.
 No old pending row is automatically sent to a newly paired account.
 
 When the address of the same backend changes, use **Ajustes > Conexión con la web >
-Cambiar dirección del servidor**. Enter its full `http://` or `https://` address and
+Cambiar dirección del servidor**. Enter its full HTTPS address (debug also permits
+HTTP for local development) and
 select **Verificar y guardar**. The app verifies the existing device token at the
 new address, requires the same saved user ID when available, and rejects a response
 if pairing changed while verification was in progress. The new address must belong
@@ -137,8 +138,13 @@ processing sweep, retaining identity/status. Pending observations are not purged
 Completed duplicate/ignored/control metadata is pruned after 30 days. The database
 and sidecars are excluded from cloud backup and device transfer; existing local
 transactions remain on the phone. This is app-private storage, not a new layer of
-application-level encryption. General pairing-backup and transport hardening remain
-a separate delivery.
+application-level encryption. Automatic backup is disabled and the pairing
+preferences file is explicitly excluded from legacy/cloud backup and device
+transfer too. These rules do not remove older provider-held backups. Release
+requires HTTPS before sending or verifying a token; debug retains local HTTP.
+No HTTP redirects are followed, so configure the canonical endpoint directly.
+HTTP release pairings retain all local rows and ownership but cannot send until
+the same backend's HTTPS address is verified through the address-change dialog.
 
 **Ver capturas por revisar** displays up to 100 current-scope/unassigned observations
 and fixed reasons, outside the sanitized diagnostic log. It does not approve a

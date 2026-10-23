@@ -1,8 +1,63 @@
-# Android capture progress — FinTrack 1.3.6 (19)
+# Android capture progress — FinTrack 1.3.7 (20)
 
 Updated: October 22, 2026. This record tracks Android notification capture
 implementation, validation and remaining work. The historical runtime evidence below
-belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.6 (19).
+belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.7 (20).
+
+## Production transport and credential-backup policy — October 22
+
+Release builds now block cleartext both through Android network security
+configuration and before constructing the API service. The request interceptor
+also rejects non-HTTPS requests. Debug retains HTTP for local development; the
+isolated capture build still has no Internet permission. All variants disable
+automatic HTTP redirects, including HTTPS-to-HTTP and cross-host redirects, so
+the custom device-token header is not forwarded to a redirected destination.
+TLS uses the existing platform/default certificate validation, without a permissive
+trust manager or hostname-verification override.
+
+Existing HTTP pairings and local rows are not rewritten, deleted or reassigned.
+Release sends report a fixed HTTPS-required diagnostic and stop automatic retries.
+For the same trusted backend, configure its valid HTTPS endpoint and use
+**Cambiar dirección del servidor** to verify the existing credential and retain the
+old ownership scope. Do not replace this step with ordinary unlink/relink: different
+server addresses are not automatically treated as the same owner. Initial release
+pairing requires an HTTPS QR/manual address. Debug HTTP behavior remains available.
+Redirect responses require correcting the configured canonical endpoint.
+
+Application backup is disabled. Legacy backup XML and both modern cloud and
+device-transfer sections additionally exclude `wallet_pulse_pairing_prefs.xml`,
+including token, URL, identity and owner-alias preferences. Existing whole-database
+and sidecar exclusions remain. No preference/database name or financial schema
+changed, and no credential rotation or new storage-encryption layer was introduced.
+The rules protect future supported backups/transfers, not copies already held by
+a backup provider. Device-specific transfer behavior still needs physical acceptance.
+See Android's [backup guidance](https://developer.android.com/identity/data/autobackup)
+and [network security configuration](https://developer.android.com/privacy-and-security/security-config).
+
+Executed checks: 81 JVM tests each for debug, captureTest and release, zero failures,
+errors or skips. Cases are shared across variants, not 243 distinct scenarios.
+Local sockets verified production HTTP rejection before connection/token delivery,
+debug loopback HTTP, and rejection of an ephemeral self-signed TLS certificate.
+Redirect flags/response handling, pending-row preservation and sanitized diagnostics
+passed. Backup tests check legacy/cloud/transfer rules and disabled app backup.
+Normal debug, unsigned release, isolated APK and instrumentation assembly passed.
+
+Actual APK manifests/resources were inspected, including release's optimized XML
+resource paths: release cleartext is false, debug cleartext is true, backup is false,
+and the pairing exclusions are packaged in legacy and both modern backup modes.
+CI now runs debug/release unit tests and assembles both variants. Hosted CI has not
+run for this change. No APK installation, real-backend HTTPS request, real backup
+restore, physical-device or lifecycle rerun was performed. The local log is ignored
+`android/app/build/outputs/capture-tests/security-build.txt`.
+
+Current debug APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.7 (20).
+SHA-256: `8771F2F77E917667FE5870AE9F7AEFEBB2581705DAED6A26F74B67D180D62B5A`.
+Unsigned release APK: `android/app/build/outputs/apk/release/app-release-unsigned.apk`,
+1.3.7 (20). SHA-256:
+`2C429261259CB3A5131860DC4754546FC2C018864AB966AE224A7D256278839B`.
+Current isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
+1.3.7-capturetest (20). SHA-256:
+`0D4F420369DFA94EA670825B16F78F2BD00A0B5B2040E63FA1E0FCB0DFA2A5B0`.
 
 ## Deep Doze acceptance — October 22
 
@@ -42,9 +97,9 @@ The existing SIGKILL/force-stop regressions passed together in 65.44 seconds on 
 new artifact. Cleanup was checked: deep state `ACTIVE`, force flag false, charging
 restored, and isolated listener access revoked.
 
-Current normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.6 (19).
+Doze follow-up normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.6 (19).
 SHA-256: `DBEBA93A99EBA44AE6104AA716FE418028A4B57DA8C488D990ADEC6FA24CD450`.
-Current isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
+Doze follow-up isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
 1.3.6-capturetest (19).
 SHA-256: `A91FAB770B0B89FDDE01CF0DD5BBFD8F47D269FDB0C642DAF4E592480E1B6EA3`.
 
@@ -240,7 +295,9 @@ Storage remains app-private without an additional application encryption layer.
 Because the inbox shares the Room file, **the entire `wallet_pulse_db` and its
 sidecars are excluded from cloud backup and device transfer**. Existing local
 transactions are not deleted, but those mechanisms will not restore the database.
-General HTTPS and pairing-credential backup hardening remain separate work.
+The current transport/credential-backup follow-up above adds release HTTPS policy
+and explicit pairing exclusions; the historical inbox exclusion alone was not
+complete security hardening.
 
 Capture uses the system notification listener and scheduled processing. No periodic
 health watchdog is configured. Review evidence is informative: it does not approve, edit or automatically send a
@@ -358,7 +415,7 @@ normal instrumented APK assembly and release Kotlin compilation also succeeded.
 | Priority | Open work | Acceptance evidence |
 |---|---|---|
 | P1 | Test remaining interruption and scheduling paths. | Natural untethered sleep, isolated worker scheduling and physical/OEM policies. Forced deep Doze passed with a live process and after SIGKILL; isolated reboot recovered automatically and force-stop recovery after opening is covered. These bounded observations do not establish universal autonomous recovery. |
-| P1 | Validate production transport and backup policy. | HTTPS restrictions and credential-backup behavior verified separately; do not treat inbox exclusions as complete security hardening. |
+| P1 | Validate deployment and device backup acceptance. | Local release HTTPS rejection/TLS checks and packaged credential exclusions passed. Real deployed HTTPS and provider/OEM backup/restore or transfer behavior remain unverified; existing remote backup copies are not purged by these rules. |
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |
 

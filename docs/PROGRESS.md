@@ -13,28 +13,27 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 | Area | Current evidence | Remaining acceptance |
 | --- | --- | --- |
-| Android capture | FinTrack 1.3.6 (19): forced deep Doze passed with a live process and after SIGKILL, with passive recovery and opening idempotency; 70 JVM tests per variant, two SIGKILL/force-stop regressions and six host safety tests passed. | Full nine-case suite and real reboot not repeated on this revision. Natural sleep, independent worker scheduling, physical/OEM acceptance and production transport/backup checks remain. See [capture progress](android/capture-progress.md). |
+| Android capture | FinTrack 1.3.7 (20): release HTTPS, redirect protection and credential-backup exclusions implemented; 81 JVM tests per debug/captureTest/release variant passed and packaged policies checked. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: Android deep Doze acceptance
+## Current checkpoint: Android transport and credential-backup policy
 
-- Owner: current chat; scope: forced deep Doze with durable pending capture,
-  both retaining the process and terminating it with real SIGKILL.
-- Status: verified for stated emulator scope; FinTrack 1.3.6 (19).
-- Changes: fixed-time captureTest-only gate, Doze mode in the guarded host runner,
-  passive Room/WAL inspection and restoration of simulated power/idle state. See
+- Owner: current chat; scope: release HTTPS, redirect/token protection and backup
+  exclusions without changing financial ownership or pairing storage identities.
+- Status: implemented and verified for local policy/artifact scope; 1.3.7 (20).
+- Changes: Android network security configuration, central request policy,
+  actionable HTTPS diagnostic, backup exclusions and release checks in CI. See
   [capture progress](android/capture-progress.md).
-- Checks: 70 JVM tests per variant, APK/test compilation, two actual deep-IDLE
-  scenarios with automatic processing before app opening, preserved synthetic
-  owner/identity/hash and two passing SIGKILL/force-stop regressions (65.44 seconds).
-  Six host safety tests passed. Full nine-case suite and reboot were not repeated.
-- Limitations: one disposable emulator and unpaired fixtures; no physical device,
-  real provider/backend, natural sleep, independent worker-scheduling evidence or
-  universal background-recovery guarantee. Forced idle ended ACTIVE, force=false,
-  charging restored and test listener access revoked.
-- Next action: user reviews/commits the focused groups, then proceed with isolated
-  production HTTPS/credential-backup review and physical-device acceptance.
+- Checks: 81 JVM tests per debug/captureTest/release variant, including loopback
+  HTTP rejection, allowed debug HTTP, untrusted TLS rejection and pending-row
+  preservation. All APK variants and isolated instrumentation assembled; actual
+  manifests and optimized release XML policies were inspected.
+- Limitations: no APK installation, real-backend request, backup restore/transfer,
+  lifecycle rerun or hosted CI execution. Signing/production deployment is separate;
+  prior remote backups are not deleted by the new exclusion policy.
+- Next action: user reviews/commits the focused groups, checks hosted CI and then
+  performs authorized physical-device/provider and deployment acceptance.
   No agent commit or push was performed. The prior backend/setup
   evidence remains in [its record](development/persistence-progress.md).
 
