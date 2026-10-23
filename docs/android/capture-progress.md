@@ -1,8 +1,52 @@
-# Android capture progress — FinTrack 1.3.5 (18)
+# Android capture progress — FinTrack 1.3.6 (19)
 
-Updated: October 21, 2026. This record tracks Android notification capture
+Updated: October 22, 2026. This record tracks Android notification capture
 implementation, validation and remaining work. The historical runtime evidence below
-belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.5 (18).
+belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.6 (19).
+
+## Deep Doze acceptance — October 22
+
+Two host-driven scenarios passed on the disposable x86_64 SDK 37 emulator: retaining
+the live app process and terminating its original PID with real `run-as`/`SIGKILL`
+during deep Doze. In both, one synthetic observation was committed and pending,
+its source removed, before Android reported `IDLE`. The target was not permanently
+allowlisted. The host kept verifying deep idle for 45 seconds while inspecting
+passive Room/WAL copies, without app control broadcasts or activity opening.
+
+The captureTest-only `arm_doze` gate makes processing eligible 30 seconds after
+arming, independent of Doze exit. It is not a simulation of OS scheduling: it holds
+the fixture only long enough to establish the pending-work precondition. Processing
+then uses the existing application/worker paths. Both runs processed the movement
+while deep idle was still confirmed. After unforcing idle, restoring battery state
+and waking the screen, passive inspection and explicit activity opening preserved
+one movement and its hash, captured identity/timezone/timestamps and unassigned
+ownership. No backend acknowledgement or Internet access was involved.
+
+This establishes conservation and processing in these controlled emulator cases,
+including replacement of a dead process. It does not prove that Doze always delays
+processing, that WorkManager ran independently of the in-process processor, or that
+untethered physical devices behave the same. ADB diagnostics wake the host/guest for
+inspection; forced deep idle is not a battery-life or natural-sleep measurement.
+Temporary platform allowances and OEM policies are not universally excluded.
+
+The existing reboot runner now accepts `-Scenario doze` and optional
+`-KillDuringIdle`; the default remains the original reboot scenario. It restores
+forced-idle, simulated battery and initial screen state and revokes test listener
+access on exit. Preparation, verification and cleanup each passed instrumented
+checks. Reports are retained in ignored
+`android/app/build/outputs/capture-tests/doze-*.txt`, `doze-result.json` and
+`doze-kill-result.json`. Six host safety tests and 70 JVM tests per variant passed.
+Normal and isolated APK/test assembly succeeded; the nine-case lifecycle suite
+was not rerun in full. The real reboot scenario was not repeated for this follow-up.
+The existing SIGKILL/force-stop regressions passed together in 65.44 seconds on the
+new artifact. Cleanup was checked: deep state `ACTIVE`, force flag false, charging
+restored, and isolated listener access revoked.
+
+Current normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.6 (19).
+SHA-256: `DBEBA93A99EBA44AE6104AA716FE418028A4B57DA8C488D990ADEC6FA24CD450`.
+Current isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
+1.3.6-capturetest (19).
+SHA-256: `A91FAB770B0B89FDDE01CF0DD5BBFD8F47D269FDB0C642DAF4E592480E1B6EA3`.
 
 ## Device reboot acceptance — October 21
 
@@ -45,9 +89,9 @@ SIGKILL and force-stop scenarios passed together on the new artifact in 16.981
 seconds. Reports are in ignored
 `android/app/build/outputs/capture-tests/reboot-*.txt` and `reboot-result.json`.
 
-Current normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.5 (18).
+Reboot follow-up normal APK: `android/app/build/outputs/apk/debug/app-debug.apk`, 1.3.5 (18).
 SHA-256: `1BEEB4BCE01016DD6A992E425B9D066650D849F2B4C011CACD01F49B86E36BEF`.
-Current isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
+Reboot follow-up isolated APK: `android/app/build/outputs/apk/captureTest/app-captureTest.apk`,
 1.3.5-capturetest (18).
 SHA-256: `EBBD8B9B896175E8036EBB239BD3D8B14A01EA28D6E40A039C9C387106119C8E`.
 
@@ -162,7 +206,7 @@ transaction hashes and backend contract are preserved.
 |---|---|---|
 | Capture durability | Room v3 inbox; non-destructive 1→2→3 migration; bounded application-owned ingress with checked admission; processing after the first durable write. Kernel-kill recovery is checked before/after commit. | Real storage failures and unattended restart/scheduling behavior. |
 | Identity | Separate observations from transactions; atomic processing completion and financial insertion; reused active sources with a different event identity can require review. Synthetic Android updates and active replay are tested. | Current provider update behavior; indistinguishable payments cannot be resolved universally. |
-| Listener health | Shared reconnect coordinator for disconnect, active-instance destruction, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. Exhaustion, disabled-component recovery, in-flight destruction and isolated reboot have Android coverage. | Doze, unattended restart under other restrictions and physical-device/OEM behavior. |
+| Listener health | Shared reconnect coordinator for disconnect, active-instance destruction, foreground and manual actions; three attempts per cycle, at least 60 seconds apart; permission/component checks; active replay only while connected. Exhaustion, disabled-component recovery, in-flight destruction, isolated reboot and forced deep Doze have Android coverage. | Natural sleep, unattended restart under other restrictions and physical-device/OEM behavior. |
 | Parsing | Separate title/text/expanded/lines; explicit recognized, nonfinancial, ambiguous and unsupported results; compatible repeated title/body amounts; summaries excluded. Portable Unicode regex guards execute on Android. | Current provider formats; grouped synthetic delivery is verified only on the tested emulator. |
 | Recovery and sync | Resume inbox processing and existing pending uploads on application startup, listener connection and successful pairing. | Scheduling behavior under device restrictions. |
 | UI | Separate durable capture, saved movement, processing backlog, upload backlog and local review evidence. | Device UI validation; manual payment approval is not implemented. |
@@ -313,7 +357,7 @@ normal instrumented APK assembly and release Kotlin compilation also succeeded.
 
 | Priority | Open work | Acceptance evidence |
 |---|---|---|
-| P1 | Test remaining interruption and scheduling paths. | Doze and unattended processing/restart across device restrictions and physical/OEM reboot behavior. One isolated reboot recovered automatically; force-stop followed by explicit reopening is covered. These bounded observations do not establish universal autonomous recovery. |
+| P1 | Test remaining interruption and scheduling paths. | Natural untethered sleep, isolated worker scheduling and physical/OEM policies. Forced deep Doze passed with a live process and after SIGKILL; isolated reboot recovered automatically and force-stop recovery after opening is covered. These bounded observations do not establish universal autonomous recovery. |
 | P1 | Validate production transport and backup policy. | HTTPS restrictions and credential-backup behavior verified separately; do not treat inbox exclusions as complete security hardening. |
 | P2 | Measure bursts and device/OEM behavior. | Record callback-to-commit and processing latency, backlog, recognized/review counts and acknowledgements at documented load/hardware. No reliability percentage or SLA is established yet. |
 | Deferred | Additional wallets and manual ambiguity resolution. | Explicit scope, provider fixtures, authorization and business rules before implementation. |

@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 21, 2026. This is the entry point for current work, not a release
+Updated: October 22, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -13,25 +13,29 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 | Area | Current evidence | Remaining acceptance |
 | --- | --- | --- |
-| Android capture | FinTrack 1.3.5 (18): real isolated reboot, passive automatic recovery and explicit-opening idempotency verified; 70 JVM tests per variant, two SIGKILL/force-stop regressions and three host safety tests passed. | Full nine-case lifecycle suite not rerun. Doze, physical/OEM acceptance and production transport/backup checks remain. See [capture progress](android/capture-progress.md). |
+| Android capture | FinTrack 1.3.6 (19): forced deep Doze passed with a live process and after SIGKILL, with passive recovery and opening idempotency; 70 JVM tests per variant, two SIGKILL/force-stop regressions and six host safety tests passed. | Full nine-case suite and real reboot not repeated on this revision. Natural sleep, independent worker scheduling, physical/OEM acceptance and production transport/backup checks remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: Android reboot acceptance
+## Current checkpoint: Android deep Doze acceptance
 
-- Owner: current chat; scope: isolated Android recovery after a real emulator reboot.
-- Status: verified for stated emulator scope; FinTrack 1.3.5 (18).
-- Changes: captureTest-only gate release on a new boot, split instrumentation
-  phases, passive host Room/WAL inspection and guarded reboot runner. See
+- Owner: current chat; scope: forced deep Doze with durable pending capture,
+  both retaining the process and terminating it with real SIGKILL.
+- Status: verified for stated emulator scope; FinTrack 1.3.6 (19).
+- Changes: fixed-time captureTest-only gate, Doze mode in the guarded host runner,
+  passive Room/WAL inspection and restoration of simulated power/idle state. See
   [capture progress](android/capture-progress.md).
-- Checks: 70 JVM tests per variant, APK/test compilation, real boot-ID change,
-  passive automatic recovery, explicit-opening idempotency, preserved synthetic
-  owner/identity and two passing SIGKILL/force-stop regressions. Three host safety
-  tests passed. Full nine-case lifecycle suite was not rerun.
+- Checks: 70 JVM tests per variant, APK/test compilation, two actual deep-IDLE
+  scenarios with automatic processing before app opening, preserved synthetic
+  owner/identity/hash and two passing SIGKILL/force-stop regressions (65.44 seconds).
+  Six host safety tests passed. Full nine-case suite and reboot were not repeated.
 - Limitations: one disposable emulator and unpaired fixtures; no physical device,
-  real provider/backend, Doze or universal background-recovery guarantee.
+  real provider/backend, natural sleep, independent worker-scheduling evidence or
+  universal background-recovery guarantee. Forced idle ended ACTIVE, force=false,
+  charging restored and test listener access revoked.
 - Next action: user reviews/commits the focused groups, then proceed with isolated
-  Doze acceptance. No agent commit or push was performed. The prior backend/setup
+  production HTTPS/credential-backup review and physical-device acceptance.
+  No agent commit or push was performed. The prior backend/setup
   evidence remains in [its record](development/persistence-progress.md).
 
 ## Next priorities
