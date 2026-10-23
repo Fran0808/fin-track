@@ -122,7 +122,7 @@ fun PairingDialog(
                     value = manualServerUrl,
                     onValueChange = { manualServerUrl = it },
                     label = { Text("Dirección del servidor") },
-                    placeholder = { Text("http://192.168.1.50:8080") },
+                    placeholder = { Text(if (BuildConfig.DEBUG) "http://192.168.1.50:8080" else "https://api.example.com") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -257,7 +257,9 @@ private fun verifyAndSaveToken(
         } catch (e: Exception) {
             withContext(Dispatchers.Main) {
                 onFinish()
-                onError("No se pudo conectar. Comprueba que el teléfono pueda acceder a la dirección del servidor e inténtalo otra vez.")
+                onError(if (e is com.financemanager.listener.network.InsecureTransportException)
+                    "Esta versión requiere una dirección HTTPS para conectar con la web."
+                else "No se pudo conectar. Comprueba que el teléfono pueda acceder a la dirección del servidor e inténtalo otra vez.")
             }
         }
     }

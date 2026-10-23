@@ -3,14 +3,12 @@ package com.financemanager.listener.network
 import com.financemanager.listener.BuildConfig
 import com.financemanager.listener.FinTrackApplication
 import com.financemanager.listener.data.PairingPreferences
-import okhttp3.OkHttpClient
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.POST
-import java.util.concurrent.TimeUnit
 
 interface ApiService {
     @POST("api/v1/transactions/sync/batch")
@@ -29,13 +27,6 @@ object ApiClient {
     private var customBaseUrl: String? = null
     private var cachedService: ApiService? = null
 
-    private fun getOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .build()
-    }
-
     private fun resolveBaseUrl(): String {
         return try {
             val app = FinTrackApplication.instance
@@ -48,14 +39,14 @@ object ApiClient {
 
     @Synchronized
     fun getService(overrideBaseUrl: String? = null): ApiService {
-        val targetUrl = com.financemanager.listener.data.PairingScope.normalizeServer(overrideBaseUrl ?: resolveBaseUrl())
+        val targetUrl = TransportPolicy.validate(overrideBaseUrl ?: resolveBaseUrl(), BuildConfig.DEBUG)
         if (cachedService != null && customBaseUrl == targetUrl) {
             return cachedService!!
         }
 
         val retrofit = Retrofit.Builder()
             .baseUrl(if (targetUrl.endsWith("/")) targetUrl else "$targetUrl/")
-            .client(getOkHttpClient())
+            .client(TransportPolicy.client(BuildConfig.DEBUG))
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 

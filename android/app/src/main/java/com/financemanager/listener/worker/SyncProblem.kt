@@ -7,7 +7,7 @@ import java.net.UnknownHostException
 import javax.net.ssl.SSLException
 
 enum class SyncFailure {
-    CONNECTION, TIMEOUT, HOST, SECURE_CONNECTION, MISSING_RECEIPT, AUTHORIZATION, HTTP, INVALID_RECORD, LOCAL
+    CONNECTION, TIMEOUT, HOST, SECURE_CONNECTION, HTTPS_REQUIRED, MISSING_RECEIPT, AUTHORIZATION, HTTP, INVALID_RECORD, LOCAL
 }
 
 data class SyncProblem(val failure: SyncFailure, val httpCode: Int? = null) {
@@ -16,6 +16,7 @@ data class SyncProblem(val failure: SyncFailure, val httpCode: Int? = null) {
         SyncFailure.TIMEOUT -> "El servidor no respondió a tiempo. Comprueba la conexión e inténtalo otra vez."
         SyncFailure.HOST -> "No se encontró la dirección del servidor. Revisa la conexión y el destino configurado."
         SyncFailure.SECURE_CONNECTION -> "No se pudo establecer una conexión segura con el servidor."
+        SyncFailure.HTTPS_REQUIRED -> "Esta versión requiere HTTPS. Usa ‘Cambiar dirección del servidor’ para verificar la dirección segura del mismo servidor. Los movimientos siguen guardados."
         SyncFailure.MISSING_RECEIPT -> "El servidor respondió sin confirmar el movimiento. Sigue guardado como pendiente."
         SyncFailure.AUTHORIZATION -> "El servidor rechazó la autorización. Conecta de nuevo con la web."
         SyncFailure.HTTP -> "El servidor rechazó el envío (HTTP $httpCode). El movimiento sigue guardado."
@@ -25,6 +26,7 @@ data class SyncProblem(val failure: SyncFailure, val httpCode: Int? = null) {
 }
 
 fun syncProblem(error: Exception): SyncProblem = SyncProblem(when (error) {
+    is com.financemanager.listener.network.InsecureTransportException -> SyncFailure.HTTPS_REQUIRED
     is SocketTimeoutException -> SyncFailure.TIMEOUT
     is UnknownHostException -> SyncFailure.HOST
     is SSLException -> SyncFailure.SECURE_CONNECTION

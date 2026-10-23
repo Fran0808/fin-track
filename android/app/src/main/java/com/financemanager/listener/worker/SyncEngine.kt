@@ -44,6 +44,9 @@ object SyncEngine {
                 }
             } catch (e: CancellationException) {
                 throw e
+            } catch (error: com.financemanager.listener.network.InsecureTransportException) {
+                onProblem(syncProblem(error))
+                return SyncOutcome.REJECTED
             } catch (error: IOException) {
                 onProblem(syncProblem(error))
                 return SyncOutcome.RETRY

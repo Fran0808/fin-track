@@ -36,14 +36,18 @@ android {
         applicationId = "com.financemanager.listener"
         minSdk = 26
         targetSdk = 37
-        versionCode = 19
-        versionName = "1.3.6"
+        versionCode = 20
+        versionName = "1.3.7"
+        manifestPlaceholders["allowCleartextTraffic"] = "false"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "BASE_URL", "\"$serverBaseUrl\"")
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["allowCleartextTraffic"] = "true"
+        }
         create("captureTest") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".capturetest"
@@ -74,6 +78,9 @@ android {
 }
 
 androidComponents {
+    beforeVariants(selector().withBuildType("release")) {
+        it.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
     beforeVariants(selector().withBuildType("captureTest")) {
         it.enableAndroidTest = true
         it.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true

@@ -10,6 +10,20 @@ import java.io.IOException
 import java.net.ConnectException
 
 class SyncEngineTest {
+    @Test fun insecureTransportPreservesPendingRowsAndReportsPermanentConfigurationFailure() = runBlocking {
+        val pending = entry("pending-hash")
+        var acknowledgements = 0
+        var problem: SyncProblem? = null
+        val outcome = SyncEngine.run(listOf(pending), "a", { true },
+            send = { throw com.financemanager.listener.network.InsecureTransportException() },
+            acknowledge = { acknowledgements++ }, onProblem = { problem = it })
+        assertEquals(SyncOutcome.REJECTED, outcome)
+        assertEquals(SyncFailure.HTTPS_REQUIRED, problem?.failure)
+        assertEquals(0, acknowledgements)
+        assertFalse(pending.isSynced)
+        assertEquals("pending-hash", pending.transactionHash)
+        assertEquals("a", pending.ownerKey)
+    }
     private fun entry(hash: String, owner: String? = "a") = LocalTransactionEntity(
         amount = "50.00", flowType = "INCOME", contactName = "Test Sender",
         transactionDate = "2026-10-07T12:00:00", transactionHash = hash, rawText = "test", ownerKey = owner

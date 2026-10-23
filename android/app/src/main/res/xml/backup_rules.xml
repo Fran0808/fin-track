@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
+        <exclude domain="sharedpref" path="wallet_pulse_pairing_prefs.xml" />
         <exclude domain="database" path="wallet_pulse_db" />
         <exclude domain="database" path="wallet_pulse_db-wal" />
         <exclude domain="database" path="wallet_pulse_db-shm" />

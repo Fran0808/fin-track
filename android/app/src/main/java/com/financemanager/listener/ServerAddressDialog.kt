@@ -34,7 +34,7 @@ fun ServerAddressDialog(session: PairingSession, onDismiss: () -> Unit, onSaved:
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("Usa esta opción si cambió la dirección de tu mismo servidor. Verificaremos la vinculación actual y conservaremos tus movimientos y pagos pendientes.")
                 OutlinedTextField(address, { address = it }, label = { Text("Dirección del servidor") },
-                    placeholder = { Text("http://192.168.1.50:8080") }, singleLine = true,
+                    placeholder = { Text(if (BuildConfig.DEBUG) "http://192.168.1.50:8080" else "https://api.example.com") }, singleLine = true,
                     enabled = !verifying, modifier = Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (verifying) Text("Verificando la conexión y tu vinculación…")

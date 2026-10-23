@@ -79,6 +79,10 @@ class TransactionSynchronizer(
 
     private fun retryOrStop(problem: SyncProblem?): SyncAttemptResult {
         CaptureStatus.event(CaptureEvent.SEND_FAILED)
+        if (problem?.failure == SyncFailure.HTTPS_REQUIRED) {
+            CaptureStatus.sync(problem.message, SyncPhase.REJECTED)
+            return SyncAttemptResult.FAILURE
+        }
         val detail = problem?.message ?: "No se pudo completar el envío."
         return if (manual) {
             CaptureStatus.sync("$detail Puedes pulsar ‘Enviar ahora’ para volver a intentarlo.", SyncPhase.RETRY)
