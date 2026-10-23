@@ -1,4 +1,4 @@
-"""Host reboot acceptance for the disposable, network-isolated capture app."""
+"""Host reboot/Doze acceptance for the disposable, network-isolated capture app."""
 import argparse
 from contextlib import closing
 import json
@@ -25,11 +25,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adb", required=True)
     parser.add_argument("--serial", required=True)
+    parser.add_argument("--scenario", choices=("reboot", "doze"), default="reboot")
+    parser.add_argument("--kill-during-idle", action="store_true")
     args = parser.parse_args()
     require(re.fullmatch(r"emulator-\d+", args.serial), "Explicit emulator serial required")
+    require(not args.kill_during_idle or args.scenario == "doze", "Idle kill requires Doze scenario")
+    report_name = args.scenario + ("-kill" if args.kill_during_idle else "")
     output = ROOT / "android/app/build/outputs/capture-tests"
     output.mkdir(parents=True, exist_ok=True)
-    run = "lifecycle-reboot-" + uuid.uuid4().hex[:16]
+    run = "lifecycle-" + args.scenario + "-" + uuid.uuid4().hex[:16]
 
     def adb(*command, optional=False):
         result = subprocess.run([args.adb, "-s", args.serial, *command], capture_output=True, timeout=180)
@@ -75,10 +79,11 @@ def main():
     def phase(name):
         result = adb("shell", "am", "instrument", "-w", "-r", "-e", "class",
                      "com.fintrack.capture.emitter.CaptureRebootTest", "-e", "capture_run", run,
+                     "-e", "capture_scenario", args.scenario,
                      "-e", "reboot_phase", name,
                      "com.fintrack.capture.emitter.test/androidx.test.runner.AndroidJUnitRunner")
         report = result.stdout.decode("utf-8", errors="replace")
-        (output / ("reboot-" + name + ".txt")).write_text(report, encoding="utf-8")
+        (output / (report_name + "-" + name + ".txt")).write_text(report, encoding="utf-8")
         require("OK (1 test)" in report and "FAILURES!!!" not in report, "Reboot phase failed: " + name)
 
     def snapshot():
@@ -118,6 +123,9 @@ def main():
     def saved(state):
         return len(state["movements"]) == 1 and state["observations"][0][5] == "SAVED"
 
+    idle_touched = False
+    was_awake = False
+    during_idle = None
     try:
         print("Preparing a committed pending capture", flush=True)
         phase("prepare")
@@ -125,9 +133,52 @@ def main():
         require(len(before["observations"]) == 1 and before["observations"][0][5] == "PENDING"
                 and not before["movements"], "Fixture must be durable and unprocessed before reboot")
         require(before["observations"][0][1] is None, "Fixture must be unpaired")
-        print("Rebooting the isolated emulator", flush=True)
-        adb("reboot")
-        boot_after = wait_boot(boot_before)
+        if args.scenario == "reboot":
+            print("Rebooting the isolated emulator", flush=True)
+            adb("reboot")
+            boot_after = wait_boot(boot_before)
+        else:
+            require(TARGET not in text("shell", "dumpsys", "deviceidle", "whitelist"),
+                    "Target must not be permanently exempt from Doze")
+            was_awake = "mWakefulness=Awake" in text("shell", "dumpsys", "power")
+            idle_touched = True
+            adb("shell", "input", "keyevent", "3")
+            adb("shell", "dumpsys", "battery", "unplug")
+            adb("shell", "input", "keyevent", "223")
+            adb("shell", "dumpsys", "deviceidle", "force-idle", "deep")
+            require(text("shell", "dumpsys", "deviceidle", "get", "deep") == "IDLE", "Deep Doze not entered")
+            entered = snapshot()
+            same_observation(before, entered)
+            require(entered["observations"][0][5] == "PENDING" and not entered["movements"],
+                    "Capture must still be pending at Doze entry")
+            print("Deep Doze entered with one pending observation", flush=True)
+            if args.kill_during_idle:
+                pids = text("shell", "pidof", TARGET).split()
+                require(len(pids) == 1 and pids[0].isdigit(), "Expected one isolated app process")
+                adb("shell", "run-as", TARGET, "kill", "-9", pids[0])
+                death_deadline = time.monotonic() + 20
+                while pids[0] in adb("shell", "pidof", TARGET, optional=True).stdout.decode().split():
+                    require(time.monotonic() < death_deadline, "Original process survived SIGKILL")
+                    time.sleep(0.1)
+                print("Original application process terminated during Doze", flush=True)
+            idle_deadline = time.monotonic() + 45
+            while True:
+                require(text("shell", "dumpsys", "deviceidle", "get", "deep") == "IDLE", "Doze exited early")
+                state = snapshot()
+                same_observation(before, state)
+                require(len(state["movements"]) <= 1, "Movement duplicated in Doze")
+                if saved(state):
+                    during_idle = state
+                if time.monotonic() >= idle_deadline:
+                    break
+                time.sleep(2)
+            print("Capture processed during Doze: " + str(during_idle is not None), flush=True)
+            adb("shell", "dumpsys", "deviceidle", "unforce")
+            adb("shell", "dumpsys", "battery", "reset")
+            adb("shell", "input", "keyevent", "224")
+            require(text("shell", "dumpsys", "deviceidle", "get", "deep") != "IDLE", "Doze did not exit")
+            boot_after = text("shell", "cat", "/proc/sys/kernel/random/boot_id")
+            require(boot_after == boot_before, "Unexpected reboot during Doze scenario")
         # A boot ID change proves device reboot; PID comparison alone would not.
         deadline = time.monotonic() + 30
         automatic = None
@@ -150,16 +201,28 @@ def main():
         require(final["observations"][0][6] == final["movements"][0][0], "Inbox and movement hashes differ")
         if automatic is not None:
             require(automatic["movements"] == final["movements"], "Explicit reopening changed recovered movement")
-        summary = {"run": run, "boot_id_changed": boot_after != boot_before,
+        if during_idle is not None:
+            require(during_idle["movements"] == final["movements"], "Doze exit changed recovered movement")
+        summary = {"run": run, "scenario": args.scenario, "boot_id_changed": boot_after != boot_before,
                    "automatic_recovery_observed": automatic is not None, "passive_window_seconds": 30,
                    "identity_owner_and_hash_preserved": True, "movements": 1, "synced": 0}
-        (output / "reboot-result.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        if args.scenario == "doze":
+            summary.update(deep_idle_verified=True, idle_observation_seconds=45,
+                           process_killed_during_idle=args.kill_during_idle,
+                           processed_during_idle=during_idle is not None)
+        (output / (report_name + "-result.json")).write_text(json.dumps(summary, indent=2), encoding="utf-8")
         print(json.dumps(summary), flush=True)
     finally:
         try:
-            phase("cleanup")
+            if idle_touched:
+                adb("shell", "dumpsys", "deviceidle", "unforce", optional=True)
+                adb("shell", "dumpsys", "battery", "reset", optional=True)
+                adb("shell", "input", "keyevent", "224" if was_awake else "223", optional=True)
         finally:
-            adb("shell", "cmd", "notification", "disallow_listener", COMPONENT, optional=True)
+            try:
+                phase("cleanup")
+            finally:
+                adb("shell", "cmd", "notification", "disallow_listener", COMPONENT, optional=True)
 
 
 if __name__ == "__main__":

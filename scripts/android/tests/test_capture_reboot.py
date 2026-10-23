@@ -1,5 +1,6 @@
 """Safety guards must reject other devices/artifacts before installation or reboot."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -12,6 +13,28 @@ spec.loader.exec_module(reboot)
 
 
 class RebootSafetyTest(unittest.TestCase):
+    def test_idle_kill_requires_doze_without_adb(self):
+        with patch("sys.argv", ["reboot", "--adb", "unused", "--serial", "emulator-5580", "--kill-during-idle"]), \
+                patch.object(reboot.subprocess, "run") as run:
+            with self.assertRaisesRegex(RuntimeError, "Idle kill requires Doze"):
+                reboot.main()
+            run.assert_not_called()
+
+    def test_doze_rejects_physical_serial_without_adb(self):
+        with patch("sys.argv", ["reboot", "--adb", "unused", "--serial", "phone", "--scenario", "doze"]), \
+                patch.object(reboot.subprocess, "run") as run:
+            with self.assertRaisesRegex(RuntimeError, "Explicit emulator"):
+                reboot.main()
+            run.assert_not_called()
+
+    def test_unknown_scenario_is_rejected_without_adb(self):
+        with patch("sys.argv", ["reboot", "--adb", "unused", "--serial", "emulator-5580", "--scenario", "unknown"]), \
+                patch.object(reboot.subprocess, "run") as run, patch("sys.stderr", new_callable=io.StringIO):
+            with self.assertRaises(SystemExit) as failure:
+                reboot.main()
+            self.assertEqual(2, failure.exception.code)
+            run.assert_not_called()
+
     def test_physical_serial_is_rejected_without_adb(self):
         with patch("sys.argv", ["reboot", "--adb", "unused", "--serial", "physical-device"]), \
                 patch.object(reboot.subprocess, "run") as run:
