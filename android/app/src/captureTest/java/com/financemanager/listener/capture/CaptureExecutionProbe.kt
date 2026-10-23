@@ -3,6 +3,7 @@ package com.financemanager.listener.capture
 import android.content.Context
 import android.os.Process
 import android.os.SystemClock
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import com.financemanager.listener.FinTrackApplication
 import com.financemanager.listener.data.CaptureObservation
@@ -22,6 +23,9 @@ internal object CaptureExecutionProbe {
     fun blockRebind() { rebindBlocked = true }
 
     suspend fun checkpoint(stage: String, observation: CaptureObservation) {
+        if (prefs.contains("release_boot") && prefs.getInt("release_boot", -1) != bootCount()) {
+            release()
+        }
         if (observation.kind != "POSTED") return
         val run = prefs.getString("run", null) ?: return
         if (!observation.sourceKey.contains(run)) return
@@ -42,9 +46,15 @@ internal object CaptureExecutionProbe {
             .putLong("expires", System.currentTimeMillis() + 120_000).commit())
     }
 
+    private fun bootCount() = Settings.Global.getInt(FinTrackApplication.instance.contentResolver, Settings.Global.BOOT_COUNT)
+    fun armReboot(run: String) {
+        arm(run, "AFTER_COMMIT")
+        check(prefs.edit().putInt("release_boot", bootCount()).commit())
+    }
+
     fun release() {
         rebindBlocked = false
-        check(prefs.edit().remove("gate").remove("run").commit())
+        check(prefs.edit().remove("gate").remove("run").remove("release_boot").commit())
     }
     fun reset() { release(); synchronized(events) { events.clear() } }
     fun listenerConnected(service: NotificationListenerService) {

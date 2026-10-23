@@ -30,6 +30,7 @@ class LifecycleControlReceiver : BroadcastReceiver() {
                 require(run.matches(Regex("lifecycle-[a-z0-9-]{1,50}")))
                 when (intent.getStringExtra("command")) {
                     "arm" -> CaptureExecutionProbe.arm(run, requireNotNull(intent.getStringExtra("stage")))
+                    "arm_reboot" -> CaptureExecutionProbe.armReboot(run)
                     "release" -> { CaptureExecutionProbe.release(); CaptureRuntime.get(context).resume() }
                     "reset" -> CaptureExecutionProbe.reset()
                     "snapshot" -> Unit

@@ -33,7 +33,8 @@ import java.util.concurrent.TimeUnit
 class CaptureLifecycleTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val context: Context get() = instrumentation.targetContext
-    private val runId = "lifecycle-${UUID.randomUUID().toString().take(20)}"
+    private val runId = InstrumentationRegistry.getArguments().getString("capture_run")
+        ?: "lifecycle-${UUID.randomUUID().toString().take(20)}"
     private val eventTime = System.currentTimeMillis() - 5_000
     private var prepared = false
 
@@ -333,6 +334,37 @@ class CaptureLifecycleTest {
     }
 
     private fun publish() = NotificationFixtures.publish(context, "basic", runId, eventTime)
+    internal fun prepareRebootCapture() {
+        prepareDisposableTarget()
+        control("arm_reboot")
+        publish()
+        val committed = awaitState("reboot fixture committed before processing") {
+            it.optString("reached") == "AFTER_COMMIT" && it.getInt("pending") == 1
+        }
+        assertEquals(0, committed.getInt("movements"))
+        cancelAndVerifyGone()
+    }
+
+    internal fun verifyRebootCapture() {
+        prepared = true
+        try {
+            reopenTarget()
+            val saved = awaitState("movement processed after reboot and explicit launch", 90_000) {
+                it.getInt("movements") == 1 && it.getInt("pending") == 0
+            }
+            val hashes = saved.getJSONArray("hashes").toString()
+            repeat(3) { control("foreground") }
+            val final = control()
+            assertEquals(1, final.getInt("posted"))
+            assertEquals(0, final.getInt("synced"))
+            assertEquals(hashes, final.getJSONArray("hashes").toString())
+        } finally { releaseOnlyOwnFixtures() }
+    }
+
+    internal fun cleanupRebootCapture() {
+        prepared = true
+        releaseOnlyOwnFixtures()
+    }
     private fun manager() = context.getSystemService(NotificationManager::class.java)
     private fun cancelAndVerifyGone() {
         NotificationFixtures.publish(context, "clear", runId, eventTime)
