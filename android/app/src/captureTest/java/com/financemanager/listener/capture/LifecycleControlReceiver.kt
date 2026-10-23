@@ -31,6 +31,7 @@ class LifecycleControlReceiver : BroadcastReceiver() {
                 when (intent.getStringExtra("command")) {
                     "arm" -> CaptureExecutionProbe.arm(run, requireNotNull(intent.getStringExtra("stage")))
                     "arm_reboot" -> CaptureExecutionProbe.armReboot(run)
+                    "arm_doze" -> CaptureExecutionProbe.armDoze(run)
                     "release" -> { CaptureExecutionProbe.release(); CaptureRuntime.get(context).resume() }
                     "reset" -> CaptureExecutionProbe.reset()
                     "snapshot" -> Unit

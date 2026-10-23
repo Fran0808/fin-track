@@ -334,9 +334,10 @@ class CaptureLifecycleTest {
     }
 
     private fun publish() = NotificationFixtures.publish(context, "basic", runId, eventTime)
-    internal fun prepareRebootCapture() {
+    internal fun prepareRebootCapture(command: String = "arm_reboot") {
+        require(command in setOf("arm_reboot", "arm_doze"))
         prepareDisposableTarget()
-        control("arm_reboot")
+        control(command)
         publish()
         val committed = awaitState("reboot fixture committed before processing") {
             it.optString("reached") == "AFTER_COMMIT" && it.getInt("pending") == 1

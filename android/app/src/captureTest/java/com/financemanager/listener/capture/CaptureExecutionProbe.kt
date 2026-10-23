@@ -35,6 +35,11 @@ internal object CaptureExecutionProbe {
             check(prefs.edit().putString("reached", stage).putInt("checkpoint_pid", Process.myPid()).commit())
         }
         while (prefs.getString("run", null) == run && prefs.getString("gate", null) == gate) {
+            val releaseAt = prefs.getLong("release_at", 0)
+            if (releaseAt > 0 && System.currentTimeMillis() >= releaseAt) {
+                release()
+                return
+            }
             check(System.currentTimeMillis() < prefs.getLong("expires", 0)) { "Synthetic checkpoint expired" }
             delay(20)
         }
@@ -52,9 +57,14 @@ internal object CaptureExecutionProbe {
         check(prefs.edit().putInt("release_boot", bootCount()).commit())
     }
 
+    fun armDoze(run: String) {
+        arm(run, "AFTER_COMMIT")
+        check(prefs.edit().putLong("release_at", System.currentTimeMillis() + 30_000).commit())
+    }
+
     fun release() {
         rebindBlocked = false
-        check(prefs.edit().remove("gate").remove("run").remove("release_boot").commit())
+        check(prefs.edit().remove("gate").remove("run").remove("release_boot").remove("release_at").commit())
     }
     fun reset() { release(); synchronized(events) { events.clear() } }
     fun listenerConnected(service: NotificationListenerService) {
