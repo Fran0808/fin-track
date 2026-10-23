@@ -159,11 +159,11 @@ jobs:
 
       - name: Run Android Unit Tests
         working-directory: android
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew testDebugUnitTest testReleaseUnitTest
 
-      - name: Assemble Debug APK
+      - name: Assemble Android APKs
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug assembleRelease
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
