@@ -51,7 +51,7 @@ export function TransactionFilters({
 }: TransactionFiltersProps) {
   const [localSearch, setLocalSearch] = useState(search);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const { options: categoryOptions } = useCategories(true);
+  const { options: categoryOptions, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
   useEffect(() => {
     setLocalSearch(search);
@@ -70,7 +70,7 @@ export function TransactionFilters({
     channel,
     minAmount !== undefined && minAmount !== null && !isNaN(minAmount) ? minAmount : '',
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
-  ].filter(Boolean).length;
+  ].filter(value => value !== '' && value !== undefined && value !== null).length;
 
   const hasAnyFilter = Boolean(localSearch.trim() || flowType || startDate || endDate || activeAdvancedCount > 0);
 
@@ -179,6 +179,7 @@ export function TransactionFilters({
                   className="text-xs py-1.5"
                 />
               </div>
+              {categoryError && <p role="alert" className="mt-2 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
             </div>
 
             <div>
@@ -227,6 +228,7 @@ export function TransactionFilters({
                     })
                   }
                   placeholder="Mín."
+                  aria-label="Importe mínimo en soles"
                   className="w-full rounded-xl border border-line bg-white px-2.5 py-2 text-xs font-medium text-ink placeholder:text-muted focus:border-brand focus:outline-none"
                 />
                 <span className="text-muted">–</span>
@@ -241,6 +243,7 @@ export function TransactionFilters({
                     })
                   }
                   placeholder="Máx."
+                  aria-label="Importe máximo en soles"
                   className="w-full rounded-xl border border-line bg-white px-2.5 py-2 text-xs font-medium text-ink placeholder:text-muted focus:border-brand focus:outline-none"
                 />
               </div>

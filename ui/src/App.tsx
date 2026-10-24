@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
 import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView, CategoriesView, PendingView, ClassificationRulesView } from './components/views';
@@ -8,12 +8,14 @@ import { PairDeviceModal } from './components/auth/PairDeviceModal';
 import { useAuth } from './contexts';
 import { useFinance } from './hooks';
 import type { Transaction, UserProfile } from './types';
-import { LogOut, Menu, X, Loader2, Smartphone } from 'lucide-react';
+import { LogOut, Menu, Loader2, Smartphone } from 'lucide-react';
 import { SyncStatus } from './components/layout/SyncStatus';
+import { MobileNavigation } from './components/layout/MobileNavigation';
+import { useDashboardNavigation } from './hooks/useDashboardNavigation';
 
 const VIEW_LABELS: Record<NavView, string> = {
   inicio: 'Inicio',
-  'mi-dinero': 'Mi dinero',
+  'mi-dinero': 'Análisis',
   movimientos: 'Movimientos',
   pendientes: 'Pendientes',
   reglas: 'Reglas',
@@ -44,6 +46,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const {
     periodAnalytics,
     transactionsPage,
+    recentTransactions,
+    loadingRecent,
     loadingSummary,
     loadingTransactions,
     syncStatus,
@@ -61,25 +65,18 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     refreshAll,
   } = useFinance(user.id);
 
-  const [activeView, setActiveView] = useState<NavView>('inicio');
+  const [activeView, setActiveView] = useDashboardNavigation();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
   const [instrumentRevision, setInstrumentRevision] = useState(0);
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
-      {mobileMenuOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menú"
-          className="fixed inset-0 z-40 bg-ink/40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      <div className={`fixed inset-y-0 left-0 z-50 flex transition-transform duration-200 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <MobileNavigation open={mobileMenuOpen} onClose={closeMobileMenu} activeView={activeView} onViewChange={setActiveView} />
+      <div className="sticky top-0 hidden h-dvh shrink-0 lg:flex">
         <SidebarNavigation
           activeView={activeView}
           onViewChange={(view) => {
@@ -97,9 +94,11 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-expanded={mobileMenuOpen}
+                aria-haspopup="dialog"
                 className="rounded-lg p-2 text-ink hover:bg-canvas lg:hidden"
               >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                <Menu className="h-5 w-5" />
               </button>
               <p className="font-display text-lg font-semibold leading-tight">{VIEW_LABELS[activeView]}</p>
             </div>
@@ -143,8 +142,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           {activeView === 'inicio' && (
             <HomeView
               analytics={periodAnalytics}
-              recentTransactions={transactionsPage?.content || []}
-              loading={loadingSummary || loadingTransactions}
+              recentTransactions={recentTransactions}
+              loading={loadingSummary || loadingRecent}
               onNavigateToTransactions={() => setActiveView('movimientos')}
               onSelectTransaction={setSelectedTransaction}
               selectedYear={selectedPeriod.year}

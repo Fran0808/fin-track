@@ -18,7 +18,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
-  { id: 'mi-dinero', label: 'Mi dinero', icon: ChartNoAxesCombined },
+  { id: 'mi-dinero', label: 'Análisis', icon: ChartNoAxesCombined },
   { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
   { id: 'pendientes', label: 'Pendientes', icon: Inbox },
   { id: 'reglas', label: 'Reglas', icon: ListFilter },
@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigationProps) {
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-4 py-7 sm:w-64">
+    <aside className="flex h-full w-60 flex-col overflow-y-auto border-r border-line bg-white px-4 py-7 sm:w-64">
       <div className="px-3">
         <div className="flex items-center gap-3">
           <BrandMark />

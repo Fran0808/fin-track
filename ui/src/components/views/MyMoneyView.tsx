@@ -20,7 +20,7 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth }:
     <div className="space-y-8">
       <div>
         <p className="eyebrow">Análisis de {period}</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Mi dinero</h1>
+        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Análisis</h1>
         <p className="mt-2 text-sm text-muted">Una vista de tus entradas, gastos y medios de pago registrados.</p>
       </div>
 
