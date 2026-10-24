@@ -17,7 +17,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: Analysis merchant ranking
+## Current checkpoint: category analysis
+
+- Owner/scope: current chat; expense categories in Analysis, including uncategorized
+  movements, with server aggregates, amounts, percentages and counts.
+- Checks: 255 backend tests in disposable PostgreSQL, 69 UI tests, lint (9 existing
+  warnings) and production build passed. Full desktop/mobile Edge → real packaged
+  API → disposable PostgreSQL verification passed before starting the next feature.
+  Temporary processes and fixtures stopped and removed; no live data accessed.
+- Next: user deploys/restarts the updated API/UI. No schema migration, existing
+  service restart, agent commit or push. Merchant drill-down is a separate change.
+
+## Checkpoint: Analysis merchant ranking
 
 - Owner/scope: current chat; correct the backend top-five merchant query to select
   total expense descending before applying its limit. Count and name resolve ties;

@@ -70,6 +70,36 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void categoryBreakdownIncludesUnclassifiedExpensesAndRespectsOwnerPeriodAndFlow() {
+        Transaction first = store(owner, "category-food", " Comida ", FlowType.EXPENSE, null);
+        first.setAmount(new BigDecimal("60.25"));
+        Transaction second = store(owner, "category-food-two", "Comida", FlowType.EXPENSE, null);
+        second.setAmount(new BigDecimal("19.75"));
+        Transaction blank = store(owner, "category-blank", "  ", FlowType.EXPENSE, null);
+        blank.setAmount(new BigDecimal("15.00"));
+        Transaction missing = store(owner, "category-null", null, FlowType.EXPENSE, null);
+        missing.setAmount(new BigDecimal("5.00"));
+        transactions.saveAllAndFlush(List.of(first, second, blank, missing));
+        store(other, "category-foreign", "Foreign", FlowType.EXPENSE, null);
+        store(owner, "category-income", "Income", FlowType.INCOME, null);
+        store(owner, "category-transfer", "Transfer", FlowType.INTERNAL_TRANSFER, null);
+        Transaction old = store(owner, "category-old", "Outside", FlowType.EXPENSE, null);
+        old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 23, 59));
+        transactions.saveAndFlush(old);
+        var result = analytics.getPeriodAnalytics(2026, 1);
+        assertEquals(new BigDecimal("100.00"), result.getMonthlyExpense());
+        var groups = result.getCategoryBreakdown();
+        assertEquals(2, groups.size());
+        assertEquals("Comida", groups.getFirst().getCategory());
+        assertEquals(new BigDecimal("80.00"), groups.getFirst().getAmount());
+        assertEquals(80.0, groups.getFirst().getPercentage());
+        assertEquals(2L, groups.getFirst().getCount());
+        assertNull(groups.getLast().getCategory());
+        assertEquals(new BigDecimal("20.00"), groups.getLast().getAmount());
+        assertEquals(20.0, groups.getLast().getPercentage());
+        assertTrue(analytics.getPeriodAnalytics(2024, 1).getCategoryBreakdown().isEmpty());
+    }
+
     @Test void merchantRankingSelectsHighestSpendBeforeLimitingAndScopesExpensesToUserAndPeriod() {
         storeMerchant(owner, "Frequent", "1.00", 7);
         storeMerchant(owner, "Largest", "700.00", 1);

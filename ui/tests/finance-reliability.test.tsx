@@ -7,7 +7,7 @@ import type { PageResponse, PeriodAnalytics, Transaction } from '../src/types';
 
 const transaction: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic' };
 const page: PageResponse<Transaction> = { content: [transaction], totalElements: 1, totalPages: 1, number: 0, size: 10, first: true, last: true, empty: false };
-const analytics: PeriodAnalytics = { periodName: '10/2026', monthlyExpense: 10, monthlyIncome: 20, internalTransfersAmount: 0, previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 1, lastExpenseMerchant: 'Synthetic merchant', lastExpenseAmount: 10, lastExpenseDate: null, topChannel: 'YAPE', topChannelAmount: 10, topChannelPercentage: 100, channelBreakdown: [], topMerchants: [] };
+const analytics: PeriodAnalytics = { categoryBreakdown: [], periodName: '10/2026', monthlyExpense: 10, monthlyIncome: 20, internalTransfersAmount: 0, previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 1, lastExpenseMerchant: 'Synthetic merchant', lastExpenseAmount: 10, lastExpenseDate: null, topChannel: 'YAPE', topChannelAmount: 10, topChannelPercentage: 100, channelBreakdown: [], topMerchants: [] };
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: Error) => void;

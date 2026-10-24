@@ -151,6 +151,15 @@ public class AnalyticsService {
             topChannelPercentage = first.getPercentage();
         }
 
+        List<PeriodAnalyticsResponse.CategoryBreakdownDto> categoryBreakdown = transactionRepository
+                .findExpenseBreakdownByCategory(startOfMonth, visibleEnd, userId).stream().map(row -> {
+                    BigDecimal amount = (BigDecimal) row[1];
+                    double percentage = monthlyExpense.signum() > 0
+                            ? amount.multiply(BigDecimal.valueOf(100)).divide(monthlyExpense, 1, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return PeriodAnalyticsResponse.CategoryBreakdownDto.builder().category((String) row[0])
+                            .amount(amount).percentage(percentage).count(((Number) row[2]).longValue()).build();
+                }).toList();
+
         List<Object[]> rawMerchants = transactionRepository.findTopMerchants(startOfMonth, visibleEnd, userId);
         List<PeriodAnalyticsResponse.TopMerchantDto> topMerchantsList = new ArrayList<>();
 
@@ -188,6 +197,7 @@ public class AnalyticsService {
                 .topChannelPercentage(topChannelPercentage)
                 .channelBreakdown(breakdownList)
                 .topMerchants(topMerchantsList)
+                .categoryBreakdown(categoryBreakdown)
                 .build();
     }
 }

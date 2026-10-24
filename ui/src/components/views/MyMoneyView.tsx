@@ -1,5 +1,6 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight } from 'lucide-react';
 import type { PeriodAnalytics } from '../../types';
+import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, getChannelLabel } from '../../utils';
 import { ExpenseTrendChart } from '../charts/ExpenseTrendChart';
 
@@ -46,6 +47,25 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth }:
           <p className="mt-1 text-sm text-muted">Cómo avanzaron tus gastos registrados durante {period}.</p>
         </div>
         {loading ? <p className="py-12 text-sm text-muted" role="status">Calculando evolución...</p> : <ExpenseTrendChart points={analytics?.dailyExpenses ?? []} monthLabel={period} />}
+      </section>
+
+      <section className="surface p-6 sm:p-7" aria-labelledby="category-analysis-heading">
+        <div className="border-b border-line pb-5">
+          <h2 id="category-analysis-heading" className="font-display text-xl font-semibold">Gastos por categoría</h2>
+        </div>
+        {loading ? <p role="status" className="py-10 text-sm text-muted">Calculando categorías...</p>
+          : !analytics?.categoryBreakdown ? <p role="alert" className="py-10 text-sm text-muted">El desglose por categoría requiere la API actualizada.</p>
+          : !analytics.categoryBreakdown.length ? <p className="py-10 text-sm text-muted">No hay gastos registrados en este período.</p>
+          : <ol className="divide-y divide-line">
+            {analytics.categoryBreakdown.map(item => <li key={JSON.stringify(item.category)} className="py-4">
+              <div className="flex items-center justify-between gap-4 text-sm">
+                <span className="min-w-0 break-words font-semibold">{item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}</span>
+                <span className="font-num shrink-0 font-semibold">{formatCurrency(item.amount)}</span>
+              </div>
+              <div className="mt-2.5 h-1.5 rounded-full bg-canvas" aria-hidden="true"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }} /></div>
+              <div className="font-num mt-2 flex justify-between text-xs text-muted"><span>{item.count} {item.count === 1 ? 'gasto' : 'gastos'}</span><span>{item.percentage.toFixed(1)}% del gasto</span></div>
+            </li>)}
+          </ol>}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

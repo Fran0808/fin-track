@@ -35,6 +35,12 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
+Analysis includes all expense categories for the selected period, with amounts,
+shares and counts ordered by spending. Null/blank categories appear together as
+`Sin categoría`. It uses the server aggregate, not the current transaction page;
+income and own transfers are excluded. Loading, empty and older-API states are
+explicit. Deploy the API with `categoryBreakdown` before using the updated UI.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the

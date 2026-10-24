@@ -28,6 +28,7 @@ public class PeriodAnalyticsResponse {
     private double topChannelPercentage;
 
     private List<ChannelBreakdownDto> channelBreakdown;
+    private List<CategoryBreakdownDto> categoryBreakdown;
 
     private List<TopMerchantDto> topMerchants;
 
@@ -57,5 +58,14 @@ public class PeriodAnalyticsResponse {
         private BigDecimal totalAmount;
         private long transactionCount;
         private double percentage;
+    }
+
+    @Data
+    @Builder
+    public static class CategoryBreakdownDto {
+        private String category;
+        private BigDecimal amount;
+        private double percentage;
+        private long count;
     }
 }

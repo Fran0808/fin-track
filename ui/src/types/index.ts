@@ -126,6 +126,7 @@ export interface TopMerchant {
 }
 
 export interface PeriodAnalytics {
+  categoryBreakdown: CategoryBreakdown[];
   periodName: string;
   monthlyExpense: number;
   monthlyIncome: number;
@@ -142,6 +143,13 @@ export interface PeriodAnalytics {
   topChannelPercentage: number;
   channelBreakdown: ChannelBreakdown[];
   topMerchants: TopMerchant[];
+}
+
+export interface CategoryBreakdown {
+  category: string | null;
+  amount: number;
+  percentage: number;
+  count: number;
 }
 
 export interface DailyExpense {

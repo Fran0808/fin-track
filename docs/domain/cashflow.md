@@ -21,6 +21,11 @@ then by operation count descending and merchant name ascending for ties. The
 ranking is selected after aggregating all expenses in the authenticated user's
 selected period. Income and internal transfers never enter this ranking.
 
+Analysis also groups every expense by trimmed category name, merging null/blank
+names into the uncategorized group. All groups, including historical categories,
+contribute to period expenses; their percentages use that same expense total.
+Displayed percentages are rounded to one decimal and may not sum to exactly 100.
+
 ## Evidence and amount
 
 - A bank name or currency amount alone is insufficient evidence of a transaction.

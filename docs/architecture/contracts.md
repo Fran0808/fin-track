@@ -74,6 +74,16 @@ Product currency is fixed to PEN and does not add currency to captured transacti
 See [cards and accounts](../domain/financial-instruments.md) for registration fields,
 ownership checks, suggestions and schema preparation.
 
+## Period analytics
+
+Period analytics includes `categoryBreakdown`: every expense category in the
+requested user/period, ordered by amount descending. Each item has `category`
+(null for missing/blank names), decimal `amount`, rounded `percentage` of total
+period expenses and `count`. Names are trimmed for grouping; historical category
+names remain visible even if the catalog entry was archived. Income and internal
+transfers are excluded. An empty period returns an empty array. No schema migration
+or Android sync change is required.
+
 ## Transaction classification
 
 `PATCH /transactions/{id}/classification` accepts category names up to 100 characters.
