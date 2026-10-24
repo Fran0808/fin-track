@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 24, 2026. This is the entry point for current work, not a release
+Updated: October 23, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -55,23 +55,6 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   no visual/mobile acceptance or real backend/OAuth/financial operations performed.
 - Next action: perform visual/keyboard acceptance with synthetic data and review
   the proposed commit groups in the report. No commit or push.
-
-## Frontend redesign checkpoint: stage 1
-
-- Owner/scope: current chat; incremental redesign of Home's heading and monthly
-  summary. Status: implemented; automated checks passed; visual acceptance pending.
-- Changes: `ui/src/components/views/HomeView.tsx` replaces the introductory copy
-  with month/year, removes the summary card and blue strip, and aligns the three
-  metrics with responsive stacking. Typography scale/weight and spacing change
-  locally; palette, font families, financial calculations, navigation and lower
-  lists remain unchanged. The existing auth test now locates the monthly region.
-- Checks: 60 tests across 12 files passed; lint completed with the same 8 warnings;
-  TypeScript/Vite build and diff whitespace checks passed. No new dependency,
-  financial operation or service restart. Screenshot data was not copied to files.
-- Limitations: the updated running UI could not be verified over localhost:5173;
-  desktop/mobile visual acceptance remains pending. No browser permission retry.
-- Next action: review this first Home change in the user's running UI before
-  selecting the next small adjustment. User performs the commit; no commit/push.
 
 ## Next priorities
 
