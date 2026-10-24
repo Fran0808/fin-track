@@ -36,7 +36,6 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
           <BrandMark />
           <div>
             <p className="font-display text-lg font-bold leading-tight tracking-tight text-ink">FinTrack</p>
-            <p className="text-xs text-muted">Tu dinero en movimiento</p>
           </div>
         </div>
       </div>
@@ -81,7 +80,6 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
         </div>
       </nav>
 
-      <p className="mt-auto px-3 text-xs leading-relaxed text-muted">Un registro de tus entradas y gastos, basado en movimientos confirmados.</p>
     </aside>
   );
 }

@@ -46,9 +46,8 @@ export function HomeView({
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow">Resumen del período</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Así se movió tu dinero</h1>
-        <p className="mt-2 text-sm text-muted">Movimientos registrados en {period}. Las transferencias propias no cuentan como gastos.</p>
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Resumen mensual</h1>
+        <p className="mt-2 text-sm capitalize text-muted">{period}</p>
       </div>
 
       <section
@@ -60,11 +59,10 @@ export function HomeView({
       >
         <div className="grid lg:grid-cols-[1.15fr_1fr]">
           <div className="border-b border-line p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
-            <p className="eyebrow">Gastos de {period}</p>
+            <p className="eyebrow">Gastos del mes</p>
             <p className="font-display font-num mt-4 text-[clamp(2.8rem,6vw,5rem)] font-semibold leading-none tracking-tight text-ink">
               {loading ? 'S/ …' : formatCurrency(expense)}
             </p>
-            <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted">Total de compras y pagos confirmados durante este mes.</p>
             {!loading && comparison && (
               <p className={`font-num mt-4 text-sm font-semibold ${previousExpense != null && expense > previousExpense ? 'text-negative' : 'text-positive'}`}>
                 {comparison}
@@ -92,7 +90,6 @@ export function HomeView({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-5">
             <div>
               <h2 id="recent-heading" className="font-display text-lg font-semibold">Movimientos recientes</h2>
-              <p className="mt-1 text-sm text-muted">Los últimos movimientos registrados en el período.</p>
             </div>
             <button type="button" onClick={onNavigateToTransactions} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
               Ver todos <ArrowRight className="h-4 w-4" />
@@ -137,7 +134,6 @@ export function HomeView({
         <section className="surface p-6" aria-labelledby="channels-heading">
           <div className="border-b border-line pb-5">
             <h2 id="channels-heading" className="font-display text-lg font-semibold">Medios de pago</h2>
-            <p className="mt-1 text-sm text-muted">Participación en tus gastos del mes.</p>
           </div>
           {loading && !analytics ? (
             <p className="py-10 text-sm text-muted" role="status">Calculando medios de pago...</p>

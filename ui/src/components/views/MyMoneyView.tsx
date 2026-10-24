@@ -19,21 +19,18 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth }:
   return (
     <div className="space-y-8">
       <div>
-        <p className="eyebrow">Análisis de {period}</p>
+        <p className="eyebrow">{period}</p>
         <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Análisis</h1>
-        <p className="mt-2 text-sm text-muted">Una vista de tus entradas, gastos y medios de pago registrados.</p>
       </div>
 
       <section className="surface grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0" aria-label="Flujo de caja del período">
         <div className="p-6 sm:p-7">
           <div className="flex items-center gap-2 text-negative"><ArrowUpRight className="h-4 w-4" /><span className="eyebrow !text-negative">Salidas</span></div>
           <p className="font-display font-num mt-4 text-3xl font-semibold tracking-tight">{loading ? 'S/ …' : formatCurrency(expense)}</p>
-          <p className="mt-2 text-sm text-muted">Compras y pagos del período</p>
         </div>
         <div className="p-6 sm:p-7">
           <div className="flex items-center gap-2 text-positive"><ArrowDownLeft className="h-4 w-4" /><span className="eyebrow !text-positive">Entradas</span></div>
           <p className="font-display font-num mt-4 text-3xl font-semibold tracking-tight">{loading ? 'S/ …' : formatCurrency(income)}</p>
-          <p className="mt-2 text-sm text-muted">Dinero recibido en el período</p>
         </div>
         <div className="p-6 sm:p-7">
           <div className="flex items-center gap-2 text-brand"><ArrowLeftRight className="h-4 w-4" /><span className="eyebrow !text-brand">Flujo neto</span></div>

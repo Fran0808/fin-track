@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 23, 2026. This is the entry point for current work, not a release
+Updated: October 24, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -55,6 +55,27 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   no visual/mobile acceptance or real backend/OAuth/financial operations performed.
 - Next action: perform visual/keyboard acceptance with synthetic data and review
   the proposed commit groups in the report. No commit or push.
+
+## Frontend visual foundations checkpoint
+
+- Owner/scope: current chat; first incremental visual layer after restoring the
+  original layout. Status: implemented; automated/delivery checks passed; user
+  visual acceptance pending before further redesign.
+- Changes: shared palette keeps the blue family (#2c4f99) with clearer neutral
+  text; local Latin Manrope/Onest fonts replace platform-dependent families.
+  Sidebar, Home and Análisis lose slogans and redundant descriptions. Card/grid
+  structure, financial logic, semantic flow colors and navigation are unchanged.
+  The auth test now identifies the monthly region rather than marketing copy.
+- Paths: ui/src/index.css, package manifests, SidebarNavigation, HomeView,
+  MyMoneyView, auth-session test and UI README. No real screenshot data copied.
+- Checks: 60 UI tests across 12 files passed; lint completed with the same 8
+  warnings; TypeScript/Vite build emitted both local font assets (~59 KB total).
+  Text contrast checked: muted text/canvas 5.25:1 and white/brand 7.82:1. HTTP 200
+  from localhost:5173 confirmed the new stylesheet and concise Home module.
+- Limitations: no desktop/mobile screenshot or full visual acceptance. No backend
+  changes, financial operation, service restart, agent commit or push.
+- Next action: user reviews only colors, typography and copy in the running UI;
+  keep structural work separate until this layer is accepted.
 
 ## Next priorities
 
