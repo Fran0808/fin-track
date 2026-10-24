@@ -6,6 +6,8 @@ Android notifications and bank emails. Use the task map below to load context.
 ## Hard constraints
 
 - Track money moved, not live account balances; exclude internal transfers from expenses.
+- Work on one feature at a time
+- Only start the next feature after the current one passes end-to-end verification
 - Scope financial reads, writes and ingestion to the authenticated user; never select an arbitrary account.
 - Preserve decimal precision and per-user idempotency; see [cashflow rules](docs/domain/cashflow.md).
 - Keep credentials, tokens, private keys and identifiable financial fixtures out of Git and shared output.
