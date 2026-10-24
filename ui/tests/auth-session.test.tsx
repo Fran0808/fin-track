@@ -80,7 +80,7 @@ describe('OAuth session initialization', () => {
     expect(window.location.search).toBe('');
 
     await act(async () => { userResponse.resolve(); });
-    await screen.findByRole('heading', { name: 'Así se movió tu dinero' });
+    await screen.findByRole('region', { name: 'Resumen financiero mensual' });
     await waitFor(() => expect(requests.some(({ url }) => url.includes('/transactions'))).toBe(true));
     expect(requests.filter(({ url }) => !url.endsWith('/auth/google/session')).every(({ authorization }) => authorization === 'Bearer callback-token')).toBe(true);
     expect(localStorage.getItem('auth_token')).toBe('callback-token');

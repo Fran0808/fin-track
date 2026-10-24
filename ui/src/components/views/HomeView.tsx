@@ -33,7 +33,6 @@ export function HomeView({
   const expense = analytics?.monthlyExpense ?? 0;
   const income = analytics?.monthlyIncome ?? 0;
   const netCashflow = income - expense;
-  const period = `${MONTHS[selectedMonth - 1]} de ${selectedYear}`;
   const previousExpense = analytics?.previousPeriodExpense;
   const comparison = previousExpense == null
     ? null
@@ -44,47 +43,51 @@ export function HomeView({
         : `${Math.abs(((expense - previousExpense) / previousExpense) * 100).toFixed(0)}% ${expense > previousExpense ? 'más' : 'menos'} que ${analytics?.comparisonThroughDay ? `hasta el día ${analytics.comparisonThroughDay} del mes anterior` : 'el mes anterior'}`;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <p className="eyebrow">Resumen del período</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Así se movió tu dinero</h1>
-        <p className="mt-2 text-sm text-muted">Movimientos registrados en {period}. Las transferencias propias no cuentan como gastos.</p>
-      </div>
+    <div className="space-y-9">
+      <h1 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
+        <time dateTime={`${selectedYear}-${String(selectedMonth).padStart(2, '0')}`}>
+          <span className="capitalize">{MONTHS[selectedMonth - 1]}</span>
+          <span className="ml-3 text-lg font-normal tracking-normal text-muted">{selectedYear}</span>
+        </time>
+      </h1>
 
       <section
-        className={`surface overflow-hidden${animateIntro && !loading ? ' summary-intro' : ''}`}
+        className={`border-b border-line pb-8${animateIntro && !loading ? ' summary-intro' : ''}`}
         aria-label="Resumen financiero mensual"
         onAnimationEnd={(event) => {
           if (event.target === event.currentTarget) onIntroComplete();
         }}
       >
-        <div className="grid lg:grid-cols-[1.15fr_1fr]">
-          <div className="border-b border-line p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
-            <p className="eyebrow">Gastos de {period}</p>
-            <p className="font-display font-num mt-4 text-[clamp(2.8rem,6vw,5rem)] font-semibold leading-none tracking-tight text-ink">
-              {loading ? 'S/ …' : formatCurrency(expense)}
-            </p>
-            <p className="mt-5 max-w-sm text-sm leading-relaxed text-muted">Total de compras y pagos confirmados durante este mes.</p>
-            {!loading && comparison && (
-              <p className={`font-num mt-4 text-sm font-semibold ${previousExpense != null && expense > previousExpense ? 'text-negative' : 'text-positive'}`}>
-                {comparison}
+        <dl className="grid items-baseline gap-x-12 gap-y-7 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <div className="min-w-0 sm:col-span-2 xl:col-span-1">
+            <dt className="text-sm font-medium text-muted">Gastos del mes</dt>
+            <dd className="mt-3">
+              <p className="font-display font-num break-words text-[clamp(2.25rem,3.8vw,3.75rem)] font-medium leading-tight tracking-tight text-ink">
+                {loading ? 'S/ …' : formatCurrency(expense)}
               </p>
-            )}
+              {!loading && comparison && (
+                <p className={`font-num mt-3 max-w-sm text-sm leading-relaxed ${previousExpense != null && expense > previousExpense ? 'text-negative' : 'text-positive'}`}>
+                  {comparison}
+                </p>
+              )}
+            </dd>
           </div>
-          <div className="grid grid-cols-2 divide-x divide-line lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
-            <div className="p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-positive"><ArrowDownLeft className="h-4 w-4" /><span className="eyebrow !text-positive">Entradas</span></div>
-              <p className="font-display font-num mt-3 text-xl font-semibold tracking-tight sm:text-2xl">{loading ? 'S/ …' : formatCurrency(income)}</p>
-            </div>
-            <div className="p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-brand"><ArrowLeftRight className="h-4 w-4" /><span className="eyebrow !text-brand">Flujo neto</span></div>
-              <p className={`font-display font-num mt-3 text-xl font-semibold tracking-tight sm:text-2xl ${netCashflow < 0 ? 'text-negative' : 'text-ink'}`}>
+          <div className="min-w-0">
+            <dt className="text-sm font-medium text-muted">Entradas</dt>
+            <dd className="font-display font-num mt-3 break-words text-2xl font-medium leading-tight tracking-tight sm:text-3xl">
+              {loading ? 'S/ …' : formatCurrency(income)}
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="text-sm font-medium text-muted">Flujo neto</dt>
+            <dd className="mt-3">
+              <p className={`font-display font-num break-words text-2xl font-medium leading-tight tracking-tight sm:text-3xl ${netCashflow < 0 ? 'text-negative' : 'text-ink'}`}>
                 {loading ? 'S/ …' : formatCurrency(netCashflow)}
               </p>
-            </div>
+              <p className="mt-3 text-sm text-muted">Entradas menos gastos</p>
+            </dd>
           </div>
-        </div>
-        <div className="h-1.5 w-full bg-brand" aria-hidden="true" />
+        </dl>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
