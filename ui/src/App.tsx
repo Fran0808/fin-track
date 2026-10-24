@@ -61,6 +61,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     setSelectedPeriod,
     handlePageChange,
     handleFilterChange,
+    showMerchantTransactions,
     refreshAll,
   } = useFinance(user.id);
 
@@ -158,6 +159,10 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               loading={loadingSummary}
               selectedYear={selectedPeriod.year}
               selectedMonth={selectedPeriod.month}
+              onSelectMerchant={periodAnalytics?.periodStart && periodAnalytics?.periodEnd ? merchantName => {
+                showMerchantTransactions(merchantName, periodAnalytics.periodStart!, periodAnalytics.periodEnd!);
+                setActiveView('movimientos');
+              } : undefined}
             />
           )}
           {activeView === 'movimientos' && (

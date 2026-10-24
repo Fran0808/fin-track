@@ -126,6 +126,8 @@ export interface TopMerchant {
 }
 
 export interface PeriodAnalytics {
+  periodStart?: string;
+  periodEnd?: string;
   categoryBreakdown: CategoryBreakdown[];
   periodName: string;
   monthlyExpense: number;

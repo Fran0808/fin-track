@@ -41,6 +41,12 @@ shares and counts ordered by spending. Null/blank categories appear together as
 income and own transfers are excluded. Loading, empty and older-API states are
 explicit. Deploy the API with `categoryBreakdown` before using the updated UI.
 
+Click a merchant in Analysis to open its expense movements. The exact contact name
+and server-provided analysis dates are applied, previous filters are cleared and
+pagination starts at zero. The visible `Comercio` filter can be removed independently;
+clearing all filters also restores the selected month. Paging and CSV retain the
+merchant/date scope. An older API lacking date bounds disables this shortcut.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the

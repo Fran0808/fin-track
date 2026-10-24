@@ -11,6 +11,8 @@ import java.util.List;
 @Builder
 public class PeriodAnalyticsResponse {
     private String periodName;
+    private LocalDateTime periodStart;
+    private LocalDateTime periodEnd;
     private BigDecimal monthlyExpense;
     private BigDecimal monthlyIncome;
     private BigDecimal internalTransfersAmount;

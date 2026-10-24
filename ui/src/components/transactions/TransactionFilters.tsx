@@ -7,6 +7,7 @@ import { CustomSelect } from '../common';
 import { TransactionDateFilter } from './TransactionDateFilter';
 
 interface TransactionFiltersProps {
+  merchantName?: string;
   search: string;
   flowType: FlowType | '';
   category?: string;
@@ -38,6 +39,7 @@ const CHANNEL_OPTIONS = [
 ];
 
 export function TransactionFilters({
+  merchantName,
   search,
   flowType,
   category = '',
@@ -74,10 +76,14 @@ export function TransactionFilters({
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
   ].filter(value => value !== '' && value !== undefined && value !== null).length;
 
-  const hasAnyFilter = Boolean(localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
+  const hasAnyFilter = Boolean(merchantName !== undefined || localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
 
   return (
     <div className="space-y-4">
+      {merchantName !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
+        <span className="min-w-0 break-words">Comercio: <strong>{merchantName || 'Sin nombre'}</strong></span>
+        <button type="button" onClick={() => onFilterChange({ merchantName: undefined })} aria-label="Quitar filtro de comercio" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
+      </div>}
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="relative w-full xl:max-w-sm">
           <label htmlFor="transaction-search" className="sr-only">Buscar por comercio o categoría</label>

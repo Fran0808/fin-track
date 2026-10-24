@@ -57,6 +57,39 @@ it('allows restricting all-history review back to a month or date', () => {
   expect(change).toHaveBeenLastCalledWith({ allHistory: true, startDate: undefined, endDate: undefined });
 });
 
+it('opens merchant expenses in the exact analysis interval and clears conflicting old filters', async () => {
+  vi.spyOn(api, 'getTransactions').mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0, first: true, last: true, empty: true });
+  const { result } = renderHook(() => useFinance(1));
+  act(() => result.current.handleFilterChange({ search: 'old search', category: 'Old category', pendingReason: 'CATEGORY', minAmount: 999, allHistory: true }));
+  act(() => result.current.showMerchantTransactions('Exact Shop', '2026-10-01T00:00:00', '2026-10-24T23:59:59.999999'));
+  await waitFor(() => expect(api.getTransactions).toHaveBeenLastCalledWith({ page: 0, size: 10, search: '', flowType: 'EXPENSE', merchantName: 'Exact Shop',
+    startDate: '2026-10-01T00:00:00', endDate: '2026-10-24T23:59:59.999999', allHistory: false }));
+  act(() => result.current.handlePageChange(1));
+  expect(result.current.transactionFilters.merchantName).toBe('Exact Shop');
+  expect(result.current.transactionFilters.endDate).toBe('2026-10-24T23:59:59.999999');
+});
+
+it('displays the merchant filter and lets the user remove it', async () => {
+  const change = vi.fn();
+  render(<TransactionFilters search="" flowType="EXPENSE" merchantName="Exact Shop" onFilterChange={change} onReset={vi.fn()} />);
+  expect(screen.getByText('Exact Shop')).toBeDefined();
+  fireEvent.click(screen.getByRole('button', { name: 'Quitar filtro de comercio' }));
+  expect(change).toHaveBeenCalledWith({ merchantName: undefined });
+  await waitFor(() => expect(api.getCategories).toHaveBeenCalled());
+});
+
+it('uses exact merchant parameters for both listing and CSV and rejects incompatible servers', async () => {
+  const fetch = vi.fn().mockImplementation(async () => new Response('{}', { headers: { 'X-Fintrack-Merchant-Filter': 'APPLIED' } }));
+  vi.stubGlobal('fetch', fetch);
+  const filters = { merchantName: 'Exact %_ Shop', flowType: 'EXPENSE' as const, startDate: '2026-10-01T00:00:00', endDate: '2026-10-24T23:59:59.999999' };
+  await api.getTransactions(filters);
+  await api.exportTransactionsCsv(filters);
+  for (const [url] of fetch.mock.calls) expect(new URL(url, 'http://localhost').searchParams.get('merchantName')).toBe('Exact %_ Shop');
+  fetch.mockImplementation(async () => new Response('{}'));
+  await expect(api.getTransactions(filters)).rejects.toThrow('actualizarse para filtrar por comercio');
+  await expect(api.exportTransactionsCsv(filters)).rejects.toThrow('actualizarse para filtrar por comercio');
+});
+
 it('returns to a valid page after completing the final movement on the last review page', async () => {
   const list = vi.spyOn(api, 'getTransactions').mockImplementation(async params => ({ content: [], totalElements: 10,
     totalPages: 1, size: params?.size ?? 10, number: params?.page ?? 0, first: !params?.page, last: true, empty: true }));

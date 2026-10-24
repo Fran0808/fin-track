@@ -84,6 +84,19 @@ names remain visible even if the catalog entry was archived. Income and internal
 transfers are excluded. An empty period returns an empty array. No schema migration
 or Android sync change is required.
 
+Period analytics also includes `periodStart`/`periodEnd` local date-times describing
+the actual aggregation interval, including the current-month cutoff. Merchant
+drill-down uses these bounds and expense flow instead of inferring dates in the browser.
+
+`GET /transactions` and `/transactions/export` accept optional `merchantName`:
+an exact, case-sensitive contact name, with literal `%`/`_` and preserved whitespace.
+It combines with the existing authenticated-user, date and other filters. Empty
+string matches an empty stored name; omission removes this restriction. Successful
+responses expose `X-Fintrack-Merchant-Filter: APPLIED` (or `NONE` when absent) through
+CORS. The client requires acknowledgment for an active merchant filter so older
+servers cannot silently return the full history. Listing, pagination and CSV use
+the same filter. Deploy API and UI together.
+
 ## Transaction classification
 
 `PATCH /transactions/{id}/classification` accepts category names up to 100 characters.

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, expect, it, vi } from 'vitest';
 import { MyMoneyView } from '../src/components/views/MyMoneyView';
 import type { PeriodAnalytics } from '../src/types';
 
@@ -10,6 +10,14 @@ const analytics: PeriodAnalytics = { periodName: 'JANUARY', monthlyExpense: 100,
   topChannelAmount: 0, topChannelPercentage: 0, channelBreakdown: [], topMerchants: [],
   categoryBreakdown: [{ category: 'Comida', amount: 80, percentage: 80, count: 2 }, { category: null, amount: 20, percentage: 20, count: 2 }] };
 afterEach(cleanup);
+
+it('opens the selected merchant by its exact name without changing the supplied data', () => {
+  const select = vi.fn();
+  render(<MyMoneyView analytics={{ ...analytics, topMerchants: [{ merchantName: 'Exact % Shop', totalAmount: 100, percentage: 100, transactionCount: 2 }] }}
+    loading={false} selectedYear={2026} selectedMonth={1} onSelectMerchant={select} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de Exact % Shop' }));
+  expect(select).toHaveBeenCalledWith('Exact % Shop');
+});
 
 it('shows category amounts, shares and uncategorized expenses', () => {
   render(<MyMoneyView analytics={analytics} loading={false} selectedYear={2026} selectedMonth={1} />);

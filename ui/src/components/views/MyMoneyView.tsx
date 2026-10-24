@@ -9,9 +9,10 @@ interface MyMoneyViewProps {
   loading: boolean;
   selectedYear: number;
   selectedMonth: number;
+  onSelectMerchant?: (merchantName: string) => void;
 }
 
-export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth }: MyMoneyViewProps) {
+export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant }: MyMoneyViewProps) {
   const expense = analytics?.monthlyExpense ?? 0;
   const income = analytics?.monthlyIncome ?? 0;
   const net = income - expense;
@@ -119,7 +120,11 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth }:
                 <li key={`${merchant.merchantName}-${index}`} className="flex items-center gap-4 py-4">
                   <span className="font-num w-6 shrink-0 text-sm font-medium text-muted">{String(index + 1).padStart(2, '0')}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{merchant.merchantName || 'Comercio sin nombre'}</span>
+                    <button type="button" disabled={loading || !onSelectMerchant} onClick={() => onSelectMerchant?.(merchant.merchantName)}
+                      aria-label={`Ver movimientos de ${merchant.merchantName || 'comercio sin nombre'}`}
+                      className="block max-w-full truncate rounded-sm text-left text-sm font-semibold text-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-default disabled:text-ink">
+                      {merchant.merchantName || 'Comercio sin nombre'}
+                    </button>
                     <span className="mt-1 block text-xs text-muted">{merchant.transactionCount} {merchant.transactionCount === 1 ? 'consumo' : 'consumos'} · {merchant.percentage.toFixed(1)}% del gasto</span>
                   </span>
                   <span className="font-num shrink-0 text-sm font-semibold">{formatCurrency(merchant.totalAmount)}</span>

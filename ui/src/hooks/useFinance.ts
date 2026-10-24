@@ -128,6 +128,11 @@ export function useFinance(userId: number) {
     setFilters((prev) => ({ ...prev, ...newFilters, page: 0 }));
   };
 
+  const showMerchantTransactions = (merchantName: string, startDate: string, endDate: string) => {
+    setFilters({ page: 0, size: 10, flowType: 'EXPENSE', search: '', merchantName,
+      startDate, endDate, allHistory: false });
+  };
+
   return {
     summary: summaryResource.data,
     periodAnalytics: analyticsResource.data,
@@ -147,6 +152,7 @@ export function useFinance(userId: number) {
     setSelectedPeriod,
     handlePageChange,
     handleFilterChange,
+    showMerchantTransactions,
     triggerEmailSync,
     refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {

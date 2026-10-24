@@ -182,6 +182,8 @@ public class AnalyticsService {
 
         return PeriodAnalyticsResponse.builder()
                 .periodName(targetYearMonth.getMonth().name())
+                .periodStart(startOfMonth)
+                .periodEnd(visibleEnd)
                 .monthlyExpense(monthlyExpense)
                 .monthlyIncome(monthlyIncome)
                 .internalTransfersAmount(internalTransfers)

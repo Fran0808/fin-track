@@ -17,16 +17,28 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: category analysis
+## Current checkpoint: category analysis and merchant drill-down
 
-- Owner/scope: current chat; expense categories in Analysis, including uncategorized
-  movements, with server aggregates, amounts, percentages and counts.
-- Checks: 255 backend tests in disposable PostgreSQL, 69 UI tests, lint (9 existing
-  warnings) and production build passed. Full desktop/mobile Edge → real packaged
-  API → disposable PostgreSQL verification passed before starting the next feature.
-  Temporary processes and fixtures stopped and removed; no live data accessed.
-- Next: user deploys/restarts the updated API/UI. No schema migration, existing
-  service restart, agent commit or push. Merchant drill-down is a separate change.
+- Owner/scope: current chat; add period expense category aggregates and a visible
+  category breakdown, followed by exact merchant drill-down into Movements.
+  No schema, Android sync or visual foundation changes.
+- Sequence: category breakdown first passed 255 backend tests, 69 UI tests and a
+  full desktop/mobile browser → real API → disposable PostgreSQL check. Only then
+  was merchant drill-down implemented, retaining server-provided analysis bounds,
+  clearing conflicting filters and preserving scope in paging/CSV.
+- Final checks: 257 backend tests with all four persistence suites and both SQL
+  regressions passed in disposable PostgreSQL; 73 UI tests across 15 files, lint
+  (same 9 warnings), TypeScript/Vite build and documentation/diff checks passed.
+  Isolated headless Edge ran the built frontend against the packaged API and a
+  fresh synthetic database at 1440×1100 and 390×844: categories/uncategorized totals,
+  exact merchant selection, date bounds, exclusion of similar names/other users/
+  income/transfers, CSV and removable filtering passed. Screenshots inspected;
+  no horizontal overflow. Temporary API, browser, database and HTTP server stopped
+  and removed. Browser fixture/scenario were ad hoc; permanent regressions are
+  in the UI tests and ClassificationPersistenceTest.
+- Status/next: verified for isolated end-to-end scope. User restarts/deploys the
+  updated API/UI to see the additions; no migration required. No existing service
+  restart, real financial access, live mutation, agent commit or push.
 
 ## Checkpoint: Analysis merchant ranking
 

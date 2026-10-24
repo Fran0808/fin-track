@@ -70,6 +70,39 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void exactMerchantFilterKeepsAnalysisScopeAcrossPagingAndCsv() {
+        String name = "Literal %_ Shop";
+        for (int index = 0; index < 3; index++) {
+            Transaction mine = store(owner, "merchant-exact-" + index, null, FlowType.EXPENSE, null);
+            mine.setContactName(name);
+            transactions.saveAndFlush(mine);
+        }
+        Transaction similar = store(owner, "merchant-similar", null, FlowType.EXPENSE, null);
+        similar.setContactName(name + " Extra");
+        Transaction foreign = store(other, "merchant-foreign", null, FlowType.EXPENSE, null);
+        foreign.setContactName(name);
+        Transaction income = store(owner, "merchant-income", null, FlowType.INCOME, null);
+        income.setContactName(name);
+        Transaction future = store(owner, "merchant-future", null, FlowType.EXPENSE, null);
+        future.setContactName(name);
+        future.setTransactionDate(LocalDateTime.of(2026, 1, 2, 0, 0));
+        transactions.saveAllAndFlush(List.of(similar, foreign, income, future));
+        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime end = LocalDateTime.of(2026, 1, 1, 23, 59, 59);
+        var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null, null,
+                null, null, null, name, PageRequest.of(1, 2));
+        assertEquals(3, page.getTotalElements());
+        assertEquals(1, page.getContent().size());
+        assertEquals(name, page.getContent().getFirst().getContactName());
+        String csv = new String(service.exportTransactionsCsv(start, end, FlowType.EXPENSE, null, null,
+                null, null, null, null, null, name), java.nio.charset.StandardCharsets.UTF_8);
+        assertEquals(4, csv.lines().count());
+        assertFalse(csv.contains("merchant-similar"));
+        assertFalse(csv.contains("merchant-foreign"));
+        assertFalse(csv.contains("merchant-income"));
+        assertFalse(csv.contains("merchant-future"));
+    }
+
     @Test void categoryBreakdownIncludesUnclassifiedExpensesAndRespectsOwnerPeriodAndFlow() {
         Transaction first = store(owner, "category-food", " Comida ", FlowType.EXPENSE, null);
         first.setAmount(new BigDecimal("60.25"));
