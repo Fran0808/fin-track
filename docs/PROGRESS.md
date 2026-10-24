@@ -17,7 +17,23 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: retire transaction tags and notes
+## Current checkpoint: Analysis merchant ranking
+
+- Owner/scope: current chat; correct the backend top-five merchant query to select
+  total expense descending before applying its limit. Count and name resolve ties;
+  the dashboard already renders the API order. No frontend or schema change.
+- Checks: Java 21 offline persistence runner passed 254 backend tests, all four
+  persistence suites and both SQL migration regressions in disposable PostgreSQL.
+  The new analytics regression verifies a large single expense outranks frequent
+  small purchases, top-five selection, tie order, decimal totals and exclusion of
+  other users, income, own transfers and dates outside the selected month.
+  Temporary cluster stopped/removed; diff and documentation links checked.
+- Status/next: verified for isolated backend scope; restart/deploy the updated API
+  with authorization to see the corrected order. No live-data changes, existing
+  service restart, browser acceptance, commit or push. Recommendations for category
+  breakdown, merchant drill-down and explicit period comparisons were not implemented.
+
+## Checkpoint: retire transaction tags and notes
 
 - Owner/scope: current chat; remove tags/notes from entity/DTO/update logic,
   contact/category search, filters, table, CSV and shared client types. Category
@@ -36,6 +52,8 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   browser/mobile visual acceptance, agent commit or push. Deploy API/UI together,
   back up any historical metadata needed, then authorize/apply the migration on
   the intended database. No live data was deleted; no further feature started.
+  Subsequently the user reported successful backup and migration (`COMMIT`) on
+  the local database; that operational result was not independently inspected.
 
 ## Dashboard checkpoint: integrated movement review
 

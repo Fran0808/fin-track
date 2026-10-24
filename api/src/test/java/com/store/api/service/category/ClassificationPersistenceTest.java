@@ -8,6 +8,7 @@ import com.store.api.model.entity.*;
 import com.store.api.model.enums.*;
 import com.store.api.repository.*;
 import com.store.api.service.transaction.TransactionService;
+import com.store.api.service.analytics.AnalyticsService;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,7 @@ class ClassificationPersistenceTest {
     @Autowired private ClassificationRuleService rules;
     @Autowired private CategoryService categoryService;
     @Autowired private TransactionService service;
+    @Autowired private AnalyticsService analytics;
     private User owner;
     private User other;
     private Category target;
@@ -66,6 +68,43 @@ class ClassificationPersistenceTest {
     private List<Long> pending(PendingReason reason) {
         return service.getPendingTransactions(reason, PageRequest.of(0, 10, Sort.by("id"))).getContent()
                 .stream().map(item -> item.getId()).toList();
+    }
+
+    @Test void merchantRankingSelectsHighestSpendBeforeLimitingAndScopesExpensesToUserAndPeriod() {
+        storeMerchant(owner, "Frequent", "1.00", 7);
+        storeMerchant(owner, "Largest", "700.00", 1);
+        storeMerchant(owner, "Second", "200.00", 1);
+        storeMerchant(owner, "Tie B", "50.00", 1);
+        storeMerchant(owner, "Tie A", "50.00", 1);
+        storeMerchant(owner, "Fifth", "20.00", 1);
+        storeMerchant(owner, "Outside top five", "10.00", 1);
+        storeMerchant(other, "Foreign", "10000.00", 1);
+        Transaction transfer = store(owner, "ranking-transfer", null, FlowType.INTERNAL_TRANSFER, account);
+        transfer.setAmount(new BigDecimal("9000.00"));
+        Transaction income = store(owner, "ranking-income", null, FlowType.INCOME, account);
+        income.setAmount(new BigDecimal("8000.00"));
+        Transaction old = store(owner, "ranking-old", null, FlowType.EXPENSE, account);
+        old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 12, 0));
+        old.setAmount(new BigDecimal("7000.00"));
+        transactions.saveAllAndFlush(List.of(transfer, income, old));
+
+        var result = analytics.getPeriodAnalytics(2026, 1);
+        assertEquals(new BigDecimal("1037.00"), result.getMonthlyExpense());
+        assertEquals(List.of("Largest", "Second", "Tie A", "Tie B", "Fifth"),
+                result.getTopMerchants().stream().map(item -> item.getMerchantName()).toList());
+        assertEquals(List.of(new BigDecimal("700.00"), new BigDecimal("200.00"),
+                        new BigDecimal("50.00"), new BigDecimal("50.00"), new BigDecimal("20.00")),
+                result.getTopMerchants().stream().map(item -> item.getTotalAmount()).toList());
+        assertEquals(1L, result.getTopMerchants().getFirst().getTransactionCount());
+    }
+
+    private void storeMerchant(User user, String name, String amount, int count) {
+        for (int index = 0; index < count; index++) {
+            Transaction movement = store(user, "ranking-" + name + "-" + index, null, FlowType.EXPENSE, null);
+            movement.setContactName(name);
+            movement.setAmount(new BigDecimal(amount));
+            transactions.saveAndFlush(movement);
+        }
     }
 
     @Test void listingSearchAndCsvWorkWithoutMetadataColumnsAndRemainUserScoped() {

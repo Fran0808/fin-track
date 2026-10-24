@@ -16,6 +16,11 @@ summary field `netBalance` is this computed flow, not a bank balance. Internal
 transfers are reported separately. Period and all-history totals must be labeled
 according to their scope; do not combine them as if they cover the same dates.
 
+Analysis ranks its top five merchants by total recorded expense descending,
+then by operation count descending and merchant name ascending for ties. The
+ranking is selected after aggregating all expenses in the authenticated user's
+selected period. Income and internal transfers never enter this ranking.
+
 ## Evidence and amount
 
 - A bank name or currency amount alone is insufficient evidence of a transaction.
