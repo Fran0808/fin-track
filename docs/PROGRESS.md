@@ -19,15 +19,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current dashboard checkpoint: simplify movement detail
 
-- Owner/scope: current chat; remove the technical information disclosure, displayed
-  hash and copy action from TransactionDetailModal. The Home comparison was reviewed
-  and left unchanged; removal from Home was recommended as a separate decision.
+- Owner/scope: current chat; simplify TransactionDetailModal to category editing,
+  removing tag/note controls and their local state/handlers. Updates send only the
+  category, preserving stored tags/notes. Technical disclosure was removed previously;
+  the Home comparison remains unchanged.
 - Status/checks: 67 UI tests across 14 files passed; TypeScript/Vite build passed;
   lint completed with the same 9 warnings. Diff check passed. HTTP 200 from local
-  Vite confirmed technical/copy controls absent and classification/rule actions present.
+  Vite confirmed tag/note controls absent and the category selector present. Existing
+  interaction tests now cover category drafts, rule cancellation and category-only
+  update payloads with existing tags/notes omitted.
 - Limits/next: no browser/mobile end-to-end acceptance, backend change, financial
   operation or service restart. User reviews the shorter dialog and commits this
-  focused change. The unrelated AGENTS.md edit remains untouched; no commit/push.
+  focused change. Updated UI README and classification behavior; no commit/push.
 
 ## Dashboard checkpoint: integrated movement review
 

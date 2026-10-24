@@ -51,14 +51,12 @@ it('opens a sibling modal with the edited category and retains the movement draf
   render(<Detail />);
   await screen.findByRole('option', { name: 'Ocio' });
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: 'Ocio' } });
-  fireEvent.change(screen.getByLabelText('Notas personales'), { target: { value: 'Borrador pendiente' } });
   fireEvent.click(screen.getByRole('button', { name: 'Crear regla para este comercio' }));
   const dialog = screen.getByRole('dialog', { name: 'Crear regla para este comercio' });
   await waitFor(() => expect((within(dialog).getByLabelText('Asignar categoría') as HTMLSelectElement).value).toBe('2'));
   expect(dialog.parentElement?.closest('dialog')).toBeNull();
   fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
   expect(screen.queryByRole('dialog', { name: 'Crear regla para este comercio' })).toBeNull();
-  expect((screen.getByLabelText('Notas personales') as HTMLTextAreaElement).value).toBe('Borrador pendiente');
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe('Ocio');
   expect(save).not.toHaveBeenCalled();
 });

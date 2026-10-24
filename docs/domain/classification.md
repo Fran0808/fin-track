@@ -41,8 +41,9 @@ It can classify either income or expenses. Editing a rule does not update histor
 `Crear regla para este comercio` in a non-transfer movement's detail opens a native
 dialog with its contact text and currently selected category. The user can edit
 the text, choose an active category, set priority and review before explicitly
-saving. Opening or cancelling it creates nothing; the movement's unsaved category,
-tags and notes remain intact. Creating a rule does not classify that historical
+saving. Opening or cancelling it creates nothing; the movement's unsaved category
+remains intact. The detail dialog no longer edits tags or personal notes; category-only
+updates omit those fields and preserve stored values. Creating a rule does not classify that historical
 movement; save its classification separately. `Reglas` retains full rule management.
 
 Renaming a category affects subsequent rule assignments. Deactivating it makes its

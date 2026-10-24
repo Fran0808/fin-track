@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, X, Plus, Tag, Loader2 } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 import { api } from '../../services/api';
@@ -24,9 +24,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
 
   // Classification state
   const [category, setCategory] = useState<string>(transaction.category || '');
-  const [tags, setTags] = useState<string[]>(transaction.tags || []);
-  const [newTagInput, setNewTagInput] = useState<string>('');
-  const [notes, setNotes] = useState<string>(transaction.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -38,20 +35,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     if (!transaction && dialog.open) dialog.close();
   }, [transaction]);
 
-  const handleAddTag = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = newTagInput.trim().replace(/^#+/, '').toLowerCase();
-    if (!clean) return;
-    if (!tags.includes(clean)) {
-      setTags([...tags, clean]);
-    }
-    setNewTagInput('');
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((t) => t !== tagToRemove));
-  };
-
   const handleSaveClassification = async () => {
     if (!transaction) return;
     setIsSaving(true);
@@ -60,8 +43,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     try {
       const updated = await api.updateTransactionClassification(transaction.id, {
         category,
-        tags: tags.length > 0 ? tags : null,
-        notes: notes.trim() || null,
       });
       setSaveSuccess(true);
       window.setTimeout(() => setSaveSuccess(false), 2500);
@@ -107,9 +88,8 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Fecha y hora</dt><dd className="text-right font-medium">{formatDate(transaction.transactionDate)}</dd></div>
         </dl>
 
-        {/* Clasificación y Organización */}
         <div className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
-          <p className="eyebrow text-ink!">Categoría y etiquetas</p>
+          <p className="eyebrow text-ink!">Clasificación</p>
           
           <div className="mt-3.5 space-y-4">
             <div>
@@ -132,73 +112,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
                 />
               </div>
               {categoryError && <p role="alert" className="mt-2 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
-            </div>
-
-            <div>
-              <label htmlFor="modal-tag-input" className="block text-xs font-semibold text-muted">
-                Etiquetas (#tags)
-              </label>
-              <div className="mt-1.5 flex gap-2">
-                <div className="relative flex-1">
-                  <Tag className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-                  <input
-                    id="modal-tag-input"
-                    type="text"
-                    value={newTagInput}
-                    onChange={(e) => setNewTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddTag();
-                      }
-                    }}
-                    placeholder="ej. almuerzo, trabajo, viaje"
-                    className="w-full rounded-xl border border-line bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-ink placeholder:text-muted focus:border-brand focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleAddTag()}
-                  className="inline-flex items-center gap-1 rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:border-brand hover:text-brand"
-                >
-                  <Plus className="h-3.5 w-3.5" /> Agregar
-                </button>
-              </div>
-
-              {tags.length > 0 && (
-                <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {tags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-1 rounded-lg border border-line bg-white px-2 py-0.5 text-xs font-medium text-ink"
-                    >
-                      #{t}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(t)}
-                        className="text-muted hover:text-negative"
-                        aria-label={`Quitar etiqueta ${t}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="modal-notes" className="block text-xs font-semibold text-muted">
-                Notas personales
-              </label>
-              <textarea
-                id="modal-notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                placeholder="Añade un apunte o recordatorio sobre este movimiento..."
-                className="mt-1.5 w-full resize-none rounded-xl border border-line bg-white p-2.5 text-xs font-medium text-ink placeholder:text-muted focus:border-brand focus:outline-none"
-              />
             </div>
 
             {saveError && (

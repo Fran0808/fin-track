@@ -69,12 +69,10 @@ it('renders category and tags in TransactionTable and shows dynamic summary', ()
   expect(screen.getByText('1 movimientos encontrados')).toBeDefined();
 });
 
-it('allows editing category, adding tags, and saving classification in TransactionDetailModal', async () => {
+it('edits only the category without submitting or clearing existing tags and notes', async () => {
   const updateSpy = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({
     ...sampleTx,
     category: 'COMPRAS',
-    tags: ['super', 'almuerzo', 'despensa'],
-    notes: 'Nueva nota actualizada',
   });
 
   const onUpdated = vi.fn();
@@ -85,16 +83,8 @@ it('allows editing category, adding tags, and saving classification in Transacti
   const select = screen.getByLabelText('Categoría') as HTMLSelectElement;
   fireEvent.change(select, { target: { value: 'COMPRAS' } });
 
-  // Add tag
-  const tagInput = screen.getByPlaceholderText('ej. almuerzo, trabajo, viaje');
-  fireEvent.change(tagInput, { target: { value: '#despensa' } });
-  fireEvent.click(screen.getByRole('button', { name: /Agregar/ }));
-
-  expect(screen.getByText('#despensa')).toBeDefined();
-
-  // Change notes
-  const notesArea = screen.getByPlaceholderText('Añade un apunte o recordatorio sobre este movimiento...');
-  fireEvent.change(notesArea, { target: { value: 'Nueva nota actualizada' } });
+  expect(screen.queryByLabelText('Etiquetas (#tags)')).toBeNull();
+  expect(screen.queryByLabelText('Notas personales')).toBeNull();
 
   // Save
   fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
@@ -102,13 +92,11 @@ it('allows editing category, adding tags, and saving classification in Transacti
   await waitFor(() => {
     expect(updateSpy).toHaveBeenCalledWith(10, {
       category: 'COMPRAS',
-      tags: ['super', 'almuerzo', 'despensa'],
-      notes: 'Nueva nota actualizada',
     });
   });
 
   await screen.findByText('Cambios guardados');
-  expect(onUpdated).toHaveBeenCalled();
+  expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ category: 'COMPRAS', tags: sampleTx.tags, notes: sampleTx.notes }));
 });
 
 it('sends an empty category to clear an existing classification', async () => {

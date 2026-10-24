@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it('preserves notes, category and tags when assigning a product, then saves the draft', async () => {
+it('preserves the category draft when assigning a product and saves only the category', async () => {
   vi.spyOn(api, 'assignFinancialInstrument').mockResolvedValue({ ...tx, financialInstrument: card });
   const save = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...tx, financialInstrument: card, category: category.name, notes: 'Draft', tags: ['draft'] });
   function Detail() {
@@ -33,29 +33,24 @@ it('preserves notes, category and tags when assigning a product, then saves the 
   render(<Detail />);
   await screen.findByRole('option', { name: category.name });
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
-  fireEvent.change(screen.getByLabelText('Notas personales'), { target: { value: 'Draft' } });
-  fireEvent.change(screen.getByLabelText('Etiquetas (#tags)'), { target: { value: 'draft' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Agregar' }));
   fireEvent.click(await screen.findByRole('button', { name: /Confirmar Synthetic card/ }));
   await screen.findByText(card.alias);
-  expect((screen.getByLabelText('Notas personales') as HTMLTextAreaElement).value).toBe('Draft');
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe(category.name);
-  expect(screen.getByText('#draft')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
-  await waitFor(() => expect(save).toHaveBeenCalledWith(tx.id, { category: category.name, notes: 'Draft', tags: ['draft'] }));
+  await waitFor(() => expect(save).toHaveBeenCalledWith(tx.id, { category: category.name }));
   await screen.findByText('Cambios guardados');
 });
 
 it('reloads categories on each detail opening and resets the draft for a different movement', async () => {
   const view = render(<TransactionDetailModal transaction={tx} onClose={() => {}} />);
   await screen.findByRole('option', { name: category.name });
-  fireEvent.change(screen.getByLabelText('Notas personales'), { target: { value: 'Draft' } });
+  fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
   view.rerender(<TransactionDetailModal transaction={null} onClose={() => {}} />);
   vi.mocked(api.getCategories).mockResolvedValue([{ ...category, name: 'Renombrada' }]);
   view.rerender(<TransactionDetailModal transaction={{ ...tx, id: 3, notes: 'Different movement' }} onClose={() => {}} />);
   await screen.findByRole('option', { name: 'Renombrada' });
   expect(screen.queryByRole('option', { name: category.name })).toBeNull();
-  expect((screen.getByLabelText('Notas personales') as HTMLTextAreaElement).value).toBe('Different movement');
+  expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe('');
 });
 
 it('distinguishes a failed category request from an empty catalog and permits retry', async () => {
