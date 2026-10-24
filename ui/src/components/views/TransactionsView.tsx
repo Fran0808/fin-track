@@ -53,7 +53,7 @@ export function TransactionsView({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Historial del período</p>
+          <p className="eyebrow">{filters.allHistory ? 'Historial completo' : 'Historial del período'}</p>
           <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Movimientos</h1>
           <p className="mt-2 text-sm text-muted">Consulta, filtra y clasifica las entradas, gastos y transferencias registradas.</p>
         </div>
@@ -81,6 +81,8 @@ export function TransactionsView({
             maxAmount={filters.maxAmount}
             startDate={filters.startDate}
             endDate={filters.endDate}
+            allHistory={filters.allHistory}
+            pendingReason={filters.pendingReason}
             onFilterChange={onFilterChange}
             onReset={() =>
               onFilterChange({
@@ -93,6 +95,8 @@ export function TransactionsView({
                 maxAmount: undefined,
                 startDate: undefined,
                 endDate: undefined,
+                allHistory: false,
+                pendingReason: '',
               })
             }
           />
@@ -100,7 +104,7 @@ export function TransactionsView({
         <TransactionTable
           pageData={pageData}
           loading={loading}
-          periodName={filters.startDate && filters.endDate
+          periodName={filters.allHistory ? 'Todo el historial' : filters.startDate && filters.endDate
             ? `${filters.startDate.slice(0, 10).split('-').reverse().join('/')} al ${filters.endDate.slice(0, 10).split('-').reverse().join('/')}`
             : periodName}
           onPageChange={onPageChange}

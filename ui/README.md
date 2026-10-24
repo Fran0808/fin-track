@@ -57,10 +57,17 @@ as a native modal dialog; Escape closes it. The sidebar scrolls on short screens
 and the movement table prioritizes contact, amount and detail below 640 px; date
 and payment method remain available in the detail dialog.
 
-`Pendientes` shows the entire history's movements missing a category or assigned
-instrument, with reason filters and the existing detail dialog for completion.
-`Reglas` manages automatic category assignments for new movements. These screens
-do not use the global month selector. See [pending movements and rules](../docs/domain/classification.md)
+`Movimientos` includes advanced review filters for missing category, missing assigned
+card/account, or either condition. Selecting one searches `Todo el historial`;
+date controls can narrow the scope again. Search and other filters apply to both
+listing and full CSV. Old `?vista=pendientes` links open this review in Movements;
+the separate view and menu entry are removed.
+`Reglas` manages automatic category assignments for new movements and does not use
+the global month selector. A movement's detail offers `Crear regla para este comercio`
+with editable text/category/priority and explicit save; cancelling preserves its
+unsaved classification. Creating a rule does not reclassify historical movements.
+Deploy the updated API for review filters; an incompatible API produces an error
+instead of an unfiltered result. See [pending movements and rules](../docs/domain/classification.md)
 for matching, priority and category lifecycle behavior.
 
 | Area | Source |

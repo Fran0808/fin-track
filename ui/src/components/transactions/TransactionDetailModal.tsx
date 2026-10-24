@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, X, Plus, Tag, Loader2 } from 'lucide-react';
-import type { Transaction } from '../../types';
+import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
@@ -11,13 +11,14 @@ interface TransactionDetailModalProps {
   transaction: Transaction | null;
   onClose: () => void;
   onUpdated?: (transaction: Transaction) => void;
+  onCreateRule?: (draft: ClassificationRuleDraft) => void;
 }
 
-export function TransactionDetailModal({ transaction, onClose, onUpdated }: TransactionDetailModalProps) {
-  return transaction ? <TransactionDetailContent key={transaction.id} transaction={transaction} onClose={onClose} onUpdated={onUpdated} /> : null;
+export function TransactionDetailModal(props: TransactionDetailModalProps) {
+  return props.transaction ? <TransactionDetailContent key={props.transaction.id} {...props} transaction={props.transaction} /> : null;
 }
 
-function TransactionDetailContent({ transaction, onClose, onUpdated }: TransactionDetailModalProps & { transaction: Transaction }) {
+function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
   const { options: categoryOptions, loading: loadingCategories, error: categoryError, refresh: refreshCategories } = useCategories(true);
@@ -236,6 +237,10 @@ function TransactionDetailContent({ transaction, onClose, onUpdated }: Transacti
             </div>
           </div>
         </div>
+
+        {!isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={isSaving}
+          onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
+          className="mt-4 text-sm font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 
         {onUpdated && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
 

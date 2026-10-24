@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Tag } from 'lucide-react';
-import type { FlowType } from '../../types';
+import type { FlowType, PendingReason } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
 import { CustomSelect } from '../common';
@@ -16,6 +16,8 @@ interface TransactionFiltersProps {
   maxAmount?: number;
   startDate?: string;
   endDate?: string;
+  allHistory?: boolean;
+  pendingReason?: PendingReason | '';
   onFilterChange: (filters: Partial<TransactionFilterParams>) => void;
   onReset: () => void;
 }
@@ -46,11 +48,13 @@ export function TransactionFilters({
   maxAmount,
   startDate,
   endDate,
+  allHistory = false,
+  pendingReason = '',
   onFilterChange,
   onReset,
 }: TransactionFiltersProps) {
   const [localSearch, setLocalSearch] = useState(search);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(Boolean(pendingReason));
   const { options: categoryOptions, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function TransactionFilters({
   }, [localSearch, search, onFilterChange]);
 
   const activeAdvancedCount = [
+    pendingReason,
     category,
     tag,
     channel,
@@ -72,7 +77,7 @@ export function TransactionFilters({
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
   ].filter(value => value !== '' && value !== undefined && value !== null).length;
 
-  const hasAnyFilter = Boolean(localSearch.trim() || flowType || startDate || endDate || activeAdvancedCount > 0);
+  const hasAnyFilter = Boolean(localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
 
   return (
     <div className="space-y-4">
@@ -155,11 +160,28 @@ export function TransactionFilters({
         </div>
       </div>
 
-      <TransactionDateFilter key={`${startDate || ''}:${endDate || ''}`} startDate={startDate} endDate={endDate} onFilterChange={onFilterChange} />
+      <TransactionDateFilter key={`${allHistory}:${startDate || ''}:${endDate || ''}`} startDate={startDate} endDate={endDate} allHistory={allHistory} onFilterChange={onFilterChange} />
 
       {isAdvancedOpen && (
         <div className="rounded-2xl border border-line bg-canvas/60 p-4 transition-all sm:p-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label htmlFor="filter-review" className="block text-xs font-semibold text-muted">Revisión</label>
+              <div className="mt-1.5">
+                <CustomSelect<PendingReason | ''> id="filter-review" value={pendingReason}
+                  onChange={value => onFilterChange({ pendingReason: value,
+                    ...(value ? { allHistory: true, startDate: undefined, endDate: undefined } : {}),
+                    ...(value === 'CATEGORY' ? { category: '' } : {}),
+                  })}
+                  options={[
+                    { value: '', label: 'Todos los movimientos' },
+                    { value: 'CATEGORY', label: 'Sin categoría' },
+                    { value: 'INSTRUMENT', label: 'Sin tarjeta/cuenta asignada' },
+                    { value: 'ALL', label: 'Sin categoría o tarjeta/cuenta' },
+                  ]} />
+              </div>
+              {pendingReason && <p className="mt-2 text-xs text-muted">Puedes limitar la búsqueda con las opciones de fecha.</p>}
+            </div>
             <div>
               <label htmlFor="filter-category" className="block text-xs font-semibold text-muted">
                 Categoría
@@ -167,6 +189,7 @@ export function TransactionFilters({
               <div className="mt-1.5">
                 <CustomSelect
                   id="filter-category"
+                  disabled={pendingReason === 'CATEGORY'}
                   value={category}
                   onChange={(val) => onFilterChange({ category: val })}
                   options={[
@@ -256,6 +279,7 @@ export function TransactionFilters({
                 type="button"
                 onClick={() =>
                   onFilterChange({
+                    pendingReason: '',
                     category: '',
                     tag: '',
                     channel: '',

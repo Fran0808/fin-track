@@ -4,13 +4,14 @@ import type { TransactionFilterParams } from '../../services';
 interface TransactionDateFilterProps {
   startDate?: string;
   endDate?: string;
+  allHistory?: boolean;
   onFilterChange: (filters: Partial<TransactionFilterParams>) => void;
 }
 
-export function TransactionDateFilter({ startDate, endDate, onFilterChange }: TransactionDateFilterProps) {
+export function TransactionDateFilter({ startDate, endDate, allHistory = false, onFilterChange }: TransactionDateFilterProps) {
   const start = startDate?.slice(0, 10) || '';
   const end = endDate?.slice(0, 10) || '';
-  const [mode, setMode] = useState(start ? start === end ? 'day' : 'range' : 'month');
+  const [mode, setMode] = useState(allHistory ? 'all' : start ? start === end ? 'day' : 'range' : 'month');
   const [from, setFrom] = useState(start);
   const [to, setTo] = useState(end);
   const invalidRange = mode === 'range' && Boolean(from && to && from > to);
@@ -23,18 +24,19 @@ export function TransactionDateFilter({ startDate, endDate, onFilterChange }: Tr
       <div className="flex flex-wrap gap-2" aria-label="Tipo de búsqueda por fecha">
         {[
           ['month', 'Mes seleccionado'], ['day', 'Día específico'], ['range', 'Rango de fechas'],
+          ['all', 'Todo el historial'],
         ].map(([value, label]) => (
           <button key={value} type="button" aria-pressed={mode === value}
             className={`rounded-lg border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand ${mode === value ? 'border-brand bg-white text-brand' : 'border-line text-muted hover:text-ink'}`}
             onClick={() => {
               setMode(value);
-              if (value === 'month') onFilterChange({ startDate: undefined, endDate: undefined });
+              if (value === 'month' || value === 'all') onFilterChange({ allHistory: value === 'all', startDate: undefined, endDate: undefined });
             }}>
             {label}
           </button>
         ))}
       </div>
-      {mode !== 'month' && (
+      {mode !== 'month' && mode !== 'all' && (
         <div className="mt-3 grid items-end gap-3 sm:grid-cols-[1fr_1fr_auto]">
           <div>
             <label htmlFor="transaction-date-from" className="mb-1 block text-xs font-semibold text-muted">{mode === 'day' ? 'Fecha' : 'Desde'}</label>
@@ -52,6 +54,7 @@ export function TransactionDateFilter({ startDate, endDate, onFilterChange }: Tr
           <button type="button" disabled={!canApply}
             className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => onFilterChange({
+              allHistory: false,
               startDate: `${from}T00:00:00`,
               endDate: `${mode === 'day' ? from : to}T23:59:59.999999`,
             })}>
@@ -60,7 +63,7 @@ export function TransactionDateFilter({ startDate, endDate, onFilterChange }: Tr
         </div>
       )}
       {invalidRange && <p id="transaction-date-error" role="alert" className="mt-2 text-sm text-negative">La fecha final debe ser igual o posterior a la inicial.</p>}
-      <p className="mt-2 text-xs text-muted">{start ? `Búsqueda aplicada: ${start.split('-').reverse().join('/')} al ${end.split('-').reverse().join('/')}.` : 'Se muestran los movimientos del mes seleccionado.'}</p>
+      <p className="mt-2 text-xs text-muted">{allHistory ? 'Se muestra todo el historial, sin límite de fechas.' : start ? `Búsqueda aplicada: ${start.split('-').reverse().join('/')} al ${end.split('-').reverse().join('/')}.` : 'Se muestran los movimientos del mes seleccionado.'}</p>
     </fieldset>
   );
 }

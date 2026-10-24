@@ -25,21 +25,24 @@ export function useFinance(userId: number) {
     month: new Date().getMonth() + 1,
   });
 
-  const [filters, setFilters] = useState<TransactionFilterParams>({
+  const [filters, setFilters] = useState<TransactionFilterParams>(() => ({
     page: 0,
     size: 10,
     flowType: '',
     search: '',
-  });
+    ...(new URLSearchParams(window.location.search).get('vista') === 'pendientes'
+      ? { pendingReason: 'ALL' as const, allHistory: true } : {}),
+  }));
 
   const setSelectedPeriod = (period: { year: number; month: number }) => {
     setSelectedPeriodState(period);
-    setFilters((prev) => ({ ...prev, startDate: undefined, endDate: undefined, page: 0 }));
+    setFilters((prev) => ({ ...prev, allHistory: false, startDate: undefined, endDate: undefined, page: 0 }));
   };
 
   const transactionFilters = useMemo(() => ({
     ...filters,
-    ...(filters.startDate && filters.endDate ? {} : getPeriodDateRange(selectedPeriod.year, selectedPeriod.month)),
+    ...(filters.allHistory ? { startDate: undefined, endDate: undefined }
+      : filters.startDate && filters.endDate ? {} : getPeriodDateRange(selectedPeriod.year, selectedPeriod.month)),
   }), [filters, selectedPeriod]);
 
   const summaryQuery = useCallback(() => userId ? api.getFinancialSummary() : Promise.reject(new Error('Sesión no disponible')), [userId]);
@@ -51,6 +54,12 @@ export function useFinance(userId: number) {
   const summaryResource = useQueryResource<FinancialSummary>(summaryQuery, 'Error al cargar el resumen');
   const analyticsResource = useQueryResource<PeriodAnalytics>(analyticsQuery, 'Error al cargar analítica financiera');
   const transactionResource = useQueryResource<PageResponse<Transaction>>(transactionsQuery, 'Error al cargar transacciones');
+  useEffect(() => {
+    const page = transactionResource.data;
+    if (page && page.number > 0 && page.number >= page.totalPages) {
+      setFilters(current => ({ ...current, page: Math.max(0, page.totalPages - 1) }));
+    }
+  }, [transactionResource.data]);
   const recentResource = useQueryResource<PageResponse<Transaction>>(recentQuery, 'Error al cargar movimientos recientes');
   const { refresh: loadSummary } = summaryResource;
   const { refresh: loadAnalytics } = analyticsResource;

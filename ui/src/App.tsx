@@ -1,13 +1,14 @@
 import { useCallback, useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, SettingsView, InstrumentsView, CategoriesView, PendingView, ClassificationRulesView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, SettingsView, InstrumentsView, CategoriesView, ClassificationRulesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
+import { CreateClassificationRuleModal } from './components/transactions/CreateClassificationRuleModal';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
 import { useAuth } from './contexts';
 import { useFinance } from './hooks';
-import type { Transaction, UserProfile } from './types';
+import type { ClassificationRuleDraft, Transaction, UserProfile } from './types';
 import { LogOut, Menu, Loader2, Smartphone } from 'lucide-react';
 import { SyncStatus } from './components/layout/SyncStatus';
 import { MobileNavigation } from './components/layout/MobileNavigation';
@@ -17,7 +18,6 @@ const VIEW_LABELS: Record<NavView, string> = {
   inicio: 'Inicio',
   'mi-dinero': 'Análisis',
   movimientos: 'Movimientos',
-  pendientes: 'Pendientes',
   reglas: 'Reglas',
   tarjetas: 'Tarjetas y cuentas',
   categorias: 'Categorías',
@@ -66,6 +66,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
 
   const [activeView, setActiveView] = useDashboardNavigation();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [ruleDraft, setRuleDraft] = useState<ClassificationRuleDraft | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
@@ -113,7 +114,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 Vinculación móvil
               </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().then(() => setInstrumentRevision(value => value + 1)).catch(() => {}); }} />
-              {!['configuracion', 'categorias', 'pendientes', 'reglas'].includes(activeView) && <PeriodSelector
+              {!['configuracion', 'categorias', 'reglas'].includes(activeView) && !(activeView === 'movimientos' && (filters.allHistory || filters.startDate)) && <PeriodSelector
                 year={selectedPeriod.year}
                 month={selectedPeriod.month}
                 onChange={(year, month) => setSelectedPeriod({ year, month })}
@@ -174,7 +175,6 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           {activeView === 'categorias' && (
             <CategoriesView />
           )}
-          {activeView === 'pendientes' && <PendingView revision={instrumentRevision} onSelectTransaction={setSelectedTransaction} onOpenRules={() => setActiveView('reglas')} />}
           {activeView === 'reglas' && <ClassificationRulesView />}
           {activeView === 'configuracion' && (
             <SettingsView
@@ -192,11 +192,12 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onUpdated={transaction => {
+      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
         setSelectedTransaction(current => current?.id === transaction.id ? transaction : current);
         setInstrumentRevision(value => value + 1);
         void refreshAll();
       }} />
+      {ruleDraft && <CreateClassificationRuleModal draft={ruleDraft} onClose={() => setRuleDraft(null)} />}
       <PairDeviceModal isOpen={pairingOpen} onClose={() => setPairingOpen(false)} />
     </div>
   );

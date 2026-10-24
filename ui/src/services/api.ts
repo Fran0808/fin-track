@@ -72,14 +72,17 @@ export interface TransactionFilterParams {
   channel?: string;
   minAmount?: number;
   maxAmount?: number;
+  pendingReason?: PendingReason | '';
+  allHistory?: boolean;
+}
+
+function requireReviewFilter(response: Response, reason?: PendingReason | '') {
+  if (response.ok && reason && response.headers.get('X-Fintrack-Review-Filter') !== reason) {
+    throw new Error('El servidor necesita actualizarse para usar los filtros de revisión.');
+  }
 }
 
 export const api = {
-  async getPendingTransactions(reason: PendingReason = 'ALL', page = 0): Promise<PageResponse<Transaction>> {
-    const query = new URLSearchParams({ reason, page: String(page), size: '10' });
-    return handleResponse<PageResponse<Transaction>>(await fetchWithAuth(`${BASE_URL}/transactions/pending?${query}`));
-  },
-
   async getClassificationRules(): Promise<ClassificationRule[]> {
     return handleResponse<ClassificationRule[]>(await fetchWithAuth(`${BASE_URL}/classification-rules`));
   },
@@ -146,6 +149,7 @@ export const api = {
     const query = new URLSearchParams();
     query.set('page', String(params.page ?? 0));
     query.set('size', String(params.size ?? 10));
+    if (params.pendingReason) query.set('pendingReason', params.pendingReason);
     if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
 
     if (params.flowType) {
@@ -177,11 +181,13 @@ export const api = {
     }
 
     const response = await fetchWithAuth(`${BASE_URL}/transactions?${query.toString()}`);
+    requireReviewFilter(response, params.pendingReason);
     return handleResponse<PageResponse<Transaction>>(response);
   },
 
   async exportTransactionsCsv(params: TransactionFilterParams = {}): Promise<Blob> {
     const query = new URLSearchParams();
+    if (params.pendingReason) query.set('pendingReason', params.pendingReason);
     if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
     if (params.flowType) query.set('flowType', params.flowType);
     if (params.search && params.search.trim()) query.set('search', params.search.trim());
@@ -198,6 +204,7 @@ export const api = {
     }
 
     const response = await fetchWithAuth(`${BASE_URL}/transactions/export?${query.toString()}`);
+    requireReviewFilter(response, params.pendingReason);
     if (!response.ok) {
       throw new Error(`Error al exportar transacciones: ${response.statusText}`);
     }

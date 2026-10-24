@@ -32,6 +32,11 @@ export interface TransactionClassificationRequest {
 
 export type PendingReason = 'ALL' | 'CATEGORY' | 'INSTRUMENT';
 
+export interface ClassificationRuleDraft {
+  matchText: string;
+  categoryName: string;
+}
+
 export interface ClassificationRuleRequest {
   matchText: string;
   categoryId: number;

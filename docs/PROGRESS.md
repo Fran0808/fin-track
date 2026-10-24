@@ -17,6 +17,29 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current dashboard checkpoint: integrated movement review
+
+- Owner/scope: current chat; replace Pendientes navigation with review filters in
+  Movimientos and contextual rule creation. Status: implemented; automated checks
+  passed, end-to-end/browser acceptance pending. See [behavior](domain/classification.md)
+  and [contract](architecture/contracts.md).
+- Paths: transaction controller/service/CORS and their tests; UI navigation,
+  movement/date filters, finance hook, API client, rule dialog, detail and tests.
+  Updated UI README. The unrelated AGENTS.md change was preserved.
+- Checks: 67 UI tests across 14 files; TypeScript/Vite build passed. Lint completed
+  with 9 warnings (8 pre-existing, one for guarded pagination correction after a
+  server response). 241 database-free backend tests passed with email scheduling
+  disabled and an unreachable database URL. HTTP 200 confirmed updated menu,
+  review-filter and detail modules served by local Vite; this is not visual QA.
+- Limits: no browser/mobile or live API end-to-end acceptance, persistence suite,
+  financial mutations, migration, service restart, commit or push. Unit/HTTP tests
+  use synthetic mocks. The API suite needed execution outside the process sandbox
+  after Mockito stalled there.
+- Next action: deploy/restart the updated API with authorization, then check review
+  filters, CSV and rule-dialog focus/cancellation at desktop/mobile sizes. The UI
+  rejects review responses from an API lacking the matching capability header.
+  No additional feature work before that end-to-end verification.
+
 ## Current checkpoint: Android transport and credential-backup policy
 
 - Owner: current chat; scope: release HTTPS, redirect/token protection and backup
