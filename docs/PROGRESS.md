@@ -17,7 +17,19 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current dashboard checkpoint: integrated movement review
+## Current dashboard checkpoint: simplify movement detail
+
+- Owner/scope: current chat; remove the technical information disclosure, displayed
+  hash and copy action from TransactionDetailModal. The Home comparison was reviewed
+  and left unchanged; removal from Home was recommended as a separate decision.
+- Status/checks: 67 UI tests across 14 files passed; TypeScript/Vite build passed;
+  lint completed with the same 9 warnings. Diff check passed. HTTP 200 from local
+  Vite confirmed technical/copy controls absent and classification/rule actions present.
+- Limits/next: no browser/mobile end-to-end acceptance, backend change, financial
+  operation or service restart. User reviews the shorter dialog and commits this
+  focused change. The unrelated AGENTS.md edit remains untouched; no commit/push.
+
+## Dashboard checkpoint: integrated movement review
 
 - Owner/scope: current chat; replace Pendientes navigation with review filters in
   Movimientos and contextual rule creation. Status: implemented; automated checks

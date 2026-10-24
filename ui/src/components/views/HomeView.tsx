@@ -34,14 +34,6 @@ export function HomeView({
   const income = analytics?.monthlyIncome ?? 0;
   const netCashflow = income - expense;
   const period = `${MONTHS[selectedMonth - 1]} de ${selectedYear}`;
-  const previousExpense = analytics?.previousPeriodExpense;
-  const comparison = previousExpense == null
-    ? null
-    : previousExpense === 0
-      ? expense === 0 ? 'Sin gastos en ambos períodos' : 'Primeros gastos frente al período anterior'
-      : expense === previousExpense
-        ? `Igual que ${analytics?.comparisonThroughDay ? `hasta el día ${analytics.comparisonThroughDay} del mes anterior` : 'el mes anterior'}`
-        : `${Math.abs(((expense - previousExpense) / previousExpense) * 100).toFixed(0)}% ${expense > previousExpense ? 'más' : 'menos'} que ${analytics?.comparisonThroughDay ? `hasta el día ${analytics.comparisonThroughDay} del mes anterior` : 'el mes anterior'}`;
 
   return (
     <div className="space-y-8">
@@ -63,11 +55,6 @@ export function HomeView({
             <p className="font-display font-num mt-4 text-[clamp(2.8rem,6vw,5rem)] font-semibold leading-none tracking-tight text-ink">
               {loading ? 'S/ …' : formatCurrency(expense)}
             </p>
-            {!loading && comparison && (
-              <p className={`font-num mt-4 text-sm font-semibold ${previousExpense != null && expense > previousExpense ? 'text-negative' : 'text-positive'}`}>
-                {comparison}
-              </p>
-            )}
           </div>
           <div className="grid grid-cols-2 divide-x divide-line lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
             <div className="p-5 sm:p-7">

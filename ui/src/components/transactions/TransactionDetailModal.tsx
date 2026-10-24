@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, X, Plus, Tag, Loader2 } from 'lucide-react';
+import { Check, X, Plus, Tag, Loader2 } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 import { api } from '../../services/api';
@@ -20,7 +20,6 @@ export function TransactionDetailModal(props: TransactionDetailModalProps) {
 
 function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [copied, setCopied] = useState(false);
   const { options: categoryOptions, loading: loadingCategories, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
   // Classification state
@@ -38,13 +37,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     if (transaction && !dialog.open) dialog.showModal();
     if (!transaction && dialog.open) dialog.close();
   }, [transaction]);
-
-  const copyHash = async () => {
-    if (!transaction?.transactionHash) return;
-    await navigator.clipboard.writeText(transaction.transactionHash);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleAddTag = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -244,16 +236,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
 
         {onUpdated && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
 
-        <details className="mt-5 text-sm">
-          <summary className="cursor-pointer font-medium text-brand">Información técnica</summary>
-          <p className="mt-3 text-xs leading-relaxed text-muted">Este identificador ayuda a evitar movimientos duplicados.</p>
-          <div className="mt-2 flex items-start gap-2 rounded-xl bg-canvas p-3">
-            <code className="min-w-0 flex-1 break-all text-xs text-muted">{transaction.transactionHash}</code>
-            <button type="button" onClick={copyHash} aria-label="Copiar identificador" className="shrink-0 rounded-lg p-1 text-brand hover:bg-brand/10">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            </button>
-          </div>
-        </details>
       </div>
     </dialog>
   );
