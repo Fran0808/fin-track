@@ -61,12 +61,11 @@ class ClassificationValidationTest {
         verify(transactions, never()).save(any());
     }
 
-    @Test void preservesLegacyCategoryWhenEditingNotes() {
+    @Test void preservesUnchangedLegacyCategoryWithoutRequiringAnActiveCatalogEntry() {
         prepare("FOOD");
         var result = service.updateClassification(10L,
-                TransactionClassificationRequest.builder().category("FOOD").notes("Test note").build());
+                TransactionClassificationRequest.builder().category("FOOD").build());
         assertEquals("FOOD", result.getCategory());
-        assertEquals("Test note", result.getNotes());
         verifyNoInteractions(categories);
     }
 

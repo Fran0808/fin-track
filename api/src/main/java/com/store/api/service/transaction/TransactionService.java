@@ -116,13 +116,6 @@ public class TransactionService {
                 tx.setCategory(trimmed);
             }
         }
-        if (request.getTags() != null) {
-            tx.setTagsList(request.getTags());
-        }
-        if (request.getNotes() != null) {
-            String trimmed = request.getNotes().trim();
-            tx.setNotes(trimmed.isEmpty() ? null : trimmed);
-        }
 
         Transaction saved = transactionRepository.save(tx);
         log.info("Transaction classification updated");
@@ -158,7 +151,6 @@ public class TransactionService {
             String search,
             Long financialInstrumentId,
             String category,
-            String tag,
             String channel,
             BigDecimal minAmount,
             BigDecimal maxAmount
@@ -182,10 +174,6 @@ public class TransactionService {
             if (category != null && !category.isBlank()) {
                 predicates.add(cb.equal(cb.upper(root.get("category")), category.trim().toUpperCase()));
             }
-            if (tag != null && !tag.isBlank()) {
-                String cleanTag = tag.trim().replaceAll("^#+", "").toLowerCase();
-                predicates.add(cb.like(cb.lower(cb.coalesce(root.get("tags"), "")), "%" + cleanTag + "%"));
-            }
             if (channel != null && !channel.isBlank()) {
                 predicates.add(cb.equal(cb.upper(root.get("channel")), channel.trim().toUpperCase()));
             }
@@ -199,9 +187,7 @@ public class TransactionService {
                 String pattern = "%" + search.toLowerCase().trim() + "%";
                 Predicate contactMatch = cb.like(cb.lower(root.get("contactName")), pattern);
                 Predicate categoryMatch = cb.like(cb.lower(cb.coalesce(root.get("category"), "")), pattern);
-                Predicate tagsMatch = cb.like(cb.lower(cb.coalesce(root.get("tags"), "")), pattern);
-                Predicate notesMatch = cb.like(cb.lower(cb.coalesce(root.get("notes"), "")), pattern);
-                predicates.add(cb.or(contactMatch, categoryMatch, tagsMatch, notesMatch));
+                predicates.add(cb.or(contactMatch, categoryMatch));
             }
 
             return cb.and(predicates.toArray(Predicate[]::new));
@@ -210,12 +196,12 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, null, null, null, null, null, null, pageable);
+        return getTransactions(startDate, endDate, flowType, search, null, null, null, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Long financialInstrumentId, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, null, null, null, null, null, pageable);
+        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, null, null, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -226,23 +212,22 @@ public class TransactionService {
             String search,
             Long financialInstrumentId,
             String category,
-            String tag,
             String channel,
             BigDecimal minAmount,
             BigDecimal maxAmount,
             Pageable pageable
     ) {
         return getTransactions(startDate, endDate, flowType, search, financialInstrumentId,
-                category, tag, channel, minAmount, maxAmount, null, pageable);
+                category, channel, minAmount, maxAmount, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String tag, String channel,
+            Long financialInstrumentId, String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, Pageable pageable) {
         User currentUser = UserContext.requireCurrentUser();
-        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount);
+        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         return transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
     }
@@ -255,22 +240,21 @@ public class TransactionService {
             String search,
             Long financialInstrumentId,
             String category,
-            String tag,
             String channel,
             BigDecimal minAmount,
             BigDecimal maxAmount
     ) {
         return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId,
-                category, tag, channel, minAmount, maxAmount, null);
+                category, channel, minAmount, maxAmount, null);
     }
 
     @Transactional(readOnly = true)
     public byte[] exportTransactionsCsv(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String tag, String channel,
+            Long financialInstrumentId, String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason) {
         User currentUser = UserContext.requireCurrentUser();
-        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount);
+        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         Sort sort = Sort.by(Sort.Direction.DESC, "transactionDate", "id");
         Page<Transaction> exportPage = transactionRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(0, 10001, sort));
@@ -281,7 +265,7 @@ public class TransactionService {
         StringBuilder sb = new StringBuilder();
         // UTF-8 BOM so Excel opens with proper encoding
         sb.append("\uFEFF");
-        sb.append("ID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Etiquetas,Medio,Tarjeta,Notas,Hash\n");
+        sb.append("ID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Medio,Tarjeta,Hash\n");
 
         for (Transaction t : list) {
             sb.append(escapeCsv(String.valueOf(t.getId()))).append(",");
@@ -290,10 +274,8 @@ public class TransactionService {
             sb.append(escapeCsv(t.getAmount() != null ? t.getAmount().toPlainString() : "0.00")).append(",");
             sb.append(escapeCsv(t.getFlowType() != null ? t.getFlowType().name() : "")).append(",");
             sb.append(escapeCsv(t.getCategory() != null ? t.getCategory() : "")).append(",");
-            sb.append(escapeCsv(t.getTags() != null ? t.getTags() : "")).append(",");
             sb.append(escapeCsv(t.getChannel() != null ? t.getChannel() : "")).append(",");
             sb.append(escapeCsv(t.getCardLast4() != null ? t.getCardLast4() : "")).append(",");
-            sb.append(escapeCsv(t.getNotes() != null ? t.getNotes() : "")).append(",");
             sb.append(escapeCsv(t.getTransactionHash())).append("\n");
         }
 
@@ -318,8 +300,6 @@ public class TransactionService {
                 .channel(t.getChannel())
                 .cardLast4(t.getCardLast4())
                 .category(t.getCategory())
-                .tags(t.getTagsList())
-                .notes(t.getNotes())
                 .transactionDate(t.getTransactionDate())
                 .transactionHash(t.getTransactionHash())
                 .createdAt(t.getCreatedAt())

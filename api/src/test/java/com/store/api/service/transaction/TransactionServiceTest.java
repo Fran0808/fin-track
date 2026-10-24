@@ -157,16 +157,12 @@ class TransactionServiceTest {
 
         com.store.api.model.dto.transaction.TransactionClassificationRequest request = com.store.api.model.dto.transaction.TransactionClassificationRequest.builder()
                 .category("Comida y bebidas")
-                .tags(List.of("almuerzo", "reembolsable"))
-                .notes("Almuerzo con compañeros")
                 .build();
 
         when(categories.existsByUserAndActiveTrueAndNameIgnoreCase(user, "Comida y bebidas")).thenReturn(true);
         var response = service.updateClassification(50L, request);
 
         assertEquals("Comida y bebidas", response.getCategory());
-        assertEquals(List.of("almuerzo", "reembolsable"), response.getTags());
-        assertEquals("Almuerzo con compañeros", response.getNotes());
         verify(transactions).save(existing);
     }
 
@@ -196,10 +192,8 @@ class TransactionServiceTest {
                 .flowType(FlowType.EXPENSE)
                 .contactName("Metro Express")
                 .category("ALIMENTACION")
-                .tags("comida,snacks")
                 .channel("TARJETA_DEBITO_BCP")
                 .cardLast4("1234")
-                .notes("Compra semanal")
                 .transactionDate(LocalDateTime.of(2026, 9, 20, 10, 30))
                 .transactionHash("hash-export-1")
                 .build();
@@ -207,15 +201,14 @@ class TransactionServiceTest {
         when(transactions.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(t1)));
 
-        byte[] csvBytes = service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null);
+        byte[] csvBytes = service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null);
         String csv = new String(csvBytes, java.nio.charset.StandardCharsets.UTF_8);
 
         assertTrue(csv.startsWith("\uFEFF"), "CSV must start with UTF-8 BOM");
-        assertTrue(csv.contains("ID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Etiquetas,Medio,Tarjeta,Notas,Hash"));
+        assertTrue(csv.contains("ID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Medio,Tarjeta,Hash"));
         assertTrue(csv.contains("\"Metro Express\""));
         assertTrue(csv.contains("\"ALIMENTACION\""));
-        assertTrue(csv.contains("\"comida,snacks\""));
-        assertTrue(csv.contains("\"Compra semanal\""));
+        assertEquals(9, csv.lines().findFirst().orElseThrow().split(",").length);
     }
 
     @Test
@@ -275,17 +268,17 @@ class TransactionServiceTest {
             assertSame(combined, specification.toPredicate(root, mock(CriteriaQuery.class), cb));
             return Page.empty(PageRequest.of(0, 10));
         });
-        service.getTransactions(null, null, null, null, null, null, null, null, null, null, reason, PageRequest.of(0, 10));
-        service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, reason);
+        service.getTransactions(null, null, null, null, null, null, null, null, null, reason, PageRequest.of(0, 10));
+        service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, reason);
         verify(cb, times(3)).and(ownerPredicate, expected);
         verify(cb, times(2)).and(base, scoped);
         UserContext.clear();
         assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.getPendingTransactions(reason, PageRequest.of(0, 10))).getStatusCode().value());
         assertThrows(ResponseStatusException.class, () -> service.getTransactions(null, null, null, null, null,
-                null, null, null, null, null, reason, PageRequest.of(0, 10)));
+                null, null, null, null, reason, PageRequest.of(0, 10)));
         assertThrows(ResponseStatusException.class, () -> service.exportTransactionsCsv(null, null, null, null, null,
-                null, null, null, null, null, reason));
+                null, null, null, null, reason));
         verify(transactions, times(3)).findAll(any(Specification.class), any(Pageable.class));
     }
 
@@ -295,7 +288,7 @@ class TransactionServiceTest {
         UserContext.setCurrentUser(User.builder().id(7L).build());
         when(transactions.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(Transaction.builder().contactName(contact).build())));
-        String csv = new String(service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null),
+        String csv = new String(service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null),
                 java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(csv.contains("\"'" + contact + "\""));
     }
@@ -307,7 +300,7 @@ class TransactionServiceTest {
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(Transaction.builder().build()),
                         PageRequest.of(0, 10001), 10002));
         assertEquals(400, assertThrows(ResponseStatusException.class, () -> service.exportTransactionsCsv(
-                null, null, null, null, null, null, null, null, null, null)).getStatusCode().value());
+                null, null, null, null, null, null, null, null, null)).getStatusCode().value());
     }
 
     private TransactionSyncRequest request() {

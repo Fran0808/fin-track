@@ -68,6 +68,24 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void listingSearchAndCsvWorkWithoutMetadataColumnsAndRemainUserScoped() {
+        Transaction mine = store(owner, "search-owner", "Ocio", FlowType.EXPENSE, account);
+        Transaction foreign = store(other, "search-other", "Ocio", FlowType.EXPENSE, null);
+        foreign.setContactName("Foreign merchant");
+        transactions.saveAndFlush(foreign);
+        var page = service.getTransactions(null, null, null, "ocio", PageRequest.of(0, 10));
+        assertEquals(List.of(mine.getId()), page.getContent().stream().map(item -> item.getId()).toList());
+        assertEquals(1, service.getTransactions(null, null, null, "merchant", PageRequest.of(0, 10)).getTotalElements());
+        assertEquals(0, service.getTransactions(null, null, null, "no match", PageRequest.of(0, 10)).getTotalElements());
+        String csv = new String(service.exportTransactionsCsv(null, null, null, "ocio", null, null, null, null, null),
+                java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(csv.startsWith("\uFEFFID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Medio,Tarjeta,Hash\n"));
+        assertTrue(csv.contains("\"10.25\""));
+        assertTrue(csv.contains("\"search-owner\""));
+        assertFalse(csv.contains("search-other"));
+        assertEquals(2, csv.lines().count());
+    }
+
     @Test void inboxCombinesMissingFieldsScopesUserAndProtectsTransfers() {
         Transaction categoryOnly = store(owner, "category", "  ", FlowType.EXPENSE, account);
         Transaction instrumentOnly = store(owner, "instrument", "Ocio", FlowType.EXPENSE, null);

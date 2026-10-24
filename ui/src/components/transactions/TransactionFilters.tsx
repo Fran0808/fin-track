@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, Tag } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { FlowType, PendingReason } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
@@ -10,7 +10,6 @@ interface TransactionFiltersProps {
   search: string;
   flowType: FlowType | '';
   category?: string;
-  tag?: string;
   channel?: string;
   minAmount?: number;
   maxAmount?: number;
@@ -42,7 +41,6 @@ export function TransactionFilters({
   search,
   flowType,
   category = '',
-  tag = '',
   channel = '',
   minAmount,
   maxAmount,
@@ -71,7 +69,6 @@ export function TransactionFilters({
   const activeAdvancedCount = [
     pendingReason,
     category,
-    tag,
     channel,
     minAmount !== undefined && minAmount !== null && !isNaN(minAmount) ? minAmount : '',
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
@@ -83,14 +80,14 @@ export function TransactionFilters({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="relative w-full xl:max-w-sm">
-          <label htmlFor="transaction-search" className="sr-only">Buscar por comercio, categoría o etiqueta</label>
+          <label htmlFor="transaction-search" className="sr-only">Buscar por comercio o categoría</label>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
             id="transaction-search"
             type="search"
             value={localSearch}
             onChange={(event) => setLocalSearch(event.target.value)}
-            placeholder="Buscar comercio, categoría o #tag..."
+            placeholder="Buscar comercio o categoría..."
             className="w-full rounded-xl border border-line bg-canvas py-2.5 pl-10 pr-10 text-sm text-ink placeholder:text-muted focus:border-brand focus:bg-white focus:outline-none"
           />
           {localSearch && (
@@ -221,23 +218,6 @@ export function TransactionFilters({
             </div>
 
             <div>
-              <label htmlFor="filter-tag" className="block text-xs font-semibold text-muted">
-                Etiqueta (#tag)
-              </label>
-              <div className="relative mt-1.5">
-                <Tag className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
-                <input
-                  id="filter-tag"
-                  type="text"
-                  value={tag}
-                  onChange={(e) => onFilterChange({ tag: e.target.value })}
-                  placeholder="ej. viaje, almuerzo"
-                  className="w-full rounded-xl border border-line bg-white py-2 pl-9 pr-3 text-xs font-medium text-ink placeholder:text-muted focus:border-brand focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
               <label className="block text-xs font-semibold text-muted">Rango de importe (S/)</label>
               <div className="mt-1.5 flex items-center gap-2">
                 <input
@@ -281,7 +261,6 @@ export function TransactionFilters({
                   onFilterChange({
                     pendingReason: '',
                     category: '',
-                    tag: '',
                     channel: '',
                     minAmount: undefined,
                     maxAmount: undefined,

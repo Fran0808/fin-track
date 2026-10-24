@@ -15,7 +15,7 @@ Archived assigned instruments still count as assigned. No review flag or
 dismissal state is stored.
 
 Selecting a review reason activates the explicitly labeled `Todo el historial`
-date scope and clears custom dates. Search, flow, tags, channel and amount filters
+date scope and clears custom dates. Search, flow, channel and amount filters
 remain combinable, including CSV export. Missing-category review clears and disables
 the contradictory category selector. The date controls can restrict review to the
 selected month, one day or a range; clearing all filters restores the selected month.
@@ -34,7 +34,7 @@ rule with an active category assigns the category name.
 
 The shared ingestion service applies rules to new email and Android movements
 before persistence. Existing hashes return the existing movement without reapplying
-rules. A rule never changes amounts, direction, instruments, tags, notes or hashes,
+rules. A rule never changes amounts, direction, instruments or hashes,
 never overwrites a nonblank category, and never classifies internal transfers.
 It can classify either income or expenses. Editing a rule does not update history.
 
@@ -42,8 +42,8 @@ It can classify either income or expenses. Editing a rule does not update histor
 dialog with its contact text and currently selected category. The user can edit
 the text, choose an active category, set priority and review before explicitly
 saving. Opening or cancelling it creates nothing; the movement's unsaved category
-remains intact. The detail dialog no longer edits tags or personal notes; category-only
-updates omit those fields and preserve stored values. Creating a rule does not classify that historical
+remains intact. The detail dialog edits only category; tags and personal notes are
+[retired from the product](transaction-metadata-retirement.md). Creating a rule does not classify that historical
 movement; save its classification separately. `Reglas` retains full rule management.
 
 Renaming a category affects subsequent rule assignments. Deactivating it makes its

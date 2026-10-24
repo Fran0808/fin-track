@@ -17,8 +17,6 @@ export interface Transaction {
   channel: ChannelType | string;
   cardLast4?: string;
   category?: string | null;
-  tags?: string[] | null;
-  notes?: string | null;
   transactionDate: string;
   transactionHash: string;
   createdAt: string;
@@ -26,8 +24,6 @@ export interface Transaction {
 
 export interface TransactionClassificationRequest {
   category?: string | null;
-  tags?: string[] | null;
-  notes?: string | null;
 }
 
 export type PendingReason = 'ALL' | 'CATEGORY' | 'INSTRUMENT';

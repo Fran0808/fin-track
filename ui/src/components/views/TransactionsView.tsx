@@ -75,7 +75,6 @@ export function TransactionsView({
             search={filters.search || ''}
             flowType={filters.flowType || ''}
             category={filters.category || ''}
-            tag={filters.tag || ''}
             channel={filters.channel || ''}
             minAmount={filters.minAmount}
             maxAmount={filters.maxAmount}
@@ -89,7 +88,6 @@ export function TransactionsView({
                 search: '',
                 flowType: '',
                 category: '',
-                tag: '',
                 channel: '',
                 minAmount: undefined,
                 maxAmount: undefined,

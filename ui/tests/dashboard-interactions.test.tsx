@@ -10,7 +10,7 @@ import type { Category, FinancialInstrument, Transaction } from '../src/types';
 
 const category: Category = { id: 1, name: 'Nueva categoría', active: true, system: false };
 const card: FinancialInstrument = { id: 2, alias: 'Synthetic card', bank: 'BCP', type: 'DEBIT_CARD', currency: 'PEN', active: true };
-const tx: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic', notes: 'Original' };
+const tx: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic' };
 const page = { content: [tx], totalElements: 30, totalPages: 3, number: 0, size: 10, first: true, last: false, empty: false };
 
 beforeEach(() => {
@@ -25,7 +25,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it('preserves the category draft when assigning a product and saves only the category', async () => {
   vi.spyOn(api, 'assignFinancialInstrument').mockResolvedValue({ ...tx, financialInstrument: card });
-  const save = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...tx, financialInstrument: card, category: category.name, notes: 'Draft', tags: ['draft'] });
+  const save = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...tx, financialInstrument: card, category: category.name });
   function Detail() {
     const [transaction, setTransaction] = useState(tx);
     return <TransactionDetailModal transaction={transaction} onClose={() => {}} onUpdated={setTransaction} />;
@@ -47,7 +47,7 @@ it('reloads categories on each detail opening and resets the draft for a differe
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
   view.rerender(<TransactionDetailModal transaction={null} onClose={() => {}} />);
   vi.mocked(api.getCategories).mockResolvedValue([{ ...category, name: 'Renombrada' }]);
-  view.rerender(<TransactionDetailModal transaction={{ ...tx, id: 3, notes: 'Different movement' }} onClose={() => {}} />);
+  view.rerender(<TransactionDetailModal transaction={{ ...tx, id: 3 }} onClose={() => {}} />);
   await screen.findByRole('option', { name: 'Renombrada' });
   expect(screen.queryByRole('option', { name: category.name })).toBeNull();
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe('');

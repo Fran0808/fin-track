@@ -96,7 +96,6 @@ public class TransactionController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long financialInstrumentId,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String tag,
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
@@ -111,7 +110,7 @@ public class TransactionController {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         Page<TransactionResponse> result = transactionService.getTransactions(
-                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pendingReason, pageable
+                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, pageable
         );
         return ResponseEntity.ok().header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name()).body(result);
     }
@@ -124,7 +123,6 @@ public class TransactionController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long financialInstrumentId,
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String tag,
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
@@ -134,7 +132,7 @@ public class TransactionController {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         byte[] csvBytes = transactionService.exportTransactionsCsv(
-                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pendingReason
+                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason
         );
         String filename = "fintrack_movimientos_" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()

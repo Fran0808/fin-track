@@ -21,8 +21,6 @@ public class TransactionResponse {
     private String channel;
     private String cardLast4;
     private String category;
-    private java.util.List<String> tags;
-    private String notes;
     private LocalDateTime transactionDate;
     private String transactionHash;
     private LocalDateTime createdAt;

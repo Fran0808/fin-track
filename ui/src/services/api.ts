@@ -68,7 +68,6 @@ export interface TransactionFilterParams {
   startDate?: string;
   endDate?: string;
   category?: string;
-  tag?: string;
   channel?: string;
   minAmount?: number;
   maxAmount?: number;
@@ -167,9 +166,6 @@ export const api = {
     if (params.category) {
       query.set('category', params.category);
     }
-    if (params.tag && params.tag.trim()) {
-      query.set('tag', params.tag.trim());
-    }
     if (params.channel) {
       query.set('channel', params.channel);
     }
@@ -194,7 +190,6 @@ export const api = {
     if (params.startDate) query.set('startDate', params.startDate);
     if (params.endDate) query.set('endDate', params.endDate);
     if (params.category) query.set('category', params.category);
-    if (params.tag && params.tag.trim()) query.set('tag', params.tag.trim());
     if (params.channel) query.set('channel', params.channel);
     if (params.minAmount !== undefined && params.minAmount !== null && !isNaN(params.minAmount)) {
       query.set('minAmount', String(params.minAmount));

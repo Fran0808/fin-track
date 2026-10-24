@@ -48,7 +48,7 @@ CREATE TABLE transactions (
     user_id BIGINT REFERENCES users(id), financial_instrument_id BIGINT REFERENCES financial_instruments(id),
     amount NUMERIC(10,2) NOT NULL, flow_type VARCHAR(20) NOT NULL,
     contact_name VARCHAR(150) NOT NULL, channel VARCHAR(50) NOT NULL, card_last4 VARCHAR(10),
-    transaction_date TIMESTAMP NOT NULL, category VARCHAR(100), tags VARCHAR(255), notes VARCHAR(500),
+    transaction_date TIMESTAMP NOT NULL, category VARCHAR(100),
     transaction_hash VARCHAR(64) NOT NULL, created_at TIMESTAMP NOT NULL
 );
 CREATE UNIQUE INDEX idx_tx_hash_user ON transactions(transaction_hash, user_id);

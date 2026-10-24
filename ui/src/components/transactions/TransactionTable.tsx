@@ -70,7 +70,6 @@ export function TransactionTable({ pageData, loading, periodName, onPageChange, 
               const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
               const Icon = isIncome ? ArrowDownLeft : isTransfer ? ArrowLeftRight : ArrowUpRight;
               const categoryLabel = getCategoryLabel(transaction.category);
-              const tags = transaction.tags ?? [];
 
               return (
                 <tr key={transaction.id} className="transition-colors hover:bg-canvas/80">
@@ -90,18 +89,6 @@ export function TransactionTable({ pageData, loading, periodName, onPageChange, 
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                           <span>{isIncome ? 'Entrada' : isTransfer ? 'Transferencia propia' : 'Gasto'}</span>
-                          {tags.length > 0 && (
-                            <>
-                              <span aria-hidden="true">·</span>
-                              <div className="flex flex-wrap gap-1">
-                                {tags.map((t) => (
-                                  <span key={t} className="inline-flex items-center gap-0.5 rounded border border-line bg-canvas px-1.5 py-0.2 text-[10px] text-muted">
-                                    #{t}
-                                  </span>
-                                ))}
-                              </div>
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>

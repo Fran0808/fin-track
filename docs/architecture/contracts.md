@@ -30,12 +30,12 @@ Paths below are relative to `/api/v1`.
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, contact/category search, product, category, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
 | `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `PATCH /transactions/{id}/classification` | Update transaction category, tags, and personal notes | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `PATCH /transactions/{id}/classification` | Update transaction category | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
@@ -80,12 +80,21 @@ ownership checks, suggestions and schema preparation.
 New assignments must match an active category in the authenticated user's catalog
 (case-insensitive). Invalid assignments return HTTP 400 with a Spanish `message`.
 The transaction must also belong to that user. Existing legacy or inactive category
-values can remain unchanged while editing notes or tags.
+values can be submitted unchanged without requiring an active catalog entry.
 An empty or whitespace-only category clears it; null or an omitted category leaves
 it unchanged. Names are trimmed and retain their submitted casing.
 Unexpected server errors return a generic Spanish message without SQL or financial details.
 
 Existing databases need the [category schema migration](../development/local.md#transaction-category-migration).
+
+Transaction tags and personal notes are retired: requests/responses no longer
+declare `tags` or `notes`, listing/export no longer support the `tag` filter,
+and text search covers only contact and category. CSV has nine columns:
+`ID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Medio,Tarjeta,Hash`.
+Deploy the dashboard and API together; update clients that consume those fields
+or CSV positions. Android sync requests do not contain them and are unchanged.
+Physical removal from existing databases is a separate, destructive migration;
+see [retirement and deployment](../domain/transaction-metadata-retirement.md).
 
 ## Pending movements and rules
 

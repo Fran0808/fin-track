@@ -48,8 +48,9 @@ to Inicio, like any unsupported view. Desktop and mobile share the same menu.
 
 CSV export downloads the complete server result for the applied filters. A failed
 export shows an error and can be retried; it never silently exports just one page.
-The detail dialog edits only the category; tags and personal notes are not shown
-or sent in its update, so existing values remain stored. It preserves unsaved category edits when assigning a product
+The detail dialog edits only the category. Tags and personal notes are retired
+from the API, shared types, table, filters and CSV. Search covers contact/category.
+It preserves unsaved category edits when assigning a product
 and reloads its category catalog each time it opens. Catalog failures provide a
 retry action rather than invented fallback options.
 

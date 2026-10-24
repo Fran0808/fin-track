@@ -17,20 +17,25 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current dashboard checkpoint: simplify movement detail
+## Current checkpoint: retire transaction tags and notes
 
-- Owner/scope: current chat; simplify TransactionDetailModal to category editing,
-  removing tag/note controls and their local state/handlers. Updates send only the
-  category, preserving stored tags/notes. Technical disclosure was removed previously;
-  the Home comparison remains unchanged.
-- Status/checks: 67 UI tests across 14 files passed; TypeScript/Vite build passed;
-  lint completed with the same 9 warnings. Diff check passed. HTTP 200 from local
-  Vite confirmed tag/note controls absent and the category selector present. Existing
-  interaction tests now cover category drafts, rule cancellation and category-only
-  update payloads with existing tags/notes omitted.
-- Limits/next: no browser/mobile end-to-end acceptance, backend change, financial
-  operation or service restart. User reviews the shorter dialog and commits this
-  focused change. Updated UI README and classification behavior; no commit/push.
+- Owner/scope: current chat; remove tags/notes from entity/DTO/update logic,
+  contact/category search, filters, table, CSV and shared client types. Category
+  editing/rules remain; Android sync is unchanged. New bootstrap schema omits both
+  columns; an explicit incremental migration is prepared for existing databases.
+- Status: implemented; verified with synthetic data. See
+  [deployment order and migration](domain/transaction-metadata-retirement.md).
+- Checks: 67 UI tests across 14 files, TypeScript/Vite build and lint (same 9
+  warnings) passed. Java 21 offline persistence runner passed 253 backend tests,
+  including all four persistence suites, plus provenance and new metadata SQL
+  regressions in six fresh disposable databases. Metadata migration ran twice,
+  preserving amounts/owners/instruments/categories and per-user uniqueness.
+  Temporary PostgreSQL stopped and its fixtures were removed. All 18 script
+  regression groups passed; diff and documentation links checked.
+- Limits/next: no real financial database migration or existing-service restart,
+  browser/mobile visual acceptance, agent commit or push. Deploy API/UI together,
+  back up any historical metadata needed, then authorize/apply the migration on
+  the intended database. No live data was deleted; no further feature started.
 
 ## Dashboard checkpoint: integrated movement review
 

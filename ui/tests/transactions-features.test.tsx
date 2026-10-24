@@ -15,8 +15,6 @@ const sampleTx: Transaction = {
   channel: 'TARJETA_DEBITO_BCP',
   cardLast4: '5566',
   category: 'ALIMENTACION',
-  tags: ['super', 'almuerzo'],
-  notes: 'Compras de despensa',
   transactionDate: '2026-10-04T12:00:00',
   transactionHash: 'hash-sample-10',
   createdAt: '2026-10-04T12:00:00',
@@ -40,7 +38,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('renders category and tags in TransactionTable and shows dynamic summary', () => {
+it('renders category in TransactionTable and shows dynamic summary', () => {
   const pageData: PageResponse<Transaction> = {
     content: [sampleTx],
     totalElements: 1,
@@ -64,12 +62,10 @@ it('renders category and tags in TransactionTable and shows dynamic summary', ()
 
   expect(screen.getByText('Supermercado Metro')).toBeDefined();
   expect(screen.getByText('Alimentación y bebidas')).toBeDefined();
-  expect(screen.getByText('#super')).toBeDefined();
-  expect(screen.getByText('#almuerzo')).toBeDefined();
   expect(screen.getByText('1 movimientos encontrados')).toBeDefined();
 });
 
-it('edits only the category without submitting or clearing existing tags and notes', async () => {
+it('edits and saves only the category', async () => {
   const updateSpy = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({
     ...sampleTx,
     category: 'COMPRAS',
@@ -96,7 +92,7 @@ it('edits only the category without submitting or clearing existing tags and not
   });
 
   await screen.findByText('Cambios guardados');
-  expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ category: 'COMPRAS', tags: sampleTx.tags, notes: sampleTx.notes }));
+  expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ category: 'COMPRAS' }));
 });
 
 it('sends an empty category to clear an existing classification', async () => {
