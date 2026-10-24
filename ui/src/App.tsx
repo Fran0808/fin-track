@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, PlaceholderView, SettingsView, InstrumentsView, CategoriesView, PendingView, ClassificationRulesView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, SettingsView, InstrumentsView, CategoriesView, PendingView, ClassificationRulesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -21,7 +21,6 @@ const VIEW_LABELS: Record<NavView, string> = {
   reglas: 'Reglas',
   tarjetas: 'Tarjetas y cuentas',
   categorias: 'Categorías',
-  presupuestos: 'Presupuestos',
   configuracion: 'Configuración',
 };
 
@@ -189,9 +188,6 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           )}
           {activeView === 'tarjetas' && (
             <InstrumentsView year={selectedPeriod.year} month={selectedPeriod.month} revision={instrumentRevision} onSelectTransaction={setSelectedTransaction} onProductsChanged={() => { void refreshAll(); }} />
-          )}
-          {activeView === 'presupuestos' && (
-            <PlaceholderView view={activeView} onNavigateHome={() => setActiveView('inicio')} />
           )}
         </main>
       </div>

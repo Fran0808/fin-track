@@ -42,6 +42,10 @@ selected month remain in memory while navigating between sections; reloading
 resets them. Home's recent movements always use the global month independently
 of the filters, custom dates and page selected in Movements.
 
+Only available features appear in the sidebar. The retired `presupuestos` view
+and its placeholder screen are removed; old `?vista=presupuestos` links fall back
+to Inicio, like any unsupported view. Desktop and mobile share the same menu.
+
 CSV export downloads the complete server result for the applied filters. A failed
 export shows an error and can be retried; it never silently exports just one page.
 The detail dialog preserves unsaved classification edits when assigning a product

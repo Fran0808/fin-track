@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@t
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CustomSelect } from '../src/components/common/CustomSelect';
 import { MobileNavigation } from '../src/components/layout/MobileNavigation';
+import { SidebarNavigation } from '../src/components/layout/SidebarNavigation';
 import { useDashboardNavigation } from '../src/hooks/useDashboardNavigation';
 
 beforeEach(() => {
@@ -36,6 +37,21 @@ it('restores a deep link on mount and follows browser back and forward', async (
   await waitFor(() => expect(result.current[0]).toBe('reglas'));
   act(() => window.history.forward());
   await waitFor(() => expect(result.current[0]).toBe('movimientos'));
+});
+
+it('opens Home for a retired budget link and keeps the remaining navigation usable', () => {
+  window.history.replaceState({}, '', '/?vista=presupuestos');
+  function Navigation() {
+    const [view, navigate] = useDashboardNavigation();
+    return <SidebarNavigation activeView={view} onViewChange={navigate} />;
+  }
+  render(<Navigation />);
+  expect(screen.getByRole('button', { name: 'Inicio' }).getAttribute('aria-current')).toBe('page');
+  expect(screen.queryByRole('button', { name: 'Presupuestos' })).toBeNull();
+  expect(screen.queryByText('Próximamente')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Configuración' }));
+  expect(screen.getByRole('button', { name: 'Configuración' }).getAttribute('aria-current')).toBe('page');
+  expect(new URLSearchParams(window.location.search).get('vista')).toBe('configuracion');
 });
 
 it('opens mobile navigation as a native modal and closes it after navigation', async () => {

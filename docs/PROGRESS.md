@@ -80,6 +80,19 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 - Next action: user reviews retained colors/copy with original typography in the UI;
   keep structural work separate until this layer is accepted.
 
+## Dashboard navigation checkpoint: remove budgets
+
+- Owner/scope: current chat; remove the unplanned budget feature. Status:
+  implemented and verified for automated/delivery scope; visual acceptance pending.
+- Changes: removed Presupuestos, the empty Próximamente group, its route/type,
+  App branch and unused PlaceholderView/export. Desktop/mobile share the menu.
+  Legacy budget URLs use the existing unsupported-view fallback to Inicio.
+- Checks: 61 tests passed, including a retired-link/navigation regression; lint
+  completed with the same 8 warnings; TypeScript/Vite build and diff checks passed.
+  HTTP 200 from localhost:5173 confirmed the updated menu and navigation modules.
+- Limits/next: no screenshot, financial changes or service restart; user reviews
+  the shorter menu and commits the focused group. No agent commit or push.
+
 ## Next priorities
 
 1. Complete remaining Android acceptance using the detailed capture record.
