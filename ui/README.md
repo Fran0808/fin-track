@@ -24,6 +24,18 @@ to use the globally selected month.
 
 ## Entry points
 
+### Visual foundations
+
+The existing layout uses a blue primary (`#2c4f99`) with neutral backgrounds and
+stronger secondary-text contrast. Shared typography is Manrope for body/controls
+and Onest for display headings/figures; both are variable fonts served as local
+Latin WOFF2 files through Vite, without runtime requests to a font CDN. The
+dashboard keeps functional instructions and financial definitions while removing
+redundant descriptions and slogans. Tokens and font faces live in
+[index.css](src/index.css).
+
+### Navigation and behavior
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the
