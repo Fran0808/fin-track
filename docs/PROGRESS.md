@@ -62,19 +62,22 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   original layout. Status: implemented; automated/delivery checks passed; user
   visual acceptance pending before further redesign.
 - Changes: shared palette keeps the blue family (#2c4f99) with clearer neutral
-  text; local Latin Manrope/Onest fonts replace platform-dependent families.
+  text. At the user's request, original Aptos/Segoe UI families, display variants
+  and small-label typography are restored; Manrope/Onest packages are removed.
   Sidebar, Home and Análisis lose slogans and redundant descriptions. Card/grid
   structure, financial logic, semantic flow colors and navigation are unchanged.
   The auth test now identifies the monthly region rather than marketing copy.
 - Paths: ui/src/index.css, package manifests, SidebarNavigation, HomeView,
   MyMoneyView, auth-session test and UI README. No real screenshot data copied.
-- Checks: 60 UI tests across 12 files passed; lint completed with the same 8
-  warnings; TypeScript/Vite build emitted both local font assets (~59 KB total).
+- Checks after restoring fonts: 60 UI tests across 12 files passed; lint completed
+  with the same 8 warnings; TypeScript/Vite build passed without bundled fonts.
+  Comparing index.css against the original baseline leaves only palette changes.
   Text contrast checked: muted text/canvas 5.25:1 and white/brand 7.82:1. HTTP 200
-  from localhost:5173 confirmed the new stylesheet and concise Home module.
+  from localhost:5173 confirmed the restored font stacks and retained palette;
+  the prior concise Home delivery check remains applicable.
 - Limitations: no desktop/mobile screenshot or full visual acceptance. No backend
   changes, financial operation, service restart, agent commit or push.
-- Next action: user reviews only colors, typography and copy in the running UI;
+- Next action: user reviews retained colors/copy with original typography in the UI;
   keep structural work separate until this layer is accepted.
 
 ## Next priorities

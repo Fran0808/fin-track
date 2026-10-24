@@ -1,21 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Manrope Variable";
-  font-style: normal;
-  font-weight: 200 800;
-  font-display: swap;
-  src: url("@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "Onest Variable";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("@fontsource-variable/onest/files/onest-latin-wght-normal.woff2") format("woff2");
-}
-
 @theme {
   --color-canvas: #f5f6f8;
   --color-surface: #ffffff;
@@ -39,14 +23,13 @@
     margin: 0;
     background: var(--color-canvas);
     color: var(--color-ink);
-    font-family: "Manrope Variable", "Segoe UI", system-ui, sans-serif;
+    font-family: "Aptos", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   button,
   select,
-  input,
-  textarea {
+  input {
     font: inherit;
   }
 
@@ -57,7 +40,7 @@
 }
 
 .font-display {
-  font-family: "Onest Variable", "Segoe UI", system-ui, sans-serif;
+  font-family: "Aptos Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
 }
 
 .font-num {
@@ -72,9 +55,9 @@
 
 .eyebrow {
   color: var(--color-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
 }
 

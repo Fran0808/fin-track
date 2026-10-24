@@ -27,11 +27,10 @@ to use the globally selected month.
 ### Visual foundations
 
 The existing layout uses a blue primary (`#2c4f99`) with neutral backgrounds and
-stronger secondary-text contrast. Shared typography is Manrope for body/controls
-and Onest for display headings/figures; both are variable fonts served as local
-Latin WOFF2 files through Vite, without runtime requests to a font CDN. The
+stronger secondary-text contrast. Shared typography retains the original Aptos /
+Segoe UI system families and display variants, without additional font packages. The
 dashboard keeps functional instructions and financial definitions while removing
-redundant descriptions and slogans. Tokens and font faces live in
+redundant descriptions and slogans. Tokens and font stacks live in
 [index.css](src/index.css).
 
 ### Navigation and behavior
