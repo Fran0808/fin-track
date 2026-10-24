@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 22, 2026. This is the entry point for current work, not a release
+Updated: October 23, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -36,6 +36,25 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   performs authorized physical-device/provider and deployment acceptance.
   No agent commit or push was performed. The prior backend/setup
   evidence remains in [its record](development/persistence-progress.md).
+
+## Frontend review checkpoint
+
+- Owner/scope: frontend review/fix chat; dashboard behavior, navigation and usability.
+  Status: fixes implemented; automated verification passed for stated scope;
+  visual acceptance pending.
+  See [findings and evidence](ui/frontend-review-2026-10-23.md).
+- Changes: query-scoped resources and errors, separate Home recent movements,
+  preserved classification drafts, fresh category catalogs, explicit CSV failures,
+  native selects/mobile menu, URL section navigation and responsive movement table.
+  Updated UI README and review report; permanent regressions added under ui/tests.
+- Checks: final run passed 60 UI tests across 12 files, including 14 new
+  regressions, using a workspace temporary directory. Lint completed with 8
+  remaining warnings (12 before the fixes); TypeScript/Vite production build,
+  diff whitespace and documentation link checks passed. No financial operations.
+- Limitations: integrated browser could not reach local Vite (connection timeout);
+  no visual/mobile acceptance or real backend/OAuth/financial operations performed.
+- Next action: perform visual/keyboard acceptance with synthetic data and review
+  the proposed commit groups in the report. No commit or push.
 
 ## Next priorities
 

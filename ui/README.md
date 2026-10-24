@@ -24,6 +24,24 @@ to use the globally selected month.
 
 ## Entry points
 
+The selected section is kept in the `vista` URL parameter, for example
+`?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
+that section, and browser Back/Forward follows section changes. Filters and the
+selected month remain in memory while navigating between sections; reloading
+resets them. Home's recent movements always use the global month independently
+of the filters, custom dates and page selected in Movements.
+
+CSV export downloads the complete server result for the applied filters. A failed
+export shows an error and can be retried; it never silently exports just one page.
+The detail dialog preserves unsaved classification edits when assigning a product
+and reloads its category catalog each time it opens. Catalog failures provide a
+retry action rather than invented fallback options.
+
+Native selects provide keyboard selection. On small screens the navigation opens
+as a native modal dialog; Escape closes it. The sidebar scrolls on short screens,
+and the movement table prioritizes contact, amount and detail below 640 px; date
+and payment method remain available in the detail dialog.
+
 `Pendientes` shows the entire history's movements missing a category or assigned
 instrument, with reason filters and the existing detail dialog for completion.
 `Reglas` manages automatic category assignments for new movements. These screens
