@@ -267,10 +267,26 @@ class TransactionServiceTest {
         });
         service.getPendingTransactions(reason, PageRequest.of(0, 10));
         verify(cb).and(ownerPredicate, expected);
+        Predicate base = mock(Predicate.class), combined = mock(Predicate.class);
+        when(cb.and(any(Predicate[].class))).thenReturn(base);
+        when(cb.and(base, scoped)).thenReturn(combined);
+        when(transactions.findAll(any(Specification.class), any(Pageable.class))).thenAnswer(call -> {
+            Specification<Transaction> specification = call.getArgument(0);
+            assertSame(combined, specification.toPredicate(root, mock(CriteriaQuery.class), cb));
+            return Page.empty(PageRequest.of(0, 10));
+        });
+        service.getTransactions(null, null, null, null, null, null, null, null, null, null, reason, PageRequest.of(0, 10));
+        service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, reason);
+        verify(cb, times(3)).and(ownerPredicate, expected);
+        verify(cb, times(2)).and(base, scoped);
         UserContext.clear();
         assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.getPendingTransactions(reason, PageRequest.of(0, 10))).getStatusCode().value());
-        verify(transactions, times(1)).findAll(any(Specification.class), any(Pageable.class));
+        assertThrows(ResponseStatusException.class, () -> service.getTransactions(null, null, null, null, null,
+                null, null, null, null, null, reason, PageRequest.of(0, 10)));
+        assertThrows(ResponseStatusException.class, () -> service.exportTransactionsCsv(null, null, null, null, null,
+                null, null, null, null, null, reason));
+        verify(transactions, times(3)).findAll(any(Specification.class), any(Pageable.class));
     }
 
     @org.junit.jupiter.params.ParameterizedTest

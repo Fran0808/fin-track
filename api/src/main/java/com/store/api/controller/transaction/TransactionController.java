@@ -100,19 +100,20 @@ public class TransactionController {
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) PendingReason pendingReason,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
         if (page < 0 || size < 1 || size > 100) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "La página no puede ser negativa y el tamaño debe estar entre 1 y 100.");
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate"));
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate", "id"));
         if (financialInstrumentId != null) {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         Page<TransactionResponse> result = transactionService.getTransactions(
-                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pageable
+                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pendingReason, pageable
         );
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok().header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name()).body(result);
     }
 
     @GetMapping("/export")
@@ -126,16 +127,18 @@ public class TransactionController {
             @RequestParam(required = false) String tag,
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
-            @RequestParam(required = false) BigDecimal maxAmount
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) PendingReason pendingReason
     ) {
         if (financialInstrumentId != null) {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         byte[] csvBytes = transactionService.exportTransactionsCsv(
-                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount
+                startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount, pendingReason
         );
         String filename = "fintrack_movimientos_" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()
+                .header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name())
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(csvBytes);

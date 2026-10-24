@@ -61,5 +61,6 @@ class CorsConfigTest {
         assertTrue(forwarded.get());
         assertEquals(200, response.getStatus());
         assertEquals("http://localhost:5173", response.getHeader("Access-Control-Allow-Origin"));
+        assertEquals("X-Fintrack-Review-Filter", response.getHeader("Access-Control-Expose-Headers"));
     }
 }

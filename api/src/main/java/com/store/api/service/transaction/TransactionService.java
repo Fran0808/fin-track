@@ -132,7 +132,11 @@ public class TransactionService {
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getPendingTransactions(PendingReason reason, Pageable pageable) {
         User user = UserContext.requireCurrentUser();
-        Specification<Transaction> pending = (root, query, cb) -> {
+        return transactionRepository.findAll(pendingSpecification(user, reason), pageable).map(TransactionService::mapToResponse);
+    }
+
+    private Specification<Transaction> pendingSpecification(User user, PendingReason reason) {
+        return (root, query, cb) -> {
             Predicate missingCategory = cb.and(
                     cb.notEqual(root.get("flowType"), FlowType.INTERNAL_TRANSFER),
                     cb.equal(cb.trim(cb.coalesce(root.get("category"), "")), ""));
@@ -144,7 +148,6 @@ public class TransactionService {
             };
             return cb.and(cb.equal(root.get("user"), user), needsReview);
         };
-        return transactionRepository.findAll(pending, pageable).map(TransactionService::mapToResponse);
     }
 
     public Specification<Transaction> buildSpecification(
@@ -229,8 +232,18 @@ public class TransactionService {
             BigDecimal maxAmount,
             Pageable pageable
     ) {
+        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId,
+                category, tag, channel, minAmount, maxAmount, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getTransactions(
+            LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
+            Long financialInstrumentId, String category, String tag, String channel,
+            BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, Pageable pageable) {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount);
+        if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         return transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
     }
 
@@ -247,9 +260,19 @@ public class TransactionService {
             BigDecimal minAmount,
             BigDecimal maxAmount
     ) {
+        return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId,
+                category, tag, channel, minAmount, maxAmount, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportTransactionsCsv(
+            LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
+            Long financialInstrumentId, String category, String tag, String channel,
+            BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason) {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, tag, channel, minAmount, maxAmount);
-        Sort sort = Sort.by(Sort.Direction.DESC, "transactionDate");
+        if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
+        Sort sort = Sort.by(Sort.Direction.DESC, "transactionDate", "id");
         Page<Transaction> exportPage = transactionRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(0, 10001, sort));
         if (exportPage.getTotalElements() > 10000) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "Reduce los filtros para exportar hasta 10000 movimientos.");

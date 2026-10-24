@@ -30,7 +30,7 @@ Paths below are relative to `/api/v1`.
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, and amount filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, search, product, category, tags, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
@@ -88,6 +88,18 @@ Unexpected server errors return a generic Spanish message without SQL or financi
 Existing databases need the [category schema migration](../development/local.md#transaction-category-migration).
 
 ## Pending movements and rules
+
+`GET /transactions` and `/transactions/export` accept optional `pendingReason`:
+`CATEGORY` (null/blank category, excluding internal transfers), `INSTRUMENT`
+(unassigned instrument, including transfers), or `ALL` (either). It combines with
+all existing filters under the authenticated user's ownership predicate. Omission
+preserves ordinary listing/export. Unknown values return 400. Omitting dates
+searches all history; `allHistory` is dashboard state, not an API parameter.
+Listing and CSV sort by transaction date then ID descending. Successful responses
+include `X-Fintrack-Review-Filter` with the requested enum or `NONE`; CORS exposes
+this header. The dashboard requires the matching header when review is active,
+preventing silently unfiltered results during an API/dashboard version mismatch.
+The legacy `/transactions/pending` endpoint remains available for compatibility.
 
 The inbox returns the existing paginated transaction response. Rule creation and
 replacement require `matchText` (nonblank, at most 150 characters), `categoryId`
