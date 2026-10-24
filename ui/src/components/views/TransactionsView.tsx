@@ -27,37 +27,11 @@ export function TransactionsView({
   periodName,
 }: TransactionsViewProps) {
   const [isExporting, setIsExporting] = useState(false);
-
-  const exportCurrentPageFallback = () => {
-    if (!pageData?.content.length) return;
-    const headers = ['ID', 'Fecha', 'Comercio', 'Monto', 'Tipo', 'Categoría', 'Etiquetas', 'Medio', 'Tarjeta', 'Notas', 'Hash'];
-    const rows = pageData.content.map((t) => [
-      t.id,
-      t.transactionDate,
-      t.contactName,
-      t.amount,
-      t.flowType,
-      t.category || '',
-      (t.tags || []).join(';'),
-      t.channel,
-      t.cardLast4 || '',
-      t.notes || '',
-      t.transactionHash,
-    ]);
-    const escapeCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
-    const csvContent = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\n');
-    const url = URL.createObjectURL(new Blob(['\uFEFF', csvContent], { type: 'text/csv;charset=utf-8;' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `fintrack_movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const handleExportCSV = async () => {
     setIsExporting(true);
+    setExportError(null);
     try {
       const blob = await api.exportTransactionsCsv(exportFilters);
       const url = URL.createObjectURL(blob);
@@ -69,8 +43,7 @@ export function TransactionsView({
       link.remove();
       URL.revokeObjectURL(url);
     } catch {
-      // Fallback to client-side page export if endpoint fails
-      exportCurrentPageFallback();
+      setExportError('No se pudo exportar el historial completo. Vuelve a pulsar Exportar CSV para reintentar.');
     } finally {
       setIsExporting(false);
     }
@@ -87,7 +60,7 @@ export function TransactionsView({
         <button
           type="button"
           onClick={handleExportCSV}
-          disabled={isExporting || !pageData?.totalElements}
+          disabled={isExporting || loading || !pageData?.totalElements}
           className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-brand" /> : <Download className="h-4 w-4" />}
@@ -95,6 +68,7 @@ export function TransactionsView({
         </button>
       </div>
 
+      {exportError && <p role="alert" className="rounded-xl border border-negative/20 bg-negative/5 p-4 text-sm text-negative">{exportError}</p>}
       <section className="surface overflow-hidden" aria-label="Listado de movimientos">
         <div className="border-b border-line px-5 py-5 sm:px-6">
           <TransactionFilters

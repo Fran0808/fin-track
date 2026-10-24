@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import type { TransactionFilterParams } from '../services/api';
 import type { FinancialSummary, PeriodAnalytics, Transaction, PageResponse, EmailSyncResponse, GoogleAuthStatus } from '../types';
+import { useQueryResource } from './useQueryResource';
 
 function getPeriodDateRange(year: number, month: number) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -13,16 +14,11 @@ function getPeriodDateRange(year: number, month: number) {
 }
 
 export function useFinance(userId: number) {
-  const [summary, setSummary] = useState<FinancialSummary | null>(null);
-  const [periodAnalytics, setPeriodAnalytics] = useState<PeriodAnalytics | null>(null);
-  const [transactionsPage, setTransactionsPage] = useState<PageResponse<Transaction> | null>(null);
-  const [loadingSummary, setLoadingSummary] = useState<boolean>(true);
-  const [loadingTransactions, setLoadingTransactions] = useState<boolean>(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncResult, setSyncResult] = useState<EmailSyncResponse | null>(null);
   const [syncStatus, setSyncStatus] = useState<GoogleAuthStatus | null>(null);
   const [syncStatusUnavailable, setSyncStatusUnavailable] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const [selectedPeriod, setSelectedPeriodState] = useState<{ year: number; month: number }>({
     year: new Date().getFullYear(),
@@ -46,33 +42,22 @@ export function useFinance(userId: number) {
     ...(filters.startDate && filters.endDate ? {} : getPeriodDateRange(selectedPeriod.year, selectedPeriod.month)),
   }), [filters, selectedPeriod]);
 
-  const loadSummary = useCallback(async (silent = false) => {
-    try {
-      if (!silent) setLoadingSummary(true);
-      const [sumData, periodData] = await Promise.all([
-        api.getFinancialSummary(),
-        api.getPeriodAnalytics(selectedPeriod.year, selectedPeriod.month),
-      ]);
-      setSummary(sumData);
-      setPeriodAnalytics(periodData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar analítica financiera');
-    } finally {
-      if (!silent) setLoadingSummary(false);
-    }
-  }, [selectedPeriod]);
-
-  const loadTransactions = useCallback(async (silent = false) => {
-    try {
-      if (!silent) setLoadingTransactions(true);
-      const data = await api.getTransactions(transactionFilters);
-      setTransactionsPage(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar transacciones');
-    } finally {
-      if (!silent) setLoadingTransactions(false);
-    }
-  }, [transactionFilters]);
+  const summaryQuery = useCallback(() => userId ? api.getFinancialSummary() : Promise.reject(new Error('Sesión no disponible')), [userId]);
+  const analyticsQuery = useCallback(() => userId ? api.getPeriodAnalytics(selectedPeriod.year, selectedPeriod.month) : Promise.reject(new Error('Sesión no disponible')), [selectedPeriod, userId]);
+  const transactionsQuery = useCallback(() => userId ? api.getTransactions(transactionFilters) : Promise.reject(new Error('Sesión no disponible')), [transactionFilters, userId]);
+  const recentQuery = useCallback(() => userId ? api.getTransactions({
+    ...getPeriodDateRange(selectedPeriod.year, selectedPeriod.month), page: 0, size: 5,
+  }) : Promise.reject(new Error('Sesión no disponible')), [selectedPeriod, userId]);
+  const summaryResource = useQueryResource<FinancialSummary>(summaryQuery, 'Error al cargar el resumen');
+  const analyticsResource = useQueryResource<PeriodAnalytics>(analyticsQuery, 'Error al cargar analítica financiera');
+  const transactionResource = useQueryResource<PageResponse<Transaction>>(transactionsQuery, 'Error al cargar transacciones');
+  const recentResource = useQueryResource<PageResponse<Transaction>>(recentQuery, 'Error al cargar movimientos recientes');
+  const { refresh: loadSummary } = summaryResource;
+  const { refresh: loadAnalytics } = analyticsResource;
+  const { refresh: loadTransactions } = transactionResource;
+  const { refresh: loadRecent } = recentResource;
+  const error = [syncError, summaryResource.error, analyticsResource.error, transactionResource.error, recentResource.error]
+    .filter((message, index, messages) => message && messages.indexOf(message) === index).join(' · ') || null;
 
   const loadSyncStatus = useCallback(async () => {
     if (!userId) {
@@ -90,14 +75,6 @@ export function useFinance(userId: number) {
   }, [userId]);
 
   useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
-
-  useEffect(() => {
-    loadTransactions();
-  }, [loadTransactions]);
-
-  useEffect(() => {
     loadSyncStatus();
   }, [loadSyncStatus]);
 
@@ -106,25 +83,27 @@ export function useFinance(userId: number) {
       if (!isSyncing) {
         // Silent background polling: keeps data up to date without screen flickering
         loadSummary(true);
+        loadAnalytics(true);
         loadTransactions(true);
+        loadRecent(true);
         if (userId) loadSyncStatus();
       }
     }, 45000);
 
     return () => clearInterval(interval);
-  }, [loadSummary, loadTransactions, loadSyncStatus, isSyncing, userId]);
+  }, [loadSummary, loadAnalytics, loadTransactions, loadRecent, loadSyncStatus, isSyncing, userId]);
 
   const triggerEmailSync = async () => {
     try {
       setIsSyncing(true);
-      setError(null);
+      setSyncError(null);
       const result = await api.syncEmails();
       setSyncResult(result);
-      await Promise.all([loadSummary(), loadTransactions()]);
+      await Promise.all([loadSummary(), loadAnalytics(), loadTransactions(), loadRecent()]);
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al sincronizar correos';
-      setError(msg);
+      setSyncError(msg);
       throw err;
     } finally {
       await loadSyncStatus();
@@ -141,11 +120,13 @@ export function useFinance(userId: number) {
   };
 
   return {
-    summary,
-    periodAnalytics,
-    transactionsPage,
-    loadingSummary,
-    loadingTransactions,
+    summary: summaryResource.data,
+    periodAnalytics: analyticsResource.data,
+    transactionsPage: transactionResource.data,
+    recentTransactions: recentResource.data?.content ?? [],
+    loadingRecent: recentResource.loading,
+    loadingSummary: analyticsResource.loading,
+    loadingTransactions: transactionResource.loading,
     isSyncing,
     syncResult,
     syncStatus,
@@ -160,7 +141,7 @@ export function useFinance(userId: number) {
     triggerEmailSync,
     refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {
-      await Promise.all([loadSummary(), loadTransactions()]);
+      await Promise.all([loadSummary(), loadAnalytics(), loadTransactions(), loadRecent()]);
     },
   };
 }

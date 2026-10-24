@@ -23,6 +23,10 @@ const sampleTx: Transaction = {
 };
 
 beforeEach(() => {
+  vi.spyOn(api, 'getCategories').mockResolvedValue([
+    { id: 1, name: 'COMPRAS', active: true, system: true },
+    { id: 2, name: 'TRANSPORTE', active: true, system: true },
+  ]);
   HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
     this.open = true;
   });
@@ -77,6 +81,7 @@ it('allows editing category, adding tags, and saving classification in Transacti
   render(<TransactionDetailModal transaction={sampleTx} onClose={vi.fn()} onUpdated={onUpdated} />);
 
   // Change category
+  await waitFor(() => expect((screen.getByLabelText('Categoría') as HTMLSelectElement).disabled).toBe(false));
   const select = screen.getByLabelText('Categoría') as HTMLSelectElement;
   fireEvent.change(select, { target: { value: 'COMPRAS' } });
 
@@ -115,7 +120,7 @@ it('sends an empty category to clear an existing classification', async () => {
   await waitFor(() => expect(updateSpy).toHaveBeenCalledWith(10, expect.objectContaining({ category: '' })));
 });
 
-it('toggles advanced filters panel and emits multi-criteria filter updates', () => {
+it('toggles advanced filters panel and emits multi-criteria filter updates', async () => {
   const onFilterChange = vi.fn();
   const onReset = vi.fn();
 
@@ -132,6 +137,7 @@ it('toggles advanced filters panel and emits multi-criteria filter updates', () 
   fireEvent.click(screen.getByRole('button', { name: /Filtros avanzados/ }));
 
   // Category select is now visible
+  await screen.findByRole('option', { name: 'TRANSPORTE' });
   const catSelect = screen.getByLabelText('Categoría');
   fireEvent.change(catSelect, { target: { value: 'TRANSPORTE' } });
   expect(onFilterChange).toHaveBeenCalledWith({ category: 'TRANSPORTE' });

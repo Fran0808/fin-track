@@ -14,15 +14,19 @@ interface TransactionDetailModalProps {
 }
 
 export function TransactionDetailModal({ transaction, onClose, onUpdated }: TransactionDetailModalProps) {
+  return transaction ? <TransactionDetailContent key={transaction.id} transaction={transaction} onClose={onClose} onUpdated={onUpdated} /> : null;
+}
+
+function TransactionDetailContent({ transaction, onClose, onUpdated }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copied, setCopied] = useState(false);
-  const { options: categoryOptions } = useCategories(true);
+  const { options: categoryOptions, loading: loadingCategories, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
   // Classification state
-  const [category, setCategory] = useState<string>('');
-  const [tags, setTags] = useState<string[]>([]);
+  const [category, setCategory] = useState<string>(transaction.category || '');
+  const [tags, setTags] = useState<string[]>(transaction.tags || []);
   const [newTagInput, setNewTagInput] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
+  const [notes, setNotes] = useState<string>(transaction.notes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -32,17 +36,6 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
     if (!dialog) return;
     if (transaction && !dialog.open) dialog.showModal();
     if (!transaction && dialog.open) dialog.close();
-  }, [transaction]);
-
-  useEffect(() => {
-    if (transaction) {
-      setCategory(transaction.category || '');
-      setTags(transaction.tags || []);
-      setNotes(transaction.notes || '');
-      setNewTagInput('');
-      setSaveSuccess(false);
-      setSaveError(null);
-    }
   }, [transaction]);
 
   const copyHash = async () => {
@@ -133,6 +126,7 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
               <div className="mt-1.5">
                 <CustomSelect
                   id="modal-category"
+                  disabled={loadingCategories || !!categoryError || isSaving}
                   value={category}
                   onChange={(val) => setCategory(val)}
                   options={[
@@ -144,6 +138,7 @@ export function TransactionDetailModal({ transaction, onClose, onUpdated }: Tran
                   ]}
                 />
               </div>
+              {categoryError && <p role="alert" className="mt-2 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
             </div>
 
             <div>
