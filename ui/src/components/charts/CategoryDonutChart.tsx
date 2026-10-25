@@ -96,7 +96,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                     strokeDashoffset={strokeDashoffset}
                     fill="none"
                     strokeLinecap="round"
-                    className="transition-all duration-300 cursor-pointer"
+                    className="transition-all duration-300"
                     onMouseEnter={() => setHoveredId(cat.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   />
@@ -131,7 +131,7 @@ export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
                   key={cat.id}
                   onMouseEnter={() => setHoveredId(cat.id)}
                   onMouseLeave={() => setHoveredId(null)}
-                  className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                  className={`p-2.5 rounded-xl border transition-all ${
                     isHovered
                       ? 'bg-slate-50 border-slate-300 shadow-xs'
                       : 'bg-white border-slate-100 hover:bg-slate-50/60'

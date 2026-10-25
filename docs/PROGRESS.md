@@ -17,7 +17,26 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: category analysis and merchant drill-down
+## Current checkpoint: consistent mouse cursors
+
+- Owner/scope: current chat; shared `cursor: pointer` styles for enabled actions,
+  links, selects, checkbox/radio controls and labels; disabled controls retain
+  unavailable/busy/default cursors. Text fields keep their editing cursor, with
+  a hand only on the date picker icon. Removed redundant native-button utilities
+  and misleading hand cursors from hover-only charts. No icons or layout changes.
+- Checks: 73 UI tests, lint (same 9 warnings), TypeScript/Vite build, diff and
+  documentation checks passed. AST audit found click handlers only on native
+  buttons/dialogs. Built UI checked in headless Edge across seven views, movement/
+  rule dialogs and mobile navigation, using a temporary API and synthetic database.
+  Verified native disabled fieldsets, checkbox labels, wait overrides, links,
+  summaries, text inputs and the calendar indicator's native computed cursor.
+  Ad hoc browser harness selector/pseudo-style issues were corrected; final run
+  passed. All temporary processes and database fixtures stopped and removed.
+- Status/next: verified for isolated browser scope; user reloads the web and
+  commits the focused UI/doc change. No backend changes, existing-service restart,
+  live financial access, agent commit or push.
+
+## Checkpoint: category analysis and merchant drill-down
 
 - Owner/scope: current chat; add period expense category aggregates and a visible
   category breakdown, followed by exact merchant drill-down into Movements.

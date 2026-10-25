@@ -402,7 +402,7 @@ export function CategoriesView() {
                             aria-checked={cat.active}
                             aria-label={`Alternar categoría ${cat.name}`}
                             onClick={() => handleToggle(cat)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
+                            className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
                               cat.active ? 'bg-brand' : 'bg-slate-300'
                             }`}
                           >
@@ -570,7 +570,7 @@ export function CategoriesView() {
                       aria-checked={cat.active}
                       aria-label={`Alternar categoría del sistema ${cat.name}`}
                       onClick={() => handleToggle(cat)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
                         cat.active ? 'bg-brand' : 'bg-slate-300'
                       }`}
                     >

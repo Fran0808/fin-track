@@ -66,7 +66,16 @@ It preserves unsaved category edits when assigning a product
 and reloads its category catalog each time it opens. Catalog failures provide a
 retry action rather than invented fallback options.
 
-Native selects provide keyboard selection. On small screens the navigation opens
+Native selects provide keyboard selection.
+
+Enabled buttons, links, selects and checkbox/radio controls use a hand cursor;
+disabled controls use an unavailable cursor, with explicit busy/default overrides
+retained where defined. Checkbox/radio labels follow the input's enabled state,
+including disabled fieldsets. Text inputs retain their editing cursor; only the
+calendar icon receives a hand cursor. Charts with hover-only detail keep their
+normal cursor instead of suggesting a click action.
+
+On small screens the navigation opens
 as a native modal dialog; Escape closes it. The sidebar scrolls on short screens,
 and the movement table prioritizes contact, amount and detail below 640 px; date
 and payment method remain available in the detail dialog.

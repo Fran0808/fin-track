@@ -33,6 +33,26 @@
     font: inherit;
   }
 
+  :where(button, a[href], select, summary, [role="button"], [role="link"], [role="switch"],
+    input[type="button"], input[type="submit"], input[type="reset"],
+    input[type="checkbox"], input[type="radio"], input[type="file"],
+    input[type="color"], input[type="range"]) {
+    cursor: pointer;
+  }
+
+  label:has(input:is([type="checkbox"], [type="radio"]):enabled) {
+    cursor: pointer;
+  }
+
+  :where(button, select, input, [role="button"], [role="link"], [role="switch"], a[href]):is(:disabled, [aria-disabled="true"]),
+  label:has(input:is([type="checkbox"], [type="radio"]):disabled) {
+    cursor: not-allowed;
+  }
+
+  input:enabled::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-brand);
     outline-offset: 3px;

@@ -145,7 +145,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                         strokeDashoffset={0}
                         strokeLinecap="round"
                         fill="none"
-                        className="transition-all duration-300 cursor-pointer"
+                        className="transition-all duration-300"
                         onMouseEnter={() => setHoveredChannel(c.channel)}
                         onMouseLeave={() => setHoveredChannel(null)}
                       />
@@ -190,7 +190,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                     key={c.channel}
                     onMouseEnter={() => setHoveredChannel(c.channel)}
                     onMouseLeave={() => setHoveredChannel(null)}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border transition-all ${
                       isHovered
                         ? 'bg-slate-50 border-slate-300 shadow-xs'
                         : 'bg-white border-slate-100 hover:bg-slate-50/60'
