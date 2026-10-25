@@ -42,6 +42,49 @@ class TransactionServiceTest {
         UserContext.clear();
     }
 
+    @Test void recordsPhoneAndEmailAtTrustedEntryPointsEvenWithoutRawText() {
+        UserContext.setCurrentUser(User.builder().id(1L).build());
+        when(transactions.save(any())).thenAnswer(call->call.getArgument(0));
+        var req = request(); req.setRawNotificationText(null);
+        service.processAndSave(req);
+        service.processEmailAndSave(req," OP-123 ");
+        var saved = org.mockito.ArgumentCaptor.forClass(Transaction.class);
+        verify(transactions,times(2)).save(saved.capture());
+        assertEquals(com.store.api.model.enums.CaptureOrigin.PHONE,saved.getAllValues().get(0).getCaptureOrigin());
+        assertNull(saved.getAllValues().get(0).getOperationReference());
+        assertEquals(com.store.api.model.enums.CaptureOrigin.EMAIL,saved.getAllValues().get(1).getCaptureOrigin());
+        assertEquals("OP-123",saved.getAllValues().get(1).getOperationReference());
+        assertEquals(req.getTransactionHash(),saved.getAllValues().get(1).getTransactionHash());
+        verifyNoInteractions(rawNotifications);
+    }
+
+    @Test void invalidOptionalReferencesDoNotPreventSavingRecognizedMoneyMovements() {
+        UserContext.setCurrentUser(User.builder().id(1L).build());
+        when(transactions.save(any())).thenAnswer(call->call.getArgument(0));
+        for (String reference : List.of(" ","<script>","x".repeat(101),"security code: 123")) {
+            service.processEmailAndSave(request(),reference);
+        }
+        var saved = org.mockito.ArgumentCaptor.forClass(Transaction.class);
+        verify(transactions,times(4)).save(saved.capture());
+        assertTrue(saved.getAllValues().stream().allMatch(t->t.getCaptureOrigin()==com.store.api.model.enums.CaptureOrigin.EMAIL
+                && t.getOperationReference()==null));
+    }
+
+    @Test void aRetryNeverRewritesFirstCaptureEvidenceOrInventsEvidenceForLegacyRecords() {
+        var owner = User.builder().id(1L).build(); UserContext.setCurrentUser(owner);
+        var existing = Transaction.builder().id(7L).user(owner).captureOrigin(com.store.api.model.enums.CaptureOrigin.EMAIL)
+                .operationReference("FIRST-123").build();
+        when(transactions.existsByTransactionHashAndUser("shared-hash",owner)).thenReturn(true);
+        when(transactions.findByTransactionHashAndUser("shared-hash",owner)).thenReturn(Optional.of(existing));
+        service.processAndSave(request());service.processEmailAndSave(request(),"NEW-456");
+        assertEquals(com.store.api.model.enums.CaptureOrigin.EMAIL,existing.getCaptureOrigin());
+        assertEquals("FIRST-123",existing.getOperationReference());
+        existing.setCaptureOrigin(com.store.api.model.enums.CaptureOrigin.UNKNOWN);existing.setOperationReference(null);
+        service.processEmailAndSave(request(),"NEW-456");
+        assertEquals(com.store.api.model.enums.CaptureOrigin.UNKNOWN,existing.getCaptureOrigin());assertNull(existing.getOperationReference());
+        verify(transactions,never()).save(any());verifyNoInteractions(rawNotifications);
+    }
+
     @Test
     void anonymousOperationsCannotReadOrWriteAnything() {
         UserContext.clear();

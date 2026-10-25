@@ -44,6 +44,7 @@ class ClassificationPersistenceTest {
     @Autowired private CategoryService categoryService;
     @Autowired private TransactionService service;
     @Autowired private AnalyticsService analytics;
+    @Autowired private com.store.api.service.transaction.TransactionOriginService origins;
     private User owner;
     private User other;
     private Category target;
@@ -59,6 +60,35 @@ class ClassificationPersistenceTest {
     }
 
     @AfterEach void clear() { UserContext.clear(); }
+
+    @Test void captureOriginSurvivesRetriesAndCorrectionsAndRemainsUserScoped() {
+        var request = new TransactionSyncRequest();
+        request.setAmount(new BigDecimal("12.34")); request.setFlowType(FlowType.EXPENSE);
+        request.setContactName("Synthetic merchant");request.setChannel("EXAMPLE_WALLET");
+        request.setTransactionDate(LocalDateTime.of(2026,1,1,12,0));request.setTransactionHash("capture-shared");
+        var email = service.processEmailAndSave(request,"OP-123");transactions.flush();
+        var origin = origins.getOrigin(email.getId());
+        assertEquals(CaptureOrigin.EMAIL,origin.getOrigin()); assertEquals("OP-123",origin.getOperationReference());
+        assertEquals(email.getCreatedAt(),origin.getRegisteredAt());
+        assertEquals(email.getId(),service.processAndSave(request).getId());
+        assertEquals(email.getId(),service.processBatch(List.of(request)).getFirst().getId());
+        service.markOwnCardPayment(email.getId());
+        assertEquals("OP-123",origins.getOrigin(email.getId()).getOperationReference());
+        assertEquals(origin.getRegisteredAt(),origins.getOrigin(email.getId()).getRegisteredAt());
+        assertEquals(1,transactions.count());
+        UserContext.setCurrentUser(other);
+        assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->origins.getOrigin(email.getId())).getStatusCode().value());
+        var phone = service.processAndSave(request);transactions.flush();
+        assertEquals(CaptureOrigin.PHONE,origins.getOrigin(phone.getId()).getOrigin());
+        assertNull(origins.getOrigin(phone.getId()).getOperationReference());
+        UserContext.setCurrentUser(owner);
+        var legacy = store(owner,"capture-legacy",null,FlowType.EXPENSE,null);
+        assertEquals(CaptureOrigin.UNKNOWN,origins.getOrigin(legacy.getId()).getOrigin());
+        request.setTransactionHash("capture-legacy");service.processEmailAndSave(request,"LATE-123");
+        assertEquals(CaptureOrigin.UNKNOWN,origins.getOrigin(legacy.getId()).getOrigin());
+        assertNull(origins.getOrigin(legacy.getId()).getOperationReference());
+    }
 
     private com.store.api.model.dto.category.RuleHistoryApplyRequest historyRequest(
             com.store.api.model.dto.category.RuleHistoryPreview preview) {

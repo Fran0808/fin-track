@@ -39,7 +39,7 @@ class JwtAuthFilterTest {
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
             "PATCH,/api/v1/transactions/1/classification",
-            "GET,/api/v1/transactions/pending", "GET,/api/v1/classification-rules",
+            "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin", "GET,/api/v1/classification-rules",
             "POST,/api/v1/classification-rules", "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply",
             "GET,/api/v1/transactions", "POST,/api/v1/transactions/sync",
             "POST,/api/v1/transactions/sync/batch", "GET,/api/v1/analytics/summary",
@@ -179,7 +179,7 @@ class JwtAuthFilterTest {
             "GET,/api/v1/financial-instruments", "POST,/api/v1/financial-instruments",
             "PUT,/api/v1/financial-instruments/1", "PATCH,/api/v1/transactions/1/financial-instrument",
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
-            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending",
+            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
             "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })
@@ -203,7 +203,7 @@ class JwtAuthFilterTest {
             "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/pairing-info",
             "POST,/api/v1/user/pairing-info/regenerate", "GET,/api/v1/financial-instruments",
             "PATCH,/api/v1/transactions/1/financial-instrument",
-            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending",
+            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
             "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })

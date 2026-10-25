@@ -12,6 +12,7 @@ import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.OperationType;
 import com.store.api.model.enums.PendingReason;
+import com.store.api.model.enums.CaptureOrigin;
 import com.store.api.service.category.ClassificationRuleService;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
@@ -52,6 +53,17 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse processAndSave(@NotNull @Valid TransactionSyncRequest request) {
+        return saveCapture(request, CaptureOrigin.PHONE, null);
+    }
+
+    @Transactional
+    public TransactionResponse processEmailAndSave(@NotNull @Valid TransactionSyncRequest request, String operationReference) {
+        String reference = operationReference == null ? null : operationReference.trim();
+        if (reference != null && !reference.matches("[A-Za-z0-9][A-Za-z0-9._/-]{0,99}")) reference = null;
+        return saveCapture(request, CaptureOrigin.EMAIL, reference);
+    }
+
+    private TransactionResponse saveCapture(TransactionSyncRequest request, CaptureOrigin origin, String operationReference) {
         User currentUser = UserContext.requireCurrentUser();
         OperationType operationType = request.getOperationType() == null ? OperationType.UNKNOWN : request.getOperationType();
         if (operationType == OperationType.OWN_CARD_PAYMENT && request.getFlowType() != FlowType.INTERNAL_TRANSFER) {
@@ -76,6 +88,8 @@ public class TransactionService {
                 .cardLast4(request.getCardLast4())
                 .transactionDate(request.getTransactionDate())
                 .transactionHash(request.getTransactionHash())
+                .captureOrigin(origin)
+                .operationReference(operationReference)
                 .build();
 
         classificationRules.classifyNewTransaction(transaction);

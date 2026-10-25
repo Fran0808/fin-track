@@ -84,15 +84,15 @@ class EmailIngestionServiceTest {
         when(parserDispatcher.dispatchAndParse(any(), any(), any(), any())).thenReturn(Optional.of(
                 ParsedEmailTransaction.builder().amount(new BigDecimal("81.25")).flowType(FlowType.INTERNAL_TRANSFER)
                         .operationType(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT)
-                        .merchantName("Reference only").channel("EXAMPLE_WALLET")
+                        .merchantName("Reference only").channel("EXAMPLE_WALLET").operationNumber("LEGACY-IDENTITY").receiptReference("SYNTHETIC-123")
                         .transactionDate(LocalDateTime.of(2026, 1, 1, 12, 0)).transactionHash("normalized-hash").build()));
-        when(transactionService.processAndSave(any())).thenReturn(TransactionResponse.builder().id(1L).build());
+        when(transactionService.processEmailAndSave(any(), nullable(String.class))).thenReturn(TransactionResponse.builder().id(1L).build());
         assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
-        verify(transactionService).processAndSave(argThat(request ->
+        verify(transactionService).processEmailAndSave(argThat(request ->
                 request.getOperationType() == com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT
                         && request.getFlowType() == FlowType.INTERNAL_TRANSFER
                         && "EXAMPLE_WALLET".equals(request.getChannel())
-                        && "normalized-hash".equals(request.getTransactionHash())));
+                        && "normalized-hash".equals(request.getTransactionHash())), eq("SYNTHETIC-123"));
     }
 
     @Test
@@ -130,11 +130,11 @@ class EmailIngestionServiceTest {
                 ParsedEmailTransaction.builder().amount(new BigDecimal("2.30")).flowType(FlowType.EXPENSE)
                         .merchantName("Example").transactionDate(LocalDateTime.of(2026, 10, 1, 12, 0))
                         .transactionHash("full-body-hash").rawBody(body).build()));
-        when(transactionService.processAndSave(any())).thenReturn(TransactionResponse.builder().id(1L).build());
+        when(transactionService.processEmailAndSave(any(), nullable(String.class))).thenReturn(TransactionResponse.builder().id(1L).build());
         assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
         verify(parserDispatcher).dispatchAndParse(any(), any(), eq(body), any());
-        verify(transactionService).processAndSave(argThat(request -> request.getRawNotificationText().length() == 65536
-                && "full-body-hash".equals(request.getTransactionHash()) && new BigDecimal("2.30").equals(request.getAmount())));
+        verify(transactionService).processEmailAndSave(argThat(request -> request.getRawNotificationText().length() == 65536
+                && "full-body-hash".equals(request.getTransactionHash()) && new BigDecimal("2.30").equals(request.getAmount())), isNull());
     }
 
     @Test
@@ -166,7 +166,7 @@ class EmailIngestionServiceTest {
 
         when(parserDispatcher.dispatchAndParse(any(), any(), any(), any()))
                 .thenReturn(Optional.of(parsedTx));
-        when(transactionService.processAndSave(any()))
+        when(transactionService.processEmailAndSave(any(), nullable(String.class)))
                 .thenReturn(TransactionResponse.builder().id(1L).amount(new BigDecimal("15.00")).build());
 
         EmailSyncResponse response = emailIngestionService.syncEmails();

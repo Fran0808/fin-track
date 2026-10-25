@@ -140,6 +140,23 @@ the same filter. Deploy API and UI together.
 
 ## Transaction classification
 
+### Capture origin detail
+
+`GET /transactions/{id}/origin` returns only `origin` (`EMAIL`, `PHONE`, `UNKNOWN`),
+`registeredAt` (the stored creation time) and nullable `operationReference` for the
+authenticated user's movement. It is `Cache-Control: no-store`; foreign/missing
+IDs return the same 404, anonymous access returns 401 and device credentials 403.
+The UI labels the sources `Correo` and `Teléfono`. Old rows remain unknown; channel,
+raw text and retries are not evidence for backfilling origin. Email references
+come from normalized explicit receipt metadata, not a security code or hash.
+Raw bodies, sender/device credentials and mailbox links are not exposed.
+
+The list and sync DTOs remain unchanged; callers cannot set these fields in the
+external ingestion request. First successful capture metadata survives retries
+and category/product/flow corrections. Existing databases require the additive
+[capture-origin migration](../../scripts/migrations/20261025_transaction_capture_origin.sql)
+before API deployment. See [origin behavior and rollout](../domain/transaction-origin.md).
+
 `GET /transactions` preserves its existing pagination fields and adds `summary`:
 decimal `totalExpense`, `totalIncome` and `internalTransfersAmount` across all
 matching movements, without a page-size or CSV-export cap. All date, flow, search,

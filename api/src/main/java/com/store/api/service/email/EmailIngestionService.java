@@ -123,7 +123,7 @@ public class EmailIngestionService {
                     req.setRawNotificationText(rawBody == null ? null : rawBody.substring(0,
                             Math.min(rawBody.length(), TransactionSyncRequest.MAX_RAW_TEXT_LENGTH)));
 
-                    TransactionResponse saved = transactionService.processAndSave(req);
+                    TransactionResponse saved = transactionService.processEmailAndSave(req, parsed.getReceiptReference());
                     progress.transactions.add(saved);
                     progress.saved++;
                 }
