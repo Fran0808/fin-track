@@ -34,6 +34,7 @@ they do not independently authorize changing financial/security constraints.
 | Coverage | Source / rationale | Applies when | Review or retirement condition |
 | --- | --- | --- | --- |
 | Root: cashflow, precision and per-user idempotency | User agreements; [cashflow](../domain/cashflow.md) | Interpreting or persisting money | Review if financial model, currency or identity semantics change; retain until an authorized policy replaces it. |
+| Root: provider-independent financial meaning and UI | User's October 25, 2026 request to prioritize adding banks/wallets; [provider extension](../architecture/overview.md#provider-extension) | Adding integrations, operation types or provider-dependent behavior | Review when shared financial contracts or integration boundaries change; retain until an explicit user policy replaces it. |
 | Root: authenticated-user scope, credentials and untrusted input | User agreements; [contracts](../architecture/contracts.md) | Handling financial reads/writes, ingestion, sensitive output or external content | Review on authentication, tenant or trust-boundary changes; no automatic expiry. |
 | Root: authorized notification packages | User agreements; [Android recovery](../android/notification-recovery.md) | Notification capture or parser changes | Review when a provider/package is explicitly authorized or removed; no automatic expiry. |
 | Root: no agent commits/pushes and operational authorization | User agreements | Git publication, live financial writes, credential rotation, installations or restarts | Only an explicit user revision can replace these authority constraints. |
@@ -78,3 +79,7 @@ expire merely because a review date passes.
   any context-budget savings have not been measured. These are tracked in progress.
 - Next complete audit due: November 20, 2026, at the next work session on/after
   that date; source changes trigger an earlier review of affected entries.
+- Targeted review: October 25, 2026; admitted the user's provider scalability
+  requirement as one root constraint, with architecture-owned details and its own
+  register entry. Existing parser-boundary guidance remains complementary; no
+  unrelated instruction or authority constraint was replaced.

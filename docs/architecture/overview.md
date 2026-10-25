@@ -83,6 +83,32 @@ verify persisted results in a new process. Listener connection, active queries
 and rebind requests are traced only inside the isolated variant, without raw
 notification contents or credentials.
 
+## Provider extension
+
+Financial meaning and UI behavior must be independent of banks and wallets.
+Provider-specific confirmation text, sender/package authorization and legacy hash
+compatibility belong to the integration that understands that source. Adapters
+normalize evidence into the shared transaction contract; domain services, analytics
+and UI do not derive operation meaning or action eligibility from provider names
+or merchant text. Provider display labels remain ordinary presentation metadata.
+Add provider formats through the existing dispatchers, with isolated positive,
+negative, ambiguity and replay tests. Do not add placeholder integrations before
+they are needed or broaden Android's authorized package list incidentally.
+
+`operationType` describes what happened; `flowType` describes its effect on totals.
+The initial explicit operation is `OWN_CARD_PAYMENT`, which requires
+`INTERNAL_TRANSFER`. `UNKNOWN` means insufficient operation evidence and preserves
+the supplied/existing flow. Do not infer purchases, repayments or ownership merely
+from a bank, channel, assigned card or contact name. Extend operation types only
+when a supported behavior requires them, with coordinated storage/client changes.
+The existing channel remains independent metadata; adding a source must not require
+another branch in the card-payment confirmation or expense calculations.
+
+Historical rows default to `UNKNOWN` without changes to amount, dates, flow, hash,
+owner or product assignment. An authenticated user can explicitly confirm their own
+repayment by movement ID. No read/startup path reclassifies historical financial
+data. See [cashflow](../domain/cashflow.md) and [contracts](contracts.md).
+
 ## Email ingestion
 
 `EmailIngestionService` resolves the current user and obtains messages through
