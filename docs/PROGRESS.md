@@ -33,7 +33,13 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   production build and doc/diff checks passed. Full desktop/mobile Edge → real
   API → disposable PostgreSQL check passed for both chart modes and category
   drill-down. Temporary processes/fixtures stopped and removed before step 3.
-- Remaining: explicit comparison and expense highlights.
+- Step 3 verified: server-provided current/prior dates, decimal expense difference
+  and amounts shown explicitly without percentages or division by zero. 262 backend
+  tests with disposable persistence/migrations, 82 UI tests, lint (same 9 warnings),
+  production build and doc/diff checks passed. Full desktop/mobile browser check
+  verified dates, current/prior amounts, difference and exclusion of another user's
+  prior expenses. Temporary processes/fixtures stopped and removed before step 4.
+- Remaining: factual expense highlights.
   No live financial access, existing-service restart, agent commit or push.
   The unrelated ui/index.html title change is preserved and excluded from staging patches.
 

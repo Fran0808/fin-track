@@ -131,7 +131,29 @@ class AnalyticsServiceTest {
         PeriodAnalyticsResponse result = analyticsService.getPeriodAnalytics(future.getYear(), future.getMonthValue());
 
         assertNull(result.getPreviousPeriodExpense());
+        assertNull(result.getPreviousPeriodStart());assertNull(result.getPreviousPeriodEnd());assertNull(result.getExpenseDifference());
         assertEquals(List.of(), result.getDailyExpenses());
         assertEquals(BigDecimal.ZERO, result.getMonthlyExpense());
+    }
+
+    @Test void comparisonUsesExplicitClosedMonthBoundsAndExactDecimalDifference() {
+        when(transactionRepository.sumAmountByFlowTypeAndDateRange(any(), any(), any(), eq(42L)))
+                .thenAnswer(call -> ((LocalDateTime) call.getArgument(1)).getMonthValue() == 1
+                        ? new BigDecimal("0.10") : new BigDecimal("0.30"));
+        var result = analyticsService.getPeriodAnalytics(2024, 2);
+        assertEquals(LocalDateTime.of(2024, 2, 1, 0, 0), result.getPeriodStart());
+        assertEquals(java.time.YearMonth.of(2024, 2).atEndOfMonth().atTime(java.time.LocalTime.MAX), result.getPeriodEnd());
+        assertEquals(LocalDateTime.of(2024, 1, 1, 0, 0), result.getPreviousPeriodStart());
+        assertEquals(java.time.YearMonth.of(2024, 1).atEndOfMonth().atTime(java.time.LocalTime.MAX), result.getPreviousPeriodEnd());
+        assertEquals(new BigDecimal("0.20"), result.getExpenseDifference());
+    }
+
+    @Test void currentMonthComparisonClampsToTheAvailableDaysInThePreviousMonth() {
+        freezeAt("2026-03-31T18:00:00Z");
+        when(transactionRepository.sumAmountByFlowTypeAndDateRange(any(), any(), any(), eq(42L))).thenReturn(BigDecimal.ZERO);
+        var result = analyticsService.getPeriodAnalytics(2026, 3);
+        assertEquals(LocalDateTime.of(2026, 2, 28, 23, 59, 59, 999999999), result.getPreviousPeriodEnd());
+        assertEquals(LocalDateTime.of(2026, 3, 31, 23, 59, 59, 999999999), result.getPeriodEnd());
+        assertEquals(BigDecimal.ZERO, result.getExpenseDifference());
     }
 }

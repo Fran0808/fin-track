@@ -88,6 +88,13 @@ Period analytics also includes `periodStart`/`periodEnd` local date-times descri
 the actual aggregation interval, including the current-month cutoff. Merchant
 drill-down uses these bounds and expense flow instead of inferring dates in the browser.
 
+`previousPeriodStart`/`previousPeriodEnd` expose the actual previous-month interval;
+current months stop at the matching day available in that month, while closed
+months compare complete months. February/short-month bounds are clamped to their
+last day and are displayed explicitly. `expenseDifference` is decimal current
+expense minus previous expense, with no division or percentage. Future periods
+return null comparison fields; a previous expense of zero remains a valid value.
+
 `GET /transactions` and `/transactions/export` accept optional `merchantName`:
 an exact, case-sensitive contact name, with literal `%`/`_` and preserved whitespace.
 It combines with the existing authenticated-user, date and other filters. Empty

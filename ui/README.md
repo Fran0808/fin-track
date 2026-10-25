@@ -58,6 +58,11 @@ and can switch to the cumulative line without another card. The scale follows
 the chosen metric; pointer/touch and left/right keys expose both daily and
 cumulative amounts for the selected day. Empty periods retain an explicit message.
 
+Analysis comparison shows both server-provided intervals, their recorded expense
+amounts and the difference in soles. It does not divide by the previous amount or
+replace unavailable/future comparisons with zero. Short-month and year-boundary
+dates are shown literally; no timezone conversion is applied to these local dates.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the

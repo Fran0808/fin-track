@@ -3,6 +3,7 @@ import type { PeriodAnalytics } from '../../types';
 import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, getChannelLabel } from '../../utils';
 import { ExpenseTrendChart } from '../charts/ExpenseTrendChart';
+import { ExpenseComparison } from '../analytics/ExpenseComparison';
 
 interface MyMoneyViewProps {
   analytics: PeriodAnalytics | null;
@@ -41,6 +42,8 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
           <p className="mt-2 text-sm text-muted">Entradas menos salidas registradas</p>
         </div>
       </section>
+
+      <ExpenseComparison analytics={analytics} loading={loading} />
 
       <section className="surface p-6 sm:p-7" aria-labelledby="expense-trend-heading">
         <div className="mb-6 border-b border-line pb-5">

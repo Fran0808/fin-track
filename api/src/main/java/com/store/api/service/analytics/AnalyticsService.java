@@ -75,11 +75,13 @@ public class AnalyticsService {
         int comparisonDays = isCurrentMonth
                 ? Math.min(visibleDays, previousYearMonth.lengthOfMonth())
                 : previousYearMonth.lengthOfMonth();
+        LocalDateTime previousPeriodStart = isFutureMonth ? null : previousYearMonth.atDay(1).atStartOfDay();
+        LocalDateTime previousPeriodEnd = isFutureMonth ? null : previousYearMonth.atDay(comparisonDays).atTime(LocalTime.MAX);
         BigDecimal previousPeriodExpense = isFutureMonth ? null
                 : transactionRepository.sumAmountByFlowTypeAndDateRange(
                         FlowType.EXPENSE,
-                        previousYearMonth.atDay(1).atStartOfDay(),
-                        previousYearMonth.atDay(comparisonDays).atTime(LocalTime.MAX),
+                        previousPeriodStart,
+                        previousPeriodEnd,
                         userId
                 );
 
@@ -188,6 +190,9 @@ public class AnalyticsService {
                 .monthlyIncome(monthlyIncome)
                 .internalTransfersAmount(internalTransfers)
                 .previousPeriodExpense(previousPeriodExpense)
+                .previousPeriodStart(previousPeriodStart)
+                .previousPeriodEnd(previousPeriodEnd)
+                .expenseDifference(previousPeriodExpense == null ? null : monthlyExpense.subtract(previousPeriodExpense))
                 .comparisonThroughDay(isCurrentMonth ? comparisonDays : null)
                 .dailyExpenses(dailyExpenses)
                 .totalMovements(totalMovements)
