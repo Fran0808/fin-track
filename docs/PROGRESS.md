@@ -17,7 +17,27 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: consistent mouse cursors
+## Current checkpoint: compact native combo boxes
+
+- Owner/scope: current chat; shared styled native pickers for CustomSelect and the
+  two visible rule-category selects. Existing colors/type retained; selection uses
+  a soft brand tint/checkmark, bounded 18rem scrolling and viewport-aware placement.
+  Closed controls have stable height. CSS feature detection preserves the ordinary
+  native picker on unsupported browsers; hidden period fallbacks are unchanged.
+- Checks: 73 UI tests across 15 files, lint (same 9 warnings), TypeScript/Vite build,
+  diff and documentation links passed. Final built UI verified in headless Edge
+  at 1440×1000 and 390×844 against an isolated API/PostgreSQL fixture with 32
+  synthetic categories and a product. Verified actual 288px picker height,
+  viewport width, modal layering, keyboard End/Enter selection, Escape closing
+  only the picker, preserved category drafts, required form validation and native
+  fallback after disabling the CSS enhancement. Desktop/mobile screenshots inspected.
+  Temporary browser, API, HTTP server and database were stopped and removed.
+- Status/next: verified for stated browser scope. User reloads the frontend and
+  commits the focused change. Other browser engines were not run; unsupported
+  engines retain platform menus. No backend changes, live data operations, existing
+  service restart, commit or push. The unrelated ui/index.html title edit was preserved.
+
+## Checkpoint: consistent mouse cursors
 
 - Owner/scope: current chat; shared `cursor: pointer` styles for enabled actions,
   links, selects, checkbox/radio controls and labels; disabled controls retain

@@ -114,7 +114,7 @@ export function ClassificationRulesView() {
                 <p className="mt-1.5 text-xs text-muted">No distingue mayúsculas. El texto se busca literalmente, sin comodines.</p>
               </div>
               <div><label htmlFor="rule-category" className="text-sm font-medium">Asignar categoría</label>
-                <select id="rule-category" required value={categoryId} onChange={event => setCategoryId(event.target.value)} className={fieldClass}>
+                <select id="rule-category" required value={categoryId} onChange={event => setCategoryId(event.target.value)} className={`fintrack-select ${fieldClass}`}>
                   <option value="">Selecciona una categoría</option>
                   {editing && !activeCategories.some(category => category.id === editing.categoryId) && <option value={editing.categoryId}>{editing.categoryName} (inactiva)</option>}
                   {activeCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}

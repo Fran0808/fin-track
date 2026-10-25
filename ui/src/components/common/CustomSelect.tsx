@@ -36,7 +36,7 @@ export function CustomSelect<T extends string | number = string>({
           const option = options.find(item => String(item.value) === event.target.value);
           if (option) onChange(option.value);
         }}
-        className={`block w-full min-w-0 appearance-none rounded-xl border border-line bg-white py-2 pl-3 pr-9 text-sm font-medium text-ink hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        className={`fintrack-select fintrack-select--custom-arrow block w-full min-w-0 appearance-none rounded-xl border border-line bg-white py-2 pl-3 pr-9 text-sm font-medium text-ink hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       >
         {!hasValue && <option value="" disabled>{placeholder}</option>}
         {options.map(option => <option key={String(option.value)} value={String(option.value)}>{option.label}</option>)}

@@ -54,7 +54,7 @@ export function CreateClassificationRuleModal({ draft, onClose }: { draft: Class
             <p className="mt-1.5 text-xs text-muted">Coincidencia literal, sin distinguir mayúsculas.</p>
           </div>
           <div><label htmlFor="quick-rule-category" className="text-sm font-medium">Asignar categoría</label>
-            <select id="quick-rule-category" required value={selectedId} onChange={event => setCategoryId(event.target.value)} className={fieldClass}>
+            <select id="quick-rule-category" required value={selectedId} onChange={event => setCategoryId(event.target.value)} className={`fintrack-select ${fieldClass}`}>
               <option value="">Selecciona una categoría</option>
               {activeCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>

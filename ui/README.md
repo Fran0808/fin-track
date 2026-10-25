@@ -68,6 +68,16 @@ retry action rather than invented fallback options.
 
 Native selects provide keyboard selection.
 
+Visible selects share the `fintrack-select` styling, including classification-rule
+forms. Where the browser supports customizable native selects (`base-select` and
+`::picker(select)`), options use app typography/colors, a soft selected state and
+a scrollable picker capped at 18rem and the viewport height. The native control
+retains labels, typed values, required/disabled behavior, keyboard selection and
+automatic popup placement above dialogs. Unsupported browsers retain the ordinary
+native picker; the enhancement uses CSS feature detection and no new dependency.
+The period selector's hidden native fallbacks are excluded. See
+[the browser documentation](https://developer.chrome.com/blog/a-customizable-select).
+
 Enabled buttons, links, selects and checkbox/radio controls use a hand cursor;
 disabled controls use an unavailable cursor, with explicit busy/default overrides
 retained where defined. Checkbox/radio labels follow the input's enabled state,
