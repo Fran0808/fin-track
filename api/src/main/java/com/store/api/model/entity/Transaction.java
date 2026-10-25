@@ -2,6 +2,7 @@ package com.store.api.model.entity;
 
 import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.OperationType;
+import com.store.api.model.enums.CaptureOrigin;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -58,6 +59,12 @@ public class Transaction {
 
     @Column(name = "transaction_hash", nullable = false, length = 64)
     private String transactionHash;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "capture_origin", nullable = false, length = 16)
+    @Builder.Default
+    private CaptureOrigin captureOrigin = CaptureOrigin.UNKNOWN;
+    @Column(name = "operation_reference", length = 100)
+    private String operationReference;
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @PrePersist

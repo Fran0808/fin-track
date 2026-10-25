@@ -48,10 +48,14 @@ CREATE TABLE transactions (
     user_id BIGINT REFERENCES users(id), financial_instrument_id BIGINT REFERENCES financial_instruments(id),
     amount NUMERIC(10,2) NOT NULL, flow_type VARCHAR(20) NOT NULL,
     operation_type VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
+    capture_origin VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN', operation_reference VARCHAR(100),
     contact_name VARCHAR(150) NOT NULL, channel VARCHAR(50) NOT NULL, card_last4 VARCHAR(10),
     transaction_date TIMESTAMP NOT NULL, category VARCHAR(100),
     transaction_hash VARCHAR(64) NOT NULL, created_at TIMESTAMP NOT NULL,
-    CONSTRAINT chk_transaction_operation_flow CHECK (operation_type <> 'OWN_CARD_PAYMENT' OR flow_type = 'INTERNAL_TRANSFER')
+    CONSTRAINT chk_transaction_operation_flow CHECK (operation_type <> 'OWN_CARD_PAYMENT' OR flow_type = 'INTERNAL_TRANSFER'),
+    CONSTRAINT chk_transaction_capture_origin CHECK (capture_origin IN ('UNKNOWN', 'EMAIL', 'PHONE')),
+    CONSTRAINT chk_transaction_operation_reference CHECK (operation_reference IS NULL OR
+        (capture_origin = 'EMAIL' AND operation_reference ~ '^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$'))
 );
 CREATE UNIQUE INDEX idx_tx_hash_user ON transactions(transaction_hash, user_id);
 CREATE INDEX idx_tx_date ON transactions(transaction_date);
