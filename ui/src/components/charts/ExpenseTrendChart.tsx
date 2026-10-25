@@ -9,6 +9,7 @@ interface ExpenseTrendChartProps {
 
 export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [mode, setMode] = useState<'daily' | 'cumulative'>('daily');
   const total = points.at(-1)?.cumulativeAmount ?? 0;
 
   if (points.length === 0 || total === 0) {
@@ -19,17 +20,17 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
   const right = 708;
   const top = 14;
   const bottom = 178;
-  const maxValue = Math.max(total, ...points.map((point) => point.cumulativeAmount));
-  const x = (index: number) => left + (points.length === 1 ? 0 : index / (points.length - 1)) * (right - left);
+  const amountFor = (point: DailyExpense) => mode === 'daily' ? point.amount : point.cumulativeAmount;
+  const maxValue = Math.max(1, ...points.map(amountFor));
+  const x = (index: number) => points.length === 1 ? (left + right) / 2 : left + index / (points.length - 1) * (right - left);
   const y = (amount: number) => bottom - (amount / maxValue) * (bottom - top);
-  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(point.cumulativeAmount)}`).join(' ');
+  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(amountFor(point))}`).join(' ');
   const area = `${line} L ${x(points.length - 1)} ${bottom} L ${left} ${bottom} Z`;
   const middle = Math.floor((points.length - 1) / 2);
   const activePoint = activeIndex === null ? null : points[activeIndex] ?? null;
 
-  const handleLinePointerMove = (event: PointerEvent<SVGPathElement>) => {
-    const svg = event.currentTarget.ownerSVGElement;
-    if (!svg) return;
+  const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
+    const svg = event.currentTarget;
     const bounds = svg.getBoundingClientRect();
     const svgX = ((event.clientX - bounds.left) / bounds.width) * 720;
     const nearestIndex = Math.round(((svgX - left) / (right - left)) * (points.length - 1));
@@ -47,10 +48,14 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
     <div>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm text-muted">Total acumulado</p>
+          <p className="text-sm text-muted">{mode === 'daily' ? 'Gastos registrados' : 'Total acumulado'}</p>
           <p className="font-display font-num mt-1 text-2xl font-semibold">{formatCurrency(total)}</p>
         </div>
-        <p className="text-xs text-muted">Solo gastos confirmados · transferencias excluidas</p>
+        <div role="group" aria-label="Vista del gasto" className="inline-flex rounded-xl border border-line bg-canvas p-1">
+          {([['daily', 'Diario'], ['cumulative', 'Acumulado']] as const).map(([value, label]) => <button type="button" key={value}
+            aria-pressed={mode === value} onClick={() => setMode(value)}
+            className={`rounded-lg px-3 py-2 text-xs font-semibold ${mode === value ? 'bg-white text-brand shadow-xs' : 'text-muted hover:text-ink'}`}>{label}</button>)}
+        </div>
       </div>
       <div className="relative">
         <svg
@@ -58,33 +63,33 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
           viewBox="0 0 720 210"
           role="group"
           tabIndex={0}
-          aria-label={`Evolución del gasto acumulado en ${monthLabel}: ${formatCurrency(total)} hasta el día ${points.at(-1)?.day}. Usa las flechas izquierda y derecha para explorar los días.`}
+          aria-label={`Gasto ${mode === 'daily' ? 'diario' : 'acumulado'} en ${monthLabel}: ${formatCurrency(total)} registrados hasta el día ${points.at(-1)?.day}. Usa las flechas izquierda y derecha para explorar los días.`}
           onFocus={() => setActiveIndex(points.length - 1)}
           onBlur={() => setActiveIndex(null)}
           onKeyDown={handleKeyDown}
+          onPointerMove={handlePointerMove}
+          onPointerDown={handlePointerMove}
+          onPointerLeave={() => setActiveIndex(null)}
         >
           <line x1={left} y1={bottom} x2={right} y2={bottom} stroke="var(--color-line)" />
           <line x1={left} y1={y(maxValue / 2)} x2={right} y2={y(maxValue / 2)} stroke="var(--color-line)" strokeDasharray="3 5" />
-          <path d={area} fill="var(--color-brand)" fillOpacity="0.08" />
-          <path d={line} fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx={x(points.length - 1)} cy={y(total)} r="4" fill="var(--color-brand)" pointerEvents="none" />
+          {mode === 'daily' ? points.map((point, index) => {
+            const width = Math.min(36, (right - left) / points.length * 0.66);
+            return <rect key={point.day} x={x(index) - width / 2} y={y(point.amount)} width={width} height={bottom - y(point.amount)}
+              rx="2" fill="var(--color-brand)" fillOpacity={activeIndex === index ? 1 : 0.65} />;
+          }) : <>
+            <path d={area} fill="var(--color-brand)" fillOpacity="0.08" />
+            <path d={line} fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={x(points.length - 1)} cy={y(total)} r="4" fill="var(--color-brand)" pointerEvents="none" />
+          </>}
           {activePoint && activeIndex !== null && (
             <g pointerEvents="none">
               <line x1={x(activeIndex)} y1={top} x2={x(activeIndex)} y2={bottom} stroke="var(--color-brand)" strokeDasharray="4 5" opacity="0.45" />
-              <circle cx={x(activeIndex)} cy={y(activePoint.cumulativeAmount)} r="6" fill="var(--color-brand)" stroke="white" strokeWidth="2" />
+              <circle cx={x(activeIndex)} cy={y(amountFor(activePoint))} r="6" fill="var(--color-brand)" stroke="white" strokeWidth="2" />
             </g>
           )}
-          <path
-            d={line}
-            fill="none"
-            stroke="transparent"
-            strokeWidth="24"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            onPointerMove={handleLinePointerMove}
-            onPointerLeave={() => setActiveIndex(null)}
-          />
           <g fill="var(--color-muted)" fontSize="11" fontFamily="inherit" pointerEvents="none">
+            <text x={left} y="10">{formatCurrency(maxValue)}</text>
             <text x={left} y="202">Día 1</text>
             {points.length > 2 && <text x={x(middle)} y="202" textAnchor="middle">Día {points[middle].day}</text>}
             <text x={right} y="202" textAnchor="end">Día {points.at(-1)?.day}</text>
@@ -97,8 +102,8 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
             className="pointer-events-none absolute z-10 min-w-44 rounded-xl border border-line bg-white px-3 py-2.5 text-xs shadow-lg"
             style={{
               left: `clamp(7rem, ${(x(activeIndex) / 720) * 100}%, calc(100% - 7rem))`,
-              top: `${(y(activePoint.cumulativeAmount) / 210) * 100}%`,
-              transform: y(activePoint.cumulativeAmount) < 65
+              top: `${(y(amountFor(activePoint)) / 210) * 100}%`,
+              transform: y(amountFor(activePoint)) < 65
                 ? 'translate(-50%, 14px)'
                 : 'translate(-50%, calc(-100% - 14px))',
             }}

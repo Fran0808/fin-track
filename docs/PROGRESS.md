@@ -28,7 +28,12 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   Full built UI → packaged API → fresh PostgreSQL browser check passed in headless
   Edge at desktop/mobile sizes for both named/uncategorized groups and CSV.
   Temporary processes/fixtures stopped and removed before starting step 2.
-- Remaining: daily/cumulative chart, explicit comparison and expense highlights.
+- Step 2 verified: daily bars default with an accumulated-line toggle, zero-spend
+  days and keyboard/pointer exploration. 79 UI tests, lint (same 9 warnings),
+  production build and doc/diff checks passed. Full desktop/mobile Edge → real
+  API → disposable PostgreSQL check passed for both chart modes and category
+  drill-down. Temporary processes/fixtures stopped and removed before step 3.
+- Remaining: explicit comparison and expense highlights.
   No live financial access, existing-service restart, agent commit or push.
   The unrelated ui/index.html title change is preserved and excluded from staging patches.
 

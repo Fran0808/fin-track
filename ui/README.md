@@ -53,6 +53,11 @@ page zero. The visible category-group filter can be removed; paging/CSV keep it.
 The advanced category selector is disabled while that group is active, preventing
 contradictory category selections. The API must support `categoryGroup`.
 
+The existing expense chart starts with daily bars, including zero-spend days,
+and can switch to the cumulative line without another card. The scale follows
+the chosen metric; pointer/touch and left/right keys expose both daily and
+cumulative amounts for the selected day. Empty periods retain an explicit message.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the
