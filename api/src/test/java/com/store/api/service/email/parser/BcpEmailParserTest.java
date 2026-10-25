@@ -193,27 +193,59 @@ class BcpEmailParserTest {
     }
 
     @Test
-    void shouldParseCreditCardOwnPaymentExpenseSuccessfully() {
+    void shouldExcludeOwnCreditCardPaymentsWithoutChangingTheirLegacyIdentity() throws Exception {
         String subject = "Constancia de Pago de Tarjeta de Crédito Propia - Servicio de Notificaciones BCP";
         String body = """
-                Hola Francisco Javier,
-                Realizaste un pago a tu tarjeta de S/ 1068.87 desde tu Cuenta yape.
+                Hola cliente de prueba,
+                Realizaste un pago a tu tarjeta de S/ 81.25 desde tu Cuenta yape.
                 A continuación, te enviamos los datos de tu operación.
                 Montos
-                Monto pagado S/ 1068.87
+                Monto pagado S/ 81.25
                 Datos de la operación
                 Operación realizada Pago de tarjeta propia BCP
                 Fecha y hora 26 de Septiembre de 2026 - 08:19 AM
-                Pagado a VISA Light **** 3127
+                Pagado a VISA Prueba **** 1111
                 """;
 
         ParsedEmailTransaction tx = parser.parse(subject, body, LocalDateTime.of(2026, 9, 26, 8, 19));
 
         assertNotNull(tx);
-        assertEquals(new BigDecimal("1068.87"), tx.getAmount());
+        assertEquals(new BigDecimal("81.25"), tx.getAmount());
         assertEquals("PEN", tx.getCurrency());
-        assertEquals(FlowType.EXPENSE, tx.getFlowType());
+        assertEquals(FlowType.INTERNAL_TRANSFER, tx.getFlowType());
         assertEquals("Pago Tarjeta Crédito BCP", tx.getMerchantName());
-        assertEquals("3127", tx.getCardLast4());
+        assertEquals("1111", tx.getCardLast4());
+        String legacyInput = "EXPENSE_81.25_pago tarjeta crédito bcp_202609260819_20260926";
+        String legacyHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(legacyInput.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        assertEquals(legacyHash, tx.getTransactionHash());
+        assertEquals(tx.getTransactionHash(), parser.parse(subject, body,
+                LocalDateTime.of(2026, 9, 26, 8, 19)).getTransactionHash());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "Pago de tarjeta propia", "Pago de tarjeta de crédito propia",
+            "Pago de tarjeta de credito propia", "Pago a tu tarjeta" })
+    void shouldRecognizeExplicitOwnCardPaymentVariants(String operation) {
+        var tx = parser.parse("Constancia de " + operation, "Monto pagado: S/ 81.25", LocalDateTime.now());
+        assertNotNull(tx);
+        assertEquals(FlowType.INTERNAL_TRANSFER, tx.getFlowType());
+        assertEquals("Pago Tarjeta Crédito BCP", tx.getMerchantName());
+    }
+
+    @Test
+    void shouldNotExcludeThirdPartyCardPaymentsOrInventUnconfirmedPayments() {
+        var thirdParty = parser.parse("Constancia de pago de tarjeta de crédito de terceros",
+                "Monto pagado: S/ 81.25 Beneficiario: Persona Prueba", LocalDateTime.now());
+        assertNotNull(thirdParty);
+        assertEquals(FlowType.EXPENSE, thirdParty.getFlowType());
+        var purchaseWithReminder = parser.parse("Aviso de operación: Consumo con Tarjeta de Crédito",
+                "Realizaste un consumo de S/ 81.25. Recuerda realizar el pago a tu tarjeta a tiempo.", LocalDateTime.now());
+        assertNotNull(purchaseWithReminder);
+        assertEquals(FlowType.EXPENSE, purchaseWithReminder.getFlowType());
+        assertNull(parser.parse("Recordatorio de pago a tu tarjeta", "Monto: S/ 81.25", LocalDateTime.now()));
+        assertNull(parser.parse("Constancia de pago de tarjeta propia",
+                "Recibiste una transferencia por S/ 81.25", LocalDateTime.now()));
     }
 }

@@ -41,6 +41,11 @@ public class BcpEmailParser implements BankEmailParser {
             TEXT_FLAGS);
     private static final Pattern INTERNAL_TRANSFER_PATTERN = Pattern.compile(
             "(?:entre\\s+mis\\s+cuentas|transferencia\\s+propia|transferencia\\s+entre\\s+cuentas)", TEXT_FLAGS);
+    private static final Pattern OWN_CARD_PAYMENT_PATTERN = Pattern.compile(
+            "\\bpago\\s+(?:de\\s+tarjeta\\s+(?:de\\s+cr[eé]dito\\s+)?propia|a\\s+tu\\s+tarjeta)\\b", TEXT_FLAGS);
+    private static final Pattern OWN_CARD_PAYMENT_CONFIRMATION_PATTERN = Pattern.compile(
+            "(?:constancia\\s+de\\s+|realizaste\\s+un\\s+|operaci[oó]n\\s+realizada:?\\s*)"
+                    + OWN_CARD_PAYMENT_PATTERN.pattern(), TEXT_FLAGS);
 
     private static final Pattern MERCHANT_PATTERN = Pattern.compile(
             "(?:establecimiento|comercio|empresa|destino|beneficiario|a\\s+favor\\s+de):?\\s*([A-Za-z0-9À-ÿ\\s.,&'/*#_+-]+?)(?=\\s*(?:fecha|importe|monto|nro|número|numero|tarjeta|operaci[oó]n|$))",
@@ -85,6 +90,12 @@ public class BcpEmailParser implements BankEmailParser {
         if (flowType == null) {
             return null;
         }
+        // Keep the pre-fix hash input so replaying an old email cannot create a second movement.
+        FlowType identityFlow = flowType;
+        boolean ownCardPayment = OWN_CARD_PAYMENT_PATTERN.matcher(combined).find();
+        if (OWN_CARD_PAYMENT_CONFIRMATION_PATTERN.matcher(combined).find() && flowType == FlowType.EXPENSE) {
+            flowType = FlowType.INTERNAL_TRANSFER;
+        }
 
         // 1. Determine Channel
         String channel = determineChannel(subject, combined);
@@ -102,7 +113,7 @@ public class BcpEmailParser implements BankEmailParser {
         // 3. Extract Merchant / Recipient
         String merchant = "Consumo BCP";
 
-        if (lowerCombined.contains("pago de tarjeta propia") || lowerCombined.contains("pago a tu tarjeta") || lowerCombined.contains("pago de tarjeta de crédito propia") || lowerCombined.contains("pago de tarjeta de credito propia")) {
+        if (ownCardPayment) {
             merchant = "Pago Tarjeta Crédito BCP";
         } else if (lowerCombined.contains("recibiste un yapeo") || lowerCombined.contains("yapeo a celular")) {
             Matcher yapeoDeMatcher = Pattern.compile("(?:recibiste un yapeo de\\s+[^\\s]+\\s+[0-9.,]+\\s+de|enviado por):?\\s*([A-Za-z0-9À-ÿ\\s.,&'-]+?)(?=\\s*(?:\\.|por tu seguridad|¿no reconoces|$))", Pattern.CASE_INSENSITIVE).matcher(cleanText);
@@ -150,7 +161,7 @@ public class BcpEmailParser implements BankEmailParser {
         }
 
         LocalDateTime txDate = receivedDate != null ? receivedDate : LocalDateTime.now();
-        String hash = generateHash(flowType, amount, merchant, operationNumber, txDate);
+        String hash = generateHash(identityFlow, amount, merchant, operationNumber, txDate);
 
         return ParsedEmailTransaction.builder()
                 .amount(amount)
