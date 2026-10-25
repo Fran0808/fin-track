@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { ArrowRight, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { Category, ClassificationRule } from '../../types';
 import { api } from '../../services/api';
+import { RuleHistoryModal } from '../transactions/RuleHistoryModal';
 
 const fieldClass = 'mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink focus:border-brand focus:outline-none';
 
-export function ClassificationRulesView() {
+export function ClassificationRulesView({ onHistoryApplied }: { onHistoryApplied?: () => void }) {
   const [revision, setRevision] = useState(0);
   const [resource, setResource] = useState<{ revision: number; rules: ClassificationRule[]; categories: Category[]; error: string | null } | null>(null);
   const [editing, setEditing] = useState<ClassificationRule | null>(null);
@@ -17,6 +18,7 @@ export function ClassificationRulesView() {
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [historyRule, setHistoryRule] = useState<ClassificationRule | null>(null);
   const loading = resource?.revision !== revision;
   const rules = loading ? [] : resource?.rules || [];
   const categories = loading ? [] : resource?.categories || [];
@@ -55,7 +57,7 @@ export function ClassificationRulesView() {
       <div>
         <p className="eyebrow">Clasificación automática</p>
         <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Reglas</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">Asigna una categoría cuando el comercio o contacto contenga el texto que elijas. Se aplican a nuevas entradas y gastos; los movimientos anteriores conservan su clasificación.</p>
+        <p className="mt-2 max-w-3xl text-sm text-muted">Asigna una categoría cuando el comercio o contacto contenga el texto que elijas. Se aplican a nuevas entradas y gastos. Para los anteriores sin categoría, revisa y confirma una aplicación al historial.</p>
       </div>
       {message && <p role="status" className="text-sm font-medium text-positive">{message}</p>}
       {mutationError && <p role="alert" className="text-sm text-negative">{mutationError}</p>}
@@ -81,6 +83,9 @@ export function ClassificationRulesView() {
                 <span className="break-words font-semibold text-brand">{rule.categoryName}</span>
               </div>
               <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-brand">
+                <button type="button" disabled={busy || loading || !rule.enabled || !rule.categoryActive}
+                  onClick={() => { setMessage(null); setHistoryRule(rule); }} aria-label={`Aplicar regla ${rule.matchText} al historial`}
+                  className="disabled:opacity-40">Aplicar al historial</button>
                 <button type="button" disabled={busy || loading} onClick={() => edit(rule)} aria-label={`Editar regla ${rule.matchText}`} className="inline-flex items-center gap-1.5 disabled:opacity-40"><Pencil className="h-3.5 w-3.5" />Editar</button>
                 <button type="button" disabled={busy || loading || (!rule.enabled && !rule.categoryActive)}
                   onClick={() => { void mutate(() => api.saveClassificationRule({ matchText: rule.matchText, categoryId: rule.categoryId, priority: rule.priority, enabled: !rule.enabled }, rule.id), rule.enabled ? 'Regla pausada.' : 'Regla activada.'); }}
@@ -130,6 +135,11 @@ export function ClassificationRulesView() {
           <p className="mt-5 border-t border-line pt-4 text-xs leading-relaxed text-muted">Las transferencias propias se mantienen fuera de estas reglas. Puedes corregir cualquier categoría desde el detalle del movimiento.</p>
         </section>
       </div>
+      {historyRule && <RuleHistoryModal key={historyRule.id} rule={historyRule} onClose={() => setHistoryRule(null)} onApplied={result => {
+        setHistoryRule(null);
+        setMessage(`Se clasificaron ${result.appliedCount} movimientos. Se conservaron ${result.skippedCount} que ya tenían categoría.`);
+        onHistoryApplied?.();
+      }} />}
     </div>
   );
 }

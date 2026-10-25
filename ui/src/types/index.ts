@@ -48,6 +48,22 @@ export interface ClassificationRule extends ClassificationRuleRequest {
   categoryActive: boolean;
 }
 
+export interface RuleHistoryPreview {
+  ruleId: number;
+  matchText: string;
+  categoryName: string;
+  transactions: Transaction[];
+  limit: number;
+  hasMore: boolean;
+  expiresAt: number;
+  previewToken: string;
+}
+
+export interface RuleHistoryApplyResponse {
+  appliedCount: number;
+  skippedCount: number;
+}
+
 export interface Category {
   id: number;
   name: string;

@@ -38,13 +38,38 @@ rules. A rule never changes amounts, direction, instruments or hashes,
 never overwrites a nonblank category, and never classifies internal transfers.
 It can classify either income or expenses. Editing a rule does not update history.
 
+### Applying a rule to history
+
+In `Reglas`, `Aplicar al historial` opens a read-only preview for an enabled rule
+with an active owned category. It scans all history, selects only uncategorized
+income/expenses and respects the same literal matching and priority/ID order used
+for new captures. A higher-priority eligible rule can therefore exclude a movement
+from the selected rule's preview. Transfers and other users' movements are excluded.
+
+Each preview contains at most 200 exact movements, with merchant, date, flow and
+amount. If more qualify, the UI explains that this is one batch; review another
+batch after confirming. Cancelling or pressing Escape makes no financial writes.
+Explicit confirmation assigns only the displayed category to reviewed movements
+still without a category. Existing classifications, including changes made while
+reviewing, are skipped; incoming movements are not added to the confirmed batch.
+Amounts, dates, flow, instrument, ingestion identity and history are preserved.
+
+The signed preview expires after ten minutes and is bound to the user, selected
+rule, active-rule order/category metadata and reviewed movement identities/data.
+Changed rules or movement data require another preview. Retrying the same valid
+confirmation skips already classified rows. Applying locks only the owned reviewed
+rows, in ID order, within a serializable transaction. A concurrent database conflict
+returns 409 and prompts a fresh review. Success refreshes dashboard data.
+No preview state is persisted and no schema or Android update is required.
+
 `Crear regla para este comercio` in a non-transfer movement's detail opens a native
 dialog with its contact text and currently selected category. The user can edit
 the text, choose an active category, set priority and review before explicitly
 saving. Opening or cancelling it creates nothing; the movement's unsaved category
 remains intact. The detail dialog edits only category; tags and personal notes are
 [retired from the product](transaction-metadata-retirement.md). Creating a rule does not classify that historical
-movement; save its classification separately. `Reglas` retains full rule management.
+movement; save its classification separately or review its rule's historical batch
+in `Reglas`. `Reglas` retains full rule management.
 
 Renaming a category affects subsequent rule assignments. Deactivating it makes its
 rules ineligible; the next matching eligible rule may apply. A category referenced

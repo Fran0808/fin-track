@@ -185,7 +185,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           {activeView === 'categorias' && (
             <CategoriesView />
           )}
-          {activeView === 'reglas' && <ClassificationRulesView />}
+          {activeView === 'reglas' && <ClassificationRulesView onHistoryApplied={() => { void refreshAll(); }} />}
           {activeView === 'configuracion' && (
             <SettingsView
               googleStatus={syncStatus}

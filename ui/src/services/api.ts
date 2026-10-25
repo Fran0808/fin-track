@@ -17,6 +17,8 @@ import type {
   PendingReason,
   ClassificationRule,
   ClassificationRuleRequest,
+  RuleHistoryPreview,
+  RuleHistoryApplyResponse,
 } from '../types';
 
 const BASE_URL = '/api/v1';
@@ -96,6 +98,30 @@ function requireCategoryFilter(response: Response, categoryGroup?: string) {
 }
 
 export const api = {
+  async previewRuleHistory(id: number): Promise<RuleHistoryPreview> {
+    const response = await fetchWithAuth(`${BASE_URL}/classification-rules/${id}/history-preview`, { cache: 'no-store' });
+    if (response.status === 404 || response.status === 405) {
+      throw new Error('No se pudo abrir la vista previa. Recarga las reglas y comprueba que la API esté actualizada.');
+    }
+    const preview = await handleResponse<RuleHistoryPreview>(response);
+    if (preview.ruleId !== id || !Array.isArray(preview.transactions) || typeof preview.previewToken !== 'string'
+        || typeof preview.expiresAt !== 'number') throw new Error('La API no devolvió una vista previa válida.');
+    return preview;
+  },
+
+  async applyRuleHistory(preview: RuleHistoryPreview): Promise<RuleHistoryApplyResponse> {
+    const result = await handleResponse<RuleHistoryApplyResponse>(await fetchWithAuth(`${BASE_URL}/classification-rules/${preview.ruleId}/history-apply`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transactionIds: preview.transactions.map(t => t.id), expiresAt: preview.expiresAt, previewToken: preview.previewToken }),
+    }));
+    if (!Number.isInteger(result.appliedCount) || !Number.isInteger(result.skippedCount)
+        || result.appliedCount < 0 || result.skippedCount < 0
+        || result.appliedCount + result.skippedCount !== preview.transactions.length) {
+      throw new Error('La API no confirmó la clasificación. Revisa de nuevo los movimientos.');
+    }
+    return result;
+  },
+
   async getClassificationRules(): Promise<ClassificationRule[]> {
     return handleResponse<ClassificationRule[]>(await fetchWithAuth(`${BASE_URL}/classification-rules`));
   },

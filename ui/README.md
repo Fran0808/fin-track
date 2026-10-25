@@ -143,6 +143,14 @@ the separate view and menu entry are removed.
 the global month selector. A movement's detail offers `Crear regla para este comercio`
 with editable text/category/priority and explicit save; cancelling preserves its
 unsaved classification. Creating a rule does not reclassify historical movements.
+For an active rule/category, `Aplicar al historial` previews up to 200 prior
+uncategorized entries/expenses across all history, respecting rule priority.
+Review merchant/date/type/amount and explicitly confirm; cancelling writes nothing.
+Already classified movements and internal transfers are preserved. Further matches
+require another reviewed batch; previews expire after ten minutes. Rule or movement
+changes require a new preview, while retries skip rows already classified. Success
+refreshes dashboard resources. This feature needs the updated API/UI together,
+without an additional database migration or Android update.
 Deploy the updated API for review filters; an incompatible API produces an error
 instead of an unfiltered result. See [pending movements and rules](../docs/domain/classification.md)
 for matching, priority and category lifecycle behavior.

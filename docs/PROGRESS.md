@@ -17,6 +17,43 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: reviewed historical rule application
+
+- Owner/scope: current chat; apply an existing enabled rule to historical
+  uncategorized income/expenses through an explicit preview and confirmation in
+  `Reglas`, respecting existing literal matching and priority. No bulk selection
+  added to Movements and no automatic historical writes on rule creation/edit.
+- Implemented: bounded 200-row all-history previews, signed ten-minute selections,
+  tenant-scoped row locking, classification-preserving retries and conflict review.
+  Only category assignments change. New arrivals, transfers, already classified
+  rows and other users' data cannot expand or overwrite the reviewed selection.
+- UI: native dialog with merchant/date/type/amount, cancel/review/confirm states,
+  explicit batch/empty/error explanations, disabled paused/inactive rules and
+  dashboard refresh after success. Contracts, feature guide and classification
+  domain behavior updated. No schema or Android payload changes.
+- Verification: 303 backend tests with all four fresh disposable PostgreSQL suites
+  and three SQL regressions passed; 102 UI tests, lint (same 9 warnings) and
+  production build passed. Documentation reference and diff checks passed.
+- Runtime: built UI → packaged API → fresh synthetic PostgreSQL passed in Edge
+  at 1440px and 390px. Verified preview/cancel/confirm, Escape/focus restoration,
+  empty/paused states, priority/transfer/tenant exclusions, exact selections,
+  preserved intervening classifications, new arrivals excluded, replay and expired/
+  altered previews. Two simultaneous confirmations changed each row once; a
+  205-match fixture applied exactly 200 and left five for another preview.
+  Screenshots inspected; no horizontal overflow or browser errors. Initial focus
+  regression fixed; temporary-server CORS corrected before final runtime pass.
+- Status: verified for isolated end-to-end scope. Temporary browser, API, HTTP
+  server and PostgreSQL stopped; disposable data removed. Existing evaluation,
+  other progress checkpoints and title changes preserved. No live financial
+  changes, existing-service restart, staging, commit or push. Next: user deploys/
+  restarts the updated API and reloads UI, then uses `Reglas → Aplicar al historial`.
+  This feature needs no additional migration; no further feature started.
+- Delivery: user prefers smaller atomic commits. Proposed order: shared matching
+  refactor, historical API with security/persistence tests and contracts, then UI
+  with regression coverage, domain/feature docs and this isolated checkpoint.
+  Existing checks cover the final working tree; intermediate commit revisions
+  were not separately executed. No staging or commits performed by the agent.
+
 ## Current checkpoint: movement filter totals
 
 - Owner/scope: current chat; resolve finding 4 of the end-user evaluation only.
