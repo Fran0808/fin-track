@@ -184,6 +184,26 @@ see [retirement and deployment](../domain/transaction-metadata-retirement.md).
 
 ## Pending movements and rules
 
+`GET /classification-rules/{id}/history-preview` is web-authenticated, owned-rule
+only and `Cache-Control: no-store`. The rule and target category must be active.
+Response: `ruleId`, `matchText`, `categoryName`, `transactions` (existing transaction
+DTOs, at most 200), `limit`, `hasMore`, `expiresAt` (Unix seconds) and `previewToken`.
+The scope is all-history uncategorized income/expenses for which the selected rule
+is the first eligible rule by priority then ID. Previewing performs no writes.
+
+`POST /classification-rules/{id}/history-apply` requires `transactionIds` (1–200
+distinct positive IDs from that exact preview), `expiresAt` and `previewToken`
+(64 lowercase hex characters). The HMAC-SHA256 signature has a dedicated history
+purpose and binds owner, rule configuration/order, reviewed movement data and a
+ten-minute expiration. The server revalidates it under row locks; changes to
+rule/category metadata or reviewed movement data return 409 without writes.
+Categories assigned since preview are preserved, and repeats skip classified rows.
+Success returns `appliedCount` and `skippedCount`; only category assignments change.
+Newly captured movements cannot join the signed selection. Missing/foreign rule
+or movement IDs return 404, inactive rules/categories or invalid payloads return
+400, expired/altered previews and concurrent database conflicts return 409.
+Anonymous/device access remains 401/403. No schema or Android sync change is needed.
+
 `GET /transactions` and `/transactions/export` accept optional `pendingReason`:
 `CATEGORY` (null/blank category, excluding internal transfers), `INSTRUMENT`
 (unassigned instrument, including transfers), or `ALL` (either). It combines with

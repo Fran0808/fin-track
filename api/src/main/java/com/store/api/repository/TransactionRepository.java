@@ -25,6 +25,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
     Optional<Transaction> findByIdAndUser(Long id, User user);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Transaction t WHERE t.user = :user AND t.id IN :ids ORDER BY t.id")
+    List<Transaction> lockHistorySelection(@Param("user") User user, @Param("ids") List<Long> ids);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.user.id = :userId")
     BigDecimal sumAmountByFlowType(@Param("flowType") FlowType flowType, @Param("userId") Long userId);
 

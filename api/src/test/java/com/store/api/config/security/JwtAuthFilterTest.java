@@ -40,7 +40,7 @@ class JwtAuthFilterTest {
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
             "PATCH,/api/v1/transactions/1/classification",
             "GET,/api/v1/transactions/pending", "GET,/api/v1/classification-rules",
-            "POST,/api/v1/classification-rules", "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1",
+            "POST,/api/v1/classification-rules", "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply",
             "GET,/api/v1/transactions", "POST,/api/v1/transactions/sync",
             "POST,/api/v1/transactions/sync/batch", "GET,/api/v1/analytics/summary",
             "GET,/api/v1/analytics/period", "POST,/api/v1/emails/sync",
@@ -181,7 +181,7 @@ class JwtAuthFilterTest {
             "GET,/api/v1/transactions/1/financial-instrument-suggestions",
             "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
-            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1"
+            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })
     void rejectsDeviceCredentialsOutsideAllowedEndpoints(String method, String path) throws Exception {
         when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
@@ -205,7 +205,7 @@ class JwtAuthFilterTest {
             "PATCH,/api/v1/transactions/1/financial-instrument",
             "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
-            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1"
+            "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })
     void permitsWebCredentialsOnDeviceRestrictedEndpoints(String method, String path) throws Exception {
         when(users.findById(42L)).thenReturn(Optional.of(user));

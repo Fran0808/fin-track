@@ -40,6 +40,7 @@ class ClassificationPersistenceTest {
     @Autowired private CategoryRepository categories;
     @Autowired private FinancialInstrumentRepository instruments;
     @Autowired private ClassificationRuleService rules;
+    @Autowired private RuleHistoryService history;
     @Autowired private CategoryService categoryService;
     @Autowired private TransactionService service;
     @Autowired private AnalyticsService analytics;
@@ -58,6 +59,80 @@ class ClassificationPersistenceTest {
     }
 
     @AfterEach void clear() { UserContext.clear(); }
+
+    private com.store.api.model.dto.category.RuleHistoryApplyRequest historyRequest(
+            com.store.api.model.dto.category.RuleHistoryPreview preview) {
+        return new com.store.api.model.dto.category.RuleHistoryApplyRequest(
+                preview.getTransactions().stream().map(t -> t.getId()).toList(), preview.getExpiresAt(), preview.getPreviewToken());
+    }
+
+    @Test void historyPreviewAndApplyPreserveMoneyIdentityOtherUsersAndInterveningClassifications() {
+        var rule = rules.create(ClassificationRuleRequest.builder().matchText("TEST merchant").categoryId(target.getId())
+                .priority(100).enabled(true).build());
+        var expense = store(owner,"history-expense",null,FlowType.EXPENSE,account);
+        var income = store(owner,"history-income","   ",FlowType.INCOME,null);
+        var assigned = store(owner,"history-assigned","Existing",FlowType.EXPENSE,null);
+        var transfer = store(owner,"history-transfer",null,FlowType.INTERNAL_TRANSFER,null);
+        var foreign = store(other,"history-foreign",null,FlowType.EXPENSE,null);
+        var preview = history.preview(rule.getId());
+        assertEquals(List.of(expense.getId(),income.getId()),preview.getTransactions().stream().map(t->t.getId()).toList());
+        assertNull(expense.getCategory());
+        var later = store(owner,"history-arrived-later",null,FlowType.EXPENSE,null);
+        income.setCategory("Manual"); transactions.flush();
+        var result = history.apply(rule.getId(),historyRequest(preview));
+        transactions.flush();
+        assertEquals(1,result.getAppliedCount()); assertEquals(1,result.getSkippedCount());
+        assertEquals(target.getName(),expense.getCategory()); assertEquals("Manual",income.getCategory());
+        assertEquals("Existing",assigned.getCategory()); assertNull(transfer.getCategory());
+        assertNull(foreign.getCategory()); assertNull(later.getCategory());
+        assertEquals(new BigDecimal("10.25"),expense.getAmount());
+        assertEquals(FlowType.EXPENSE,expense.getFlowType()); assertEquals("history-expense",expense.getTransactionHash());
+        assertEquals(account.getId(),expense.getFinancialInstrument().getId());
+        assertEquals(LocalDateTime.of(2026,1,1,12,0),expense.getTransactionDate()); assertEquals(6,transactions.count());
+        var replay = history.apply(rule.getId(),historyRequest(preview));
+        assertEquals(0,replay.getAppliedCount()); assertEquals(2,replay.getSkippedCount());
+        assertEquals(List.of(later.getId()),history.preview(rule.getId()).getTransactions().stream().map(t->t.getId()).toList());
+    }
+
+    @Test void historyHonorsPriorityLiteralMatchingAndCategoryLifecycle() {
+        var selected = rules.create(ClassificationRuleRequest.builder().matchText("%_ merchant").categoryId(target.getId())
+                .priority(100).enabled(true).build());
+        var literal = store(owner,"history-literal",null,FlowType.EXPENSE,null);
+        literal.setContactName("%_ MERCHANT");
+        var wildcard = store(owner,"history-no-wildcards",null,FlowType.EXPENSE,null);
+        wildcard.setContactName("abc merchant"); transactions.flush();
+        assertEquals(List.of(literal.getId()),history.preview(selected.getId()).getTransactions().stream().map(t->t.getId()).toList());
+        var prior = rules.create(ClassificationRuleRequest.builder().matchText("merchant").categoryId(target.getId())
+                .priority(0).enabled(true).build());
+        assertTrue(history.preview(selected.getId()).getTransactions().isEmpty());
+        rules.delete(prior.getId());
+        var preview = history.preview(selected.getId());
+        target.setName("Renamed"); categories.flush();
+        assertEquals(409,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->history.apply(selected.getId(),historyRequest(preview))).getStatusCode().value());
+        assertNull(literal.getCategory());
+        target.setActive(false); categories.flush();
+        assertEquals(400,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->history.preview(selected.getId())).getStatusCode().value());
+    }
+
+    @Test void historyRejectsCrossTenantRequestsAndForgedSelections() {
+        var selected = rules.create(ClassificationRuleRequest.builder().matchText("merchant").categoryId(target.getId())
+                .priority(100).enabled(true).build());
+        var owned = store(owner,"history-owned",null,FlowType.EXPENSE,null);
+        var foreign = store(other,"history-not-owned",null,FlowType.EXPENSE,null);
+        var preview = history.preview(selected.getId());
+        UserContext.setCurrentUser(other);
+        assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->history.preview(selected.getId())).getStatusCode().value());
+        assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->history.apply(selected.getId(),historyRequest(preview))).getStatusCode().value());
+        UserContext.setCurrentUser(owner);
+        var forged = historyRequest(preview); forged.setTransactionIds(List.of(owned.getId(),foreign.getId()));
+        assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                ()->history.apply(selected.getId(),forged)).getStatusCode().value());
+        assertNull(owned.getCategory()); assertNull(foreign.getCategory());
+    }
 
     private Transaction store(User user, String hash, String category, FlowType flow, FinancialInstrument instrument) {
         return transactions.saveAndFlush(Transaction.builder().user(user).transactionHash(hash).contactName("Test merchant")
