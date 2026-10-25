@@ -39,6 +39,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
     @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.user.id = :userId ORDER BY t.transactionDate DESC LIMIT 1")
     Optional<Transaction> findLatestExpense(@Param("userId") Long userId);
 
+    @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.user.id = :userId AND t.transactionDate >= :start AND t.transactionDate <= :end ORDER BY t.amount DESC, t.transactionDate ASC, t.id ASC LIMIT 1")
+    Optional<Transaction> findLargestExpense(@Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end, @Param("userId") Long userId);
+
     @Query("SELECT t.channel, t.cardLast4, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.channel, t.cardLast4 ORDER BY SUM(t.amount) DESC")
     List<Object[]> findExpenseBreakdownByChannel(
             @Param("start") LocalDateTime start,

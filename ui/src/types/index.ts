@@ -126,6 +126,8 @@ export interface TopMerchant {
 }
 
 export interface PeriodAnalytics {
+  largestExpense?: { merchantName: string; amount: number; transactionDate: string } | null;
+  peakExpenseDay?: { date: string; amount: number } | null;
   previousPeriodStart?: string | null;
   previousPeriodEnd?: string | null;
   expenseDifference?: number | null;

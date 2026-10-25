@@ -70,6 +70,31 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void expenseHighlightsUseOwnedPeriodExpensesAndDistinguishSingleExpenseFromDailyTotal() {
+        Transaction first = store(owner, "highlight-first", null, FlowType.EXPENSE, null);
+        first.setContactName("Largest owned");first.setAmount(new BigDecimal("80.00"));
+        first.setTransactionDate(LocalDateTime.of(2026, 1, 2, 12, 0));
+        Transaction tied = store(owner, "highlight-tied", null, FlowType.EXPENSE, null);
+        tied.setAmount(new BigDecimal("80.00"));tied.setTransactionDate(LocalDateTime.of(2026, 1, 3, 12, 0));
+        Transaction dayA = store(owner, "highlight-day-a", null, FlowType.EXPENSE, null);dayA.setAmount(new BigDecimal("50.25"));
+        Transaction dayB = store(owner, "highlight-day-b", null, FlowType.EXPENSE, null);dayB.setAmount(new BigDecimal("49.75"));
+        Transaction foreign = store(other, "highlight-foreign", null, FlowType.EXPENSE, null);foreign.setAmount(new BigDecimal("9999.00"));
+        Transaction income = store(owner, "highlight-income", null, FlowType.INCOME, null);income.setAmount(new BigDecimal("9000.00"));
+        Transaction transfer = store(owner, "highlight-transfer", null, FlowType.INTERNAL_TRANSFER, null);transfer.setAmount(new BigDecimal("8000.00"));
+        Transaction old = store(owner, "highlight-old", null, FlowType.EXPENSE, null);old.setAmount(new BigDecimal("7000.00"));
+        old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 12, 0));
+        transactions.saveAllAndFlush(List.of(first, tied, dayA, dayB, foreign, income, transfer, old));
+        var result = analytics.getPeriodAnalytics(2026, 1);
+        assertEquals(new BigDecimal("260.00"), result.getMonthlyExpense());
+        assertEquals("Largest owned", result.getLargestExpense().getMerchantName());
+        assertEquals(new BigDecimal("80.00"), result.getLargestExpense().getAmount());
+        assertEquals(LocalDateTime.of(2026, 1, 2, 12, 0), result.getLargestExpense().getTransactionDate());
+        assertEquals(java.time.LocalDate.of(2026, 1, 1), result.getPeakExpenseDay().getDate());
+        assertEquals(new BigDecimal("100.00"), result.getPeakExpenseDay().getAmount());
+        var empty = analytics.getPeriodAnalytics(2024, 1);
+        assertNull(empty.getLargestExpense());assertNull(empty.getPeakExpenseDay());
+    }
+
     @Test void categoryDrillDownMatchesTrimmedGroupAndUncategorizedWithoutMixingScopes() {
         store(owner, "drill-trimmed", " Ocio ", FlowType.EXPENSE, null);
         store(owner, "drill-exact", "Ocio", FlowType.EXPENSE, null);

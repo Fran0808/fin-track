@@ -132,6 +132,7 @@ class AnalyticsServiceTest {
 
         assertNull(result.getPreviousPeriodExpense());
         assertNull(result.getPreviousPeriodStart());assertNull(result.getPreviousPeriodEnd());assertNull(result.getExpenseDifference());
+        assertNull(result.getLargestExpense());assertNull(result.getPeakExpenseDay());
         assertEquals(List.of(), result.getDailyExpenses());
         assertEquals(BigDecimal.ZERO, result.getMonthlyExpense());
     }

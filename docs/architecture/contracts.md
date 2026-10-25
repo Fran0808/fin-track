@@ -95,6 +95,14 @@ last day and are displayed explicitly. `expenseDifference` is decimal current
 expense minus previous expense, with no division or percentage. Future periods
 return null comparison fields; a previous expense of zero remains a valid value.
 
+`largestExpense` contains the largest positive individual expense's `merchantName`,
+decimal `amount` and local `transactionDate` for the authenticated user/interval.
+Amount ties use the earliest transaction date then ID. `peakExpenseDay` contains
+the local `date` and decimal sum `amount` of the highest-spend day; ties use the
+earliest day. Both exclude income/transfers and return null for empty/future
+periods without positive expenses. They describe captured movements, not advice
+or account balances. These additions require no database migration or Android change.
+
 `GET /transactions` and `/transactions/export` accept optional `merchantName`:
 an exact, case-sensitive contact name, with literal `%`/`_` and preserved whitespace.
 It combines with the existing authenticated-user, date and other filters. Empty

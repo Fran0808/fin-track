@@ -5,6 +5,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -20,6 +21,8 @@ public class PeriodAnalyticsResponse {
     private LocalDateTime previousPeriodStart;
     private LocalDateTime previousPeriodEnd;
     private BigDecimal expenseDifference;
+    private LargestExpenseDto largestExpense;
+    private PeakExpenseDayDto peakExpenseDay;
     private Integer comparisonThroughDay;
     private List<DailyExpenseDto> dailyExpenses;
     private long totalMovements;
@@ -72,5 +75,20 @@ public class PeriodAnalyticsResponse {
         private BigDecimal amount;
         private double percentage;
         private long count;
+    }
+
+    @Data
+    @Builder
+    public static class LargestExpenseDto {
+        private String merchantName;
+        private BigDecimal amount;
+        private LocalDateTime transactionDate;
+    }
+
+    @Data
+    @Builder
+    public static class PeakExpenseDayDto {
+        private LocalDate date;
+        private BigDecimal amount;
     }
 }

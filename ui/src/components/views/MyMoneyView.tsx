@@ -4,6 +4,7 @@ import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, getChannelLabel } from '../../utils';
 import { ExpenseTrendChart } from '../charts/ExpenseTrendChart';
 import { ExpenseComparison } from '../analytics/ExpenseComparison';
+import { ExpenseHighlights } from '../analytics/ExpenseHighlights';
 
 interface MyMoneyViewProps {
   analytics: PeriodAnalytics | null;
@@ -44,6 +45,7 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
       </section>
 
       <ExpenseComparison analytics={analytics} loading={loading} />
+      <ExpenseHighlights analytics={analytics} loading={loading} />
 
       <section className="surface p-6 sm:p-7" aria-labelledby="expense-trend-heading">
         <div className="mb-6 border-b border-line pb-5">

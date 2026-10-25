@@ -63,6 +63,12 @@ amounts and the difference in soles. It does not divide by the previous amount o
 replace unavailable/future comparisons with zero. Short-month and year-boundary
 dates are shown literally; no timezone conversion is applied to these local dates.
 
+Two compact factual highlights distinguish the largest individual expense
+(merchant, amount and timestamp) from the highest daily expense sum (date and
+amount). Both use the authenticated user's analysis interval and exclude income
+and own transfers. No predictive/judgmental copy is generated. Missing, loading
+and empty-period states do not invent a zero-valued maximum.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the

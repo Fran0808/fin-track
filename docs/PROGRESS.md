@@ -39,7 +39,16 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   production build and doc/diff checks passed. Full desktop/mobile browser check
   verified dates, current/prior amounts, difference and exclusion of another user's
   prior expenses. Temporary processes/fixtures stopped and removed before step 4.
-- Remaining: factual expense highlights.
+- Step 4 verified: largest owned individual expense (merchant/date/amount) and peak
+  expense day (date/sum), with deterministic ties and empty/future states. 263
+  backend tests with all four persistence suites and both migration regressions,
+  84 UI tests across 18 files, lint (same 9 warnings), production build and doc/diff
+  checks passed. Final full Edge desktop/mobile → packaged API → fresh PostgreSQL
+  scenario passed all four features together, including period/user/flow exclusions,
+  keyboard chart exploration and CSV. Screenshots inspected; no horizontal overflow.
+  Temporary browsers, API/HTTP servers and databases stopped and removed.
+- Status: all four suggestions implemented and verified sequentially for isolated
+  end-to-end scope. User deploys/restarts the updated API/UI; no migration required.
   No live financial access, existing-service restart, agent commit or push.
   The unrelated ui/index.html title change is preserved and excluded from staging patches.
 

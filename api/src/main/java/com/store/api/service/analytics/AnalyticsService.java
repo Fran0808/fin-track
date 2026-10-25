@@ -101,8 +101,14 @@ public class AnalyticsService {
         }
         List<PeriodAnalyticsResponse.DailyExpenseDto> dailyExpenses = new ArrayList<>();
         BigDecimal runningExpense = BigDecimal.ZERO;
+        PeriodAnalyticsResponse.PeakExpenseDayDto peakExpenseDay = null;
         for (int day = 1; day <= visibleDays; day++) {
             runningExpense = runningExpense.add(dailyAmounts[day - 1]);
+            if (dailyAmounts[day - 1].signum() > 0
+                    && (peakExpenseDay == null || dailyAmounts[day - 1].compareTo(peakExpenseDay.getAmount()) > 0)) {
+                peakExpenseDay = PeriodAnalyticsResponse.PeakExpenseDayDto.builder()
+                        .date(targetYearMonth.atDay(day)).amount(dailyAmounts[day - 1]).build();
+            }
             dailyExpenses.add(PeriodAnalyticsResponse.DailyExpenseDto.builder()
                     .day(day)
                     .amount(dailyAmounts[day - 1])
@@ -111,6 +117,10 @@ public class AnalyticsService {
         }
 
         long totalMovements = transactionRepository.countByUserId(userId);
+        PeriodAnalyticsResponse.LargestExpenseDto largestExpense = isFutureMonth ? null : transactionRepository
+                .findLargestExpense(startOfMonth, visibleEnd, userId).filter(item -> item.getAmount().signum() > 0)
+                .map(item -> PeriodAnalyticsResponse.LargestExpenseDto.builder().merchantName(item.getContactName())
+                        .amount(item.getAmount()).transactionDate(item.getTransactionDate()).build()).orElse(null);
 
         Optional<Transaction> latestOpt = transactionRepository.findLatestExpense(userId);
         String lastMerchant = latestOpt.map(Transaction::getContactName).orElse("Sin gastos");
@@ -193,6 +203,8 @@ public class AnalyticsService {
                 .previousPeriodStart(previousPeriodStart)
                 .previousPeriodEnd(previousPeriodEnd)
                 .expenseDifference(previousPeriodExpense == null ? null : monthlyExpense.subtract(previousPeriodExpense))
+                .largestExpense(largestExpense)
+                .peakExpenseDay(peakExpenseDay)
                 .comparisonThroughDay(isCurrentMonth ? comparisonDays : null)
                 .dailyExpenses(dailyExpenses)
                 .totalMovements(totalMovements)
