@@ -13,6 +13,14 @@ runs on port 5173 and proxies `/api` to `localhost:8080` through
 
 ## Searching movements by date
 
+Movements displays `Total del filtro` for every matching transaction, independently
+of pagination, and `Esta página` for the visible rows. Expenses, income and internal
+transfers are separate; selecting a flow shows its matching amount. Empty filters
+show zero totals. The API computes filter totals with the same ownership and all
+listing predicates; page subtotals never substitute for them. Older APIs without
+`summary` display an explicit unavailable state. Deploy the API and UI together;
+this addition requires no database migration or Android update.
+
 In Movements, use the visible date filter to choose the selected month, a specific
 day, or an inclusive date range. Choose the dates and press `Buscar por fecha`.
 Ranges can span multiple months. The final date includes the entire day.

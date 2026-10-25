@@ -3,7 +3,7 @@ import type {
   PeriodAnalytics,
   Transaction,
   TransactionClassificationRequest,
-  PageResponse,
+  TransactionPageResponse,
   EmailSyncResponse,
   EmailConnectionStatus,
   GoogleAuthStatus,
@@ -167,7 +167,7 @@ export const api = {
     return handleResponse<PeriodAnalytics>(response);
   },
 
-  async getTransactions(params: TransactionFilterParams = {}): Promise<PageResponse<Transaction>> {
+  async getTransactions(params: TransactionFilterParams = {}): Promise<TransactionPageResponse> {
     const query = new URLSearchParams();
     query.set('page', String(params.page ?? 0));
     query.set('size', String(params.size ?? 10));
@@ -205,7 +205,7 @@ export const api = {
     requireReviewFilter(response, params.pendingReason);
     requireMerchantFilter(response, params.merchantName);
     requireCategoryFilter(response, params.categoryGroup);
-    return handleResponse<PageResponse<Transaction>>(response);
+    return handleResponse<TransactionPageResponse>(response);
   },
 
   async exportTransactionsCsv(params: TransactionFilterParams = {}): Promise<Blob> {

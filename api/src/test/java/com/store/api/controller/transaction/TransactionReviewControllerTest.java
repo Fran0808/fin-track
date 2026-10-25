@@ -32,6 +32,22 @@ class TransactionReviewControllerTest {
             mock(InstrumentAssignmentService.class), mock(FinancialInstrumentService.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
+    @Test void listingAddsFilterTotalsWithoutChangingPaginationFields() throws Exception {
+        var page = new com.store.api.model.dto.transaction.TransactionPageResponse(
+                new PageImpl<>(List.of(TransactionResponse.builder().id(1L).amount(new BigDecimal("0.10")).build()),
+                        PageRequest.of(1, 1), 12),
+                new com.store.api.model.dto.transaction.TransactionFilterSummary(
+                        new BigDecimal("123.45"), new BigDecimal("987.65"), new BigDecimal("42.10")));
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
+        mvc.perform(get("/api/v1/transactions").param("page", "1").param("size", "1"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.totalElements").value(12)).andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.summary.totalExpense").value(123.45))
+                .andExpect(jsonPath("$.summary.totalIncome").value(987.65))
+                .andExpect(jsonPath("$.summary.internalTransfersAmount").value(42.10));
+    }
+
     @Test void ownCardPaymentRepairReturnsTheUpdatedMovement() throws Exception {
         when(service.markOwnCardPayment(7L)).thenReturn(TransactionResponse.builder()
                 .id(7L).flowType(FlowType.INTERNAL_TRANSFER)

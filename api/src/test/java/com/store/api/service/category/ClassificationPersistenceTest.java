@@ -70,6 +70,60 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void filterTotalsSpanPagesPreserveDecimalsAndSeparateTransfersAndTenants() {
+        for (int i = 0; i < 12; i++) {
+            var row = store(owner, "summary-expense-" + i, null, FlowType.EXPENSE, null);
+            row.setAmount(new BigDecimal("0.10"));
+        }
+        store(owner, "summary-income", null, FlowType.INCOME, null);
+        var transfer = store(owner, "summary-transfer", null, FlowType.INTERNAL_TRANSFER, null);
+        transfer.setOperationType(OperationType.OWN_CARD_PAYMENT);
+        store(other, "summary-foreign", null, FlowType.EXPENSE, null);
+        transactions.flush();
+        for (int page : new int[]{0, 1, 6, 20}) {
+            var result = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
+                    null, null, null, null, null, null, null, null, null, null, null, null, PageRequest.of(page, 2));
+            assertEquals(14, result.getTotalElements());
+            assertEquals(0, new BigDecimal("1.20").compareTo(result.getSummary().getTotalExpense()));
+            assertEquals(0, new BigDecimal("10.25").compareTo(result.getSummary().getTotalIncome()));
+            assertEquals(0, new BigDecimal("10.25").compareTo(result.getSummary().getInternalTransfersAmount()));
+        }
+        var empty = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
+                null, null, null, "absent", PageRequest.of(0, 2));
+        assertEquals(0, empty.getTotalElements());
+        assertEquals(0, empty.getSummary().getTotalExpense().signum());
+        assertEquals(0, empty.getSummary().getTotalIncome().signum());
+        assertEquals(0, empty.getSummary().getInternalTransfersAmount().signum());
+    }
+
+    @Test void filterTotalsUseEveryListingPredicateIncludingHistoricalDrillDownAndReview() {
+        var match = store(owner, "summary-match", "Ocio", FlowType.EXPENSE, account);
+        match.setChannel("TEST_WALLET"); match.setContactName("Exact %_ Shop");
+        var income = store(owner, "summary-other-flow", "Ocio", FlowType.INCOME, account);
+        income.setChannel("TEST_WALLET"); income.setContactName("Exact %_ Shop");
+        var outside = store(owner, "summary-other-date", "Ocio", FlowType.EXPENSE, account);
+        outside.setTransactionDate(LocalDateTime.of(2025, 1, 1, 12, 0));
+        var foreign = store(other, "summary-other-user", " Ocio ", FlowType.EXPENSE, null);
+        foreign.setContactName("Exact %_ Shop"); foreign.setChannel("TEST_WALLET");
+        store(owner, "summary-unclassified", null, FlowType.EXPENSE, null);
+        transactions.flush();
+        var result = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
+                LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2026, 1, 1, 23, 59),
+                FlowType.EXPENSE, "Shop", account.getId(), " Ocio ", "TEST_WALLET",
+                new BigDecimal("10.25"), new BigDecimal("10.25"), null, "Exact %_ Shop", "Ocio", PageRequest.of(0, 1));
+        assertEquals(List.of(match.getId()), result.getContent().stream().map(t -> t.getId()).toList());
+        assertEquals(0, new BigDecimal("10.25").compareTo(result.getSummary().getTotalExpense()));
+        assertEquals(0, result.getSummary().getTotalIncome().signum());
+        assertEquals(0, result.getSummary().getInternalTransfersAmount().signum());
+        for (var reason : PendingReason.values()) {
+            var review = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
+                    null, null, null, null, null, null, null, null, null, reason, null, "", PageRequest.of(0, 1));
+            assertEquals(1, review.getTotalElements());
+            assertEquals(0, new BigDecimal("10.25").compareTo(review.getSummary().getTotalExpense()));
+            assertEquals(0, review.getSummary().getTotalIncome().signum());
+        }
+    }
+
     @Test void ownCardPaymentRepairPreservesIdentityAndExcludesRepaymentsFromEveryExpenseMetric() {
         var parser = new com.store.api.service.email.parser.BcpEmailParser();
         var parsed = parser.parse("Constancia de pago de tarjeta de crédito propia",

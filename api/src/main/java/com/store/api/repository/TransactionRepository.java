@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction> {
+public interface TransactionRepository extends JpaRepository<Transaction, Long>, JpaSpecificationExecutor<Transaction>, TransactionSummaryRepository {
 
     @Query(value = "SELECT CAST(pg_advisory_xact_lock(hashtextextended(CAST(:userId AS text) || ':' || :hash, 0)) AS text)", nativeQuery = true)
     String lockTransactionHash(@Param("userId") Long userId, @Param("hash") String hash);

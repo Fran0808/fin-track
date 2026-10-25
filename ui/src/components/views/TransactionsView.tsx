@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
-import type { PageResponse, Transaction } from '../../types';
+import type { TransactionPageResponse, Transaction } from '../../types';
 import type { TransactionFilterParams } from '../../services';
 import { api } from '../../services/api';
 import { TransactionTable, TransactionFilters } from '../transactions';
 
 interface TransactionsViewProps {
-  pageData: PageResponse<Transaction> | null;
+  pageData: TransactionPageResponse | null;
   loading: boolean;
   filters: TransactionFilterParams;
   exportFilters?: TransactionFilterParams;
@@ -105,6 +105,7 @@ export function TransactionsView({
         </div>
         <TransactionTable
           pageData={pageData}
+          flowType={filters.flowType}
           loading={loading}
           periodName={filters.allHistory ? 'Todo el historial' : filters.startDate && filters.endDate
             ? `${filters.startDate.slice(0, 10).split('-').reverse().join('/')} al ${filters.endDate.slice(0, 10).split('-').reverse().join('/')}`

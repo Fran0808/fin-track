@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../services/api';
 import type { TransactionFilterParams } from '../services/api';
-import type { FinancialSummary, PeriodAnalytics, Transaction, PageResponse, EmailSyncResponse, GoogleAuthStatus } from '../types';
+import type { FinancialSummary, PeriodAnalytics, Transaction, PageResponse, TransactionPageResponse, EmailSyncResponse, GoogleAuthStatus } from '../types';
 import { useQueryResource } from './useQueryResource';
 
 function getPeriodDateRange(year: number, month: number) {
@@ -53,7 +53,7 @@ export function useFinance(userId: number) {
   }) : Promise.reject(new Error('Sesión no disponible')), [selectedPeriod, userId]);
   const summaryResource = useQueryResource<FinancialSummary>(summaryQuery, 'Error al cargar el resumen');
   const analyticsResource = useQueryResource<PeriodAnalytics>(analyticsQuery, 'Error al cargar analítica financiera');
-  const transactionResource = useQueryResource<PageResponse<Transaction>>(transactionsQuery, 'Error al cargar transacciones');
+  const transactionResource = useQueryResource<TransactionPageResponse>(transactionsQuery, 'Error al cargar transacciones');
   useEffect(() => {
     const page = transactionResource.data;
     if (page && page.number > 0 && page.number >= page.totalPages) {

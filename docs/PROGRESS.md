@@ -17,6 +17,36 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: movement filter totals
+
+- Owner/scope: current chat; resolve finding 4 of the end-user evaluation only.
+  Listing adds authenticated, decimal expense/income/internal-transfer totals for
+  the complete filter using its exact specification and a repeatable-read
+  transaction. Pagination and existing response fields remain compatible.
+- UI: separate `Total del filtro` and `Esta página`; the selected flow controls
+  the displayed metrics. Empty results show zeros, loading remains distinct and
+  older APIs without summary show an unavailable state. No page subtotal is
+  presented as a complete-filter total.
+- Changed paths: transaction summary DTO/repository fragment and listing service;
+  frontend types/API/hook, transaction table/view, regression tests, UI feature
+  guide and contracts. No schema or Android payload changes.
+- Verification: 284 backend tests with all four disposable PostgreSQL suites and
+  three SQL migration regressions passed; 95 UI tests, lint (same 9 warnings) and
+  production build passed. Final UI run used `npm test -- --maxWorkers=2
+  --testTimeout=15000` under concurrent machine load, including stale-summary
+  regression coverage. Documentation reference and diff checks passed.
+- Runtime: built UI → packaged API → fresh synthetic PostgreSQL passed in Edge
+  at 1440px and 390px: paging, all-history, income/transfers, empty search,
+  category/merchant/combined filters, foreign-user exclusion and anonymous/device
+  rejection. Income-view screenshots inspected; no horizontal overflow.
+- Status: verified for isolated end-to-end scope. Temporary browser/API/HTTP
+  servers and PostgreSQL clusters stopped; temporary databases removed. Initial sandbox/temp
+  and overloaded parallel-test attempts required isolated reruns; runtime startup
+  needed a larger timeout and bounded JVM resources. No live financial access,
+  existing-service restart, staging, commit or push. Original evaluation files,
+  title edit and concurrent Android changes preserved. Next: user deploys/restarts
+  API and reloads UI to see this additive change. No next feature started.
+
 ## Current checkpoint: own-card repayments
 
 - Owner/scope: current chat; exclude confirmed BCP own-card repayments from

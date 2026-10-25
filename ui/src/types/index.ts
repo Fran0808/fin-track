@@ -178,6 +178,16 @@ export interface PageResponse<T> {
   empty: boolean;
 }
 
+export interface TransactionFilterSummary {
+  totalExpense: number;
+  totalIncome: number;
+  internalTransfersAmount: number;
+}
+
+export interface TransactionPageResponse extends PageResponse<Transaction> {
+  summary?: TransactionFilterSummary | null;
+}
+
 export interface EmailSyncResponse {
   status: string;
   scannedCount: number;

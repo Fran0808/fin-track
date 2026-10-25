@@ -1,10 +1,11 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Transaction, PageResponse } from '../../types';
+import type { Transaction, TransactionPageResponse, FlowType } from '../../types';
 import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel } from '../../utils';
 
 interface TransactionTableProps {
-  pageData: PageResponse<Transaction> | null;
+  pageData: TransactionPageResponse | null;
+  flowType?: FlowType | '';
   loading: boolean;
   periodName?: string;
   onPageChange: (page: number) => void;
@@ -17,10 +18,13 @@ function getCategoryLabel(categoryId?: string | null): string | null {
   return found ? found.label : categoryId;
 }
 
-export function TransactionTable({ pageData, loading, periodName, onPageChange, onSelectTransaction }: TransactionTableProps) {
-  const expenseTransactions = pageData?.content.filter((t) => t.flowType === 'EXPENSE') ?? [];
-  const pageExpenseTotal = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
-  const pageExpenseAvg = expenseTransactions.length > 0 ? pageExpenseTotal / expenseTransactions.length : 0;
+export function TransactionTable({ pageData, flowType, loading, periodName, onPageChange, onSelectTransaction }: TransactionTableProps) {
+  const metrics = [
+    { flow: 'EXPENSE', key: 'totalExpense', label: 'Gastos' },
+    { flow: 'INCOME', key: 'totalIncome', label: 'Entradas' },
+    { flow: 'INTERNAL_TRANSFER', key: 'internalTransfersAmount', label: 'Transferencias internas' },
+  ] as const;
+  const visibleMetrics = metrics.filter(metric => !flowType || metric.flow === flowType);
 
   return (
     <div>
@@ -34,19 +38,34 @@ export function TransactionTable({ pageData, loading, periodName, onPageChange, 
           </p>
         </div>
 
-        {pageData && pageData.content.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-canvas/70 px-3.5 py-1.5 text-xs text-muted">
-            <span>
-              Gastos mostrados: <strong className="font-num font-semibold text-ink">{formatCurrency(pageExpenseTotal)}</strong>
-            </span>
-            <span aria-hidden="true">·</span>
-            <span>
-              Promedio de esta página: <strong className="font-num font-semibold text-ink">{formatCurrency(pageExpenseAvg)}</strong>
-            </span>
-            {loading && <span role="status" className="font-semibold text-brand">· Actualizando...</span>}
-          </div>
-        )}
       </div>
+
+      {pageData && (
+        <div className="border-b border-line bg-canvas/50 px-5 py-4 sm:px-6" aria-busy={loading}>
+          {pageData.summary ? (
+            <div role="group" aria-label="Total del filtro">
+              <p className="text-xs font-semibold text-ink">Total del filtro · {pageData.totalElements} movimientos</p>
+              <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
+                {visibleMetrics.map(metric => (
+                  <div key={metric.key} className="text-sm">
+                    <dt className="text-xs text-muted">{metric.label}</dt>
+                    <dd className="font-num font-semibold text-ink">{formatCurrency(pageData.summary![metric.key])}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : <p role="status" className="text-sm text-muted">Total del filtro no disponible. Actualiza el backend para consultarlo.</p>}
+          <div role="group" aria-label="Esta página" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+            <span className="font-semibold">Esta página · {pageData.content.length} movimientos</span>
+            {visibleMetrics.map(metric => {
+              const cents = pageData.content.filter(t => t.flowType === metric.flow)
+                .reduce((total, t) => total + Math.round(t.amount * 100), 0);
+              return <span key={metric.key}>{metric.label}: <strong className="font-num font-semibold text-ink">{formatCurrency(cents / 100)}</strong></span>;
+            })}
+          </div>
+          {loading && <p role="status" className="mt-2 text-xs font-semibold text-brand">Actualizando...</p>}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full table-fixed border-collapse text-left sm:min-w-[700px] sm:table-auto">

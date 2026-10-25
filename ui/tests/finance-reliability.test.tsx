@@ -3,7 +3,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useFinance } from '../src/hooks/useFinance';
 import { api } from '../src/services/api';
-import type { PageResponse, PeriodAnalytics, Transaction } from '../src/types';
+import type { PageResponse, PeriodAnalytics, Transaction, TransactionPageResponse } from '../src/types';
 
 const transaction: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic' };
 const page: PageResponse<Transaction> = { content: [transaction], totalElements: 1, totalPages: 1, number: 0, size: 10, first: true, last: true, empty: false };
@@ -24,13 +24,16 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 it('keeps the latest search when an old request finishes later', async () => {
-  const old = deferred<PageResponse<Transaction>>();
-  vi.mocked(api.getTransactions).mockImplementation(params => params?.size === 5 ? Promise.resolve(page) : params?.search === 'new' ? Promise.resolve({ ...page, content: [{ ...transaction, contactName: 'New query' }] }) : old.promise);
+  const old = deferred<TransactionPageResponse>();
+  vi.mocked(api.getTransactions).mockImplementation(params => params?.size === 5 ? Promise.resolve(page) : params?.search === 'new' ? Promise.resolve({ ...page,
+    summary: { totalExpense: 123.45, totalIncome: 0, internalTransfersAmount: 0 },
+    content: [{ ...transaction, contactName: 'New query' }] }) : old.promise);
   const { result } = renderHook(() => useFinance(1));
   act(() => result.current.handleFilterChange({ search: 'new' }));
   await waitFor(() => expect(result.current.transactionsPage?.content[0].contactName).toBe('New query'));
-  await act(async () => old.resolve(page));
+  await act(async () => old.resolve({ ...page, summary: { totalExpense: 999, totalIncome: 0, internalTransfersAmount: 0 } }));
   expect(result.current.transactionsPage?.content[0].contactName).toBe('New query');
+  expect(result.current.transactionsPage?.summary?.totalExpense).toBe(123.45);
   expect(result.current.loadingTransactions).toBe(false);
 });
 

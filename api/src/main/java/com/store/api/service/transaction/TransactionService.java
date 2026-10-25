@@ -3,6 +3,7 @@ package com.store.api.service.transaction;
 import com.store.api.config.security.UserContext;
 import com.store.api.model.dto.transaction.TransactionClassificationRequest;
 import com.store.api.model.dto.transaction.TransactionResponse;
+import com.store.api.model.dto.transaction.TransactionPageResponse;
 import com.store.api.model.dto.transaction.TransactionSyncRequest;
 import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 import com.store.api.model.entity.RawNotificationLog;
@@ -261,7 +262,7 @@ public class TransactionService {
                 minAmount, maxAmount, pendingReason, merchantName, null, pageable);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Page<TransactionResponse> getTransactions(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
             Long financialInstrumentId, String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
@@ -271,7 +272,8 @@ public class TransactionService {
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         if (merchantName != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("contactName"), merchantName));
         if (categoryGroup != null) spec = spec.and(categoryGroupSpecification(categoryGroup));
-        return transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
+        var page = transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
+        return new TransactionPageResponse(page, transactionRepository.summarize(spec));
     }
 
     @Transactional(readOnly = true)

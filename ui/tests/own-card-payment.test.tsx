@@ -66,7 +66,7 @@ it('does not infer meaning from bank text, rejects income and labels normalized 
     totalElements: 1, totalPages: 1, number: 0, size: 10, first: true, last: true, empty: false }}
     loading={false} onPageChange={vi.fn()} onSelectTransaction={vi.fn()} />);
   expect(screen.getByText('Pago de tarjeta propia')).toBeTruthy();
-  expect(screen.getByText('S/ 81.25').textContent?.replace(/\s/g, ' ')).toBe('S/ 81.25');
+  expect(screen.getByRole('cell', { name: /S\/\s81\.25/ }).textContent?.replace(/\s/g, ' ')).toBe('S/ 81.25');
 });
 
 it('cancels confirmation without changing an expense and permits describing an old neutral transfer', () => {

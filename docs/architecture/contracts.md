@@ -140,6 +140,20 @@ the same filter. Deploy API and UI together.
 
 ## Transaction classification
 
+`GET /transactions` preserves its existing pagination fields and adds `summary`:
+decimal `totalExpense`, `totalIncome` and `internalTransfersAmount` across all
+matching movements, without a page-size or CSV-export cap. All date, flow, search,
+instrument, category, channel, amount, pending-review, exact-merchant and
+category-group restrictions apply under the authenticated user's ownership.
+Amounts are aggregated in PostgreSQL using the same specification as the page;
+the dashboard listing reads both in one repeatable-read transaction. Internal
+transfers, including own-card repayments, contribute only to their separate total.
+No matches produce three zeros. The dashboard labels these as filter totals,
+shows visible-page subtotals separately and displays only the selected flow when
+one is active. Older APIs lacking `summary` show unavailable totals rather than
+substituting a page total. Existing clients can ignore this additive field;
+Android ingestion and the database schema are unchanged.
+
 Category drill-down adds optional `categoryGroup` to transaction listing and CSV.
 It matches the stored category after trimming, case-sensitively, exactly as the
 analytics grouping does. Empty string selects null/blank categories; omission
