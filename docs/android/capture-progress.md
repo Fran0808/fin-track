@@ -1,8 +1,26 @@
-# Android capture progress — FinTrack 1.3.7 (20)
+# Android capture progress — FinTrack 1.3.9 (22)
 
-Updated: October 22, 2026. This record tracks Android notification capture
+Updated: October 25, 2026. This record tracks Android notification capture
 implementation, validation and remaining work. The historical runtime evidence below
-belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.7 (20).
+belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.9 (22).
+
+## Android template and unused-file cleanup — October 25
+
+Removed unused Android Studio template files (`ExampleUnitTest.kt`,
+`ExampleInstrumentedTest.kt`, `res/values/colors.xml` and `keepRules/rules.keep`),
+redundant module `.gitignore` files (`app/.gitignore` and `emitter/.gitignore`),
+an unused `gson` catalog version entry in `gradle/libs.versions.toml`, commented
+template typography in `Type.kt`, and untracked local build logs
+(`build-branding.log`, `build-branding-simplification.log`) and IDE caches.
+Simplified `android/.gitignore` to cover `.kotlin` and `/.idea`. Incremented the
+application version to `1.3.9` (`versionCode = 22`).
+
+Executed checks: 82 JVM tests each for `debug`, `captureTest` and `release` passed
+with zero failures, errors or skips. Assembled `debug`, `release`, `captureTest`
+and `captureTestAndroidTest` APKs and verified `FinTrack 1.3.9 (22)` metadata via
+`scripts/android/build-apk.ps1` (`android/build/deliveries/FinTrack.apk`,
+SHA-256 `B65DA7BD8962654F997711359A57F7C617820B6EE21D35935F9EF7DB9150C067`). No
+device installation or emulator run was performed.
 
 ## Production transport and credential-backup policy — October 22
 
