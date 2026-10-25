@@ -74,6 +74,10 @@ public class YapeEmailParser implements BankEmailParser {
             Pattern.CASE_INSENSITIVE
     );
 
+    private static final Pattern RECEIPT_REFERENCE_PATTERN = Pattern.compile(
+            "(?:id\\s+de|nro\\.?\\s*(?:de)?|n[uú]mero\\s+(?:de)?)\\s*operaci[oó]n\\s*:?\\s*([A-Za-z0-9]+)",
+            Pattern.CASE_INSENSITIVE);
+
     private static final Pattern DATE_PATTERN = Pattern.compile(
             "fecha\\s*(?:y\\s*hora)?:?\\s*([0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{4}|[0-9]{1,2}\\s+[a-zÀ-ÿ]+\\s+[0-9]{4})",
             Pattern.CASE_INSENSITIVE
@@ -136,6 +140,7 @@ public class YapeEmailParser implements BankEmailParser {
                 .channel(ChannelType.YAPE.name())
                 .cardLast4(null)
                 .operationNumber(operationNumber)
+                .receiptReference(extractReceiptReference(cleanText))
                 .transactionDate(txDate)
                 .transactionHash(hash)
                 .rawBody(cleanText)
@@ -207,6 +212,11 @@ public class YapeEmailParser implements BankEmailParser {
             return m.group(1).trim();
         }
         return null;
+    }
+
+    private String extractReceiptReference(String text) {
+        Matcher matcher = RECEIPT_REFERENCE_PATTERN.matcher(text);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private String generateHash(FlowType flowType, BigDecimal amount, String merchant, String opNumber, LocalDateTime date) {

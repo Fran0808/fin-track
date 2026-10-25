@@ -137,6 +137,7 @@ class BcpEmailParserTest {
         assertEquals("TARJETA_CREDITO_BCP", tx.getChannel());
         assertEquals("9999", tx.getCardLast4());
         assertEquals("98765432", tx.getOperationNumber());
+        assertEquals("98765432", tx.getReceiptReference());
         assertNotNull(tx.getTransactionHash());
     }
 

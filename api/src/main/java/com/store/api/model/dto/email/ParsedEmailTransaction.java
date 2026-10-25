@@ -24,6 +24,8 @@ public class ParsedEmailTransaction {
     private String channel;
     private String cardLast4;
     private String operationNumber;
+    // Explicit receipt evidence; operationNumber retains its legacy identity/hash semantics.
+    private String receiptReference;
     private LocalDateTime transactionDate;
     private String transactionHash;
     private String rawBody;

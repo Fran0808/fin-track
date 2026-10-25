@@ -175,6 +175,7 @@ public class BcpEmailParser implements BankEmailParser {
                 .channel(channel)
                 .cardLast4(cardLast4)
                 .operationNumber(operationNumber)
+                .receiptReference(operationNumber)
                 .transactionDate(txDate)
                 .transactionHash(hash)
                 .rawBody(cleanText)

@@ -19,6 +19,23 @@ class YapeEmailParserTest {
         parser = new YapeEmailParser();
     }
 
+    @Test void exposesOnlyExplicitReceiptReferencesWithoutChangingLegacyHashInputs() {
+        var date = LocalDateTime.of(2026,1,1,12,0);
+        var explicit = parser.parse("Tu pago en COMERCIO EJEMPLO fue exitoso",
+                "Monto total S/ 25.00 Destino: COMERCIO EJEMPLO ID de operación: 123ABC",date);
+        assertNotNull(explicit); assertEquals("123ABC",explicit.getReceiptReference());
+        var ambiguous = parser.parse("Tu pago en COMERCIO EJEMPLO fue exitoso",
+                "Monto total S/ 25.00 Destino: COMERCIO EJEMPLO. Operación realizada. Código de seguridad: 987",date);
+        assertNotNull(ambiguous); assertNull(ambiguous.getReceiptReference());
+        assertEquals("realizada",ambiguous.getOperationNumber());
+        String input = "EXPENSE_25.00_comercio ejemplo_realizada_20260101";
+        try {
+            String legacy = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            assertEquals(legacy,ambiguous.getTransactionHash());
+        } catch (java.security.NoSuchAlgorithmException ex) { throw new AssertionError(ex); }
+    }
+
     @Test
     void shouldIgnorePromotionalAmounts() {
         assertNull(parser.parse("Beneficios Yape", "Participa por S/ 500.00", LocalDateTime.now()));
