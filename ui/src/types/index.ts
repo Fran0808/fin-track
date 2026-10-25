@@ -1,6 +1,12 @@
 export type FlowType = 'INCOME' | 'EXPENSE' | 'INTERNAL_TRANSFER';
 export type OperationType = 'UNKNOWN' | 'OWN_CARD_PAYMENT';
 
+export interface TransactionOrigin {
+  origin: 'EMAIL' | 'PHONE' | 'UNKNOWN';
+  registeredAt: string | null;
+  operationReference: string | null;
+}
+
 export type ChannelType =
   | 'TARJETA_CREDITO_BCP'
   | 'TARJETA_DEBITO_BCP'

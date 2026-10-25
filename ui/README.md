@@ -43,6 +43,16 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
+Movement details show the first capture origin as `Correo` or `Teléfono`, the
+server registration time and an explicit email receipt reference when recorded.
+Historical rows show `Origen no disponible`; source is never guessed from the
+payment channel or diagnostic text. Raw email/notification bodies and phone
+security codes are not displayed. Origin loads independently with retry support.
+Apply the [capture-origin migration](../scripts/migrations/20261025_transaction_capture_origin.sql)
+before deploying/restarting the updated API, then reload the UI. Existing phone
+clients and transaction/CSV contracts are unchanged. See
+[evidence and limitations](../docs/domain/transaction-origin.md).
+
 Confirmed own-card repayments use normalized `operationType=OWN_CARD_PAYMENT`
 and the existing internal-transfer flow, independently of provider/contact text, and
 display `Pago de tarjeta propia` in transaction rows/detail, without a plus/minus

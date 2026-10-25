@@ -2,6 +2,7 @@ import type {
   FinancialSummary,
   PeriodAnalytics,
   Transaction,
+  TransactionOrigin,
   TransactionClassificationRequest,
   TransactionPageResponse,
   EmailSyncResponse,
@@ -98,6 +99,16 @@ function requireCategoryFilter(response: Response, categoryGroup?: string) {
 }
 
 export const api = {
+  async getTransactionOrigin(id: number): Promise<TransactionOrigin> {
+    const result = await handleResponse<TransactionOrigin>(await fetchWithAuth(`${BASE_URL}/transactions/${id}/origin`, { cache: 'no-store' }));
+    if (!result || typeof result.origin !== 'string'
+        || (result.registeredAt !== null && typeof result.registeredAt !== 'string')
+        || (result.operationReference !== null && typeof result.operationReference !== 'string')) {
+      throw new Error('No se recibió información válida sobre el origen.');
+    }
+    return { ...result, origin: result.origin === 'EMAIL' || result.origin === 'PHONE' ? result.origin : 'UNKNOWN' };
+  },
+
   async previewRuleHistory(id: number): Promise<RuleHistoryPreview> {
     const response = await fetchWithAuth(`${BASE_URL}/classification-rules/${id}/history-preview`, { cache: 'no-store' });
     if (response.status === 404 || response.status === 405) {

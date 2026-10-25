@@ -17,6 +17,42 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: movement capture origin
+
+- Owner/scope: current chat; show first-capture origin in movement detail using
+  `Correo` and `Teléfono`, registration time and an explicit operation reference
+  when recorded. See [origin evidence and rollout](domain/transaction-origin.md).
+- Implemented: `UNKNOWN`/`EMAIL`/`PHONE` metadata persisted at trusted ingestion
+  entry points; explicit parser receipt metadata separate from legacy hash input;
+  authenticated owned-only no-store detail endpoint with no raw bodies, sender
+  identity, device credentials or security codes. Existing sync/list/CSV DTOs and
+  financial/hash semantics remain unchanged. Retries/corrections preserve evidence.
+- Schema: additive [capture-origin migration](../scripts/migrations/20261025_transaction_capture_origin.sql)
+  defaults historical rows to unknown without guessing from diagnostic channels.
+  Bootstrap, isolated runner, SQL regression and CI definition updated; migration
+  tested on disposable databases only. No live migration or source backfill.
+- UI: independent origin panel with loading/error/retry/legacy states and stale
+  response protection. Registration time is distinct from operation/phone-event
+  time. Reference is optional; this feature does not detect or report duplicates.
+- Verification: 315 backend tests with four disposable PostgreSQL suites and four
+  SQL regressions passed; 108 UI tests, lint (same 9 warnings), production build,
+  18 script regression groups and documentation checks passed. Hosted CI not run.
+- Runtime: final built UI → packaged API → fresh synthetic PostgreSQL passed in
+  Edge at 1440px and 390px. Verified email/phone/unknown detail, registration versus
+  operation dates, reference/privacy limits, missing-API retry, tenant isolation,
+  anonymous/device rejection, ignored request-origin spoofing, batch/replay and
+  correction preservation. Inspected six source/viewport screenshots; no horizontal
+  overflow or browser errors. Mobile registration date layout checked after refinement.
+- Status: verified for isolated end-to-end scope. Temporary browser, API, HTTP
+  server and PostgreSQL stopped; disposable data removed. Existing evaluation,
+  other progress and title changes preserved. No live financial access, migration,
+  existing-service restart, staging, commit or push. Next: user confirms/backs up
+  the intended database, applies the new migration, updates API and reloads web.
+- Delivery: four atomic groups proposed: storage/migration checks; parser receipt
+  normalization with regressions; trusted ingestion/read API with tests/contracts;
+  UI panel with tests/docs and this isolated checkpoint. Existing checks cover the
+  final working tree; intermediate proposed revisions were not executed separately.
+
 ## Current checkpoint: reviewed historical rule application
 
 - Owner/scope: current chat; apply an existing enabled rule to historical

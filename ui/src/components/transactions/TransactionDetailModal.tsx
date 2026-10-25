@@ -6,6 +6,7 @@ import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
 import { CustomSelect } from '../common';
+import { TransactionOriginPanel } from './TransactionOriginPanel';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -123,6 +124,8 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Medio</dt><dd className="text-right font-medium">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd></div>
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Fecha y hora</dt><dd className="text-right font-medium">{formatDate(transaction.transactionDate)}</dd></div>
         </dl>
+
+        <TransactionOriginPanel transactionId={transaction.id} />
 
         <div className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
           <p className="eyebrow text-ink!">Clasificación</p>
