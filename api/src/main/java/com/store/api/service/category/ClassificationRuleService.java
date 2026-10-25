@@ -76,14 +76,19 @@ public class ClassificationRuleService {
         }
         if (transaction.getFlowType() == FlowType.INTERNAL_TRANSFER
                 || (transaction.getCategory() != null && !transaction.getCategory().isBlank())) return;
-        String contact = transaction.getContactName().toLowerCase(Locale.ROOT);
         for (ClassificationRule rule : rules.findByUserAndEnabledTrueOrderByPriorityAscIdAsc(user)) {
-            Category category = rule.getCategory();
-            if (category.isActive() && user.getId().equals(category.getUser().getId())
-                    && contact.contains(rule.getMatchText().toLowerCase(Locale.ROOT))) {
-                transaction.setCategory(category.getName());
+            if (matches(rule, transaction, user)) {
+                transaction.setCategory(rule.getCategory().getName());
                 return;
             }
         }
+    }
+
+    static boolean matches(ClassificationRule rule, Transaction transaction, User user) {
+        return rule.isEnabled() && rule.getCategory().isActive()
+                && user.getId().equals(rule.getUser().getId())
+                && user.getId().equals(rule.getCategory().getUser().getId())
+                && transaction.getContactName().toLowerCase(Locale.ROOT)
+                .contains(rule.getMatchText().toLowerCase(Locale.ROOT));
     }
 }
