@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
-import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
+import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isBcpOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
@@ -27,6 +27,22 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isRepairing, setIsRepairing] = useState(false);
+  const [repairError, setRepairError] = useState<string | null>(null);
+  const busy = isSaving || isRepairing;
+
+  const handleOwnCardPayment = async () => {
+    setIsRepairing(true);
+    setRepairError(null);
+    try {
+      const updated = await api.markOwnCardPayment(transaction.id);
+      onUpdated?.(updated);
+    } catch (err) {
+      setRepairError(err instanceof Error ? err.message : 'No se pudo corregir el pago de tarjeta.');
+    } finally {
+      setIsRepairing(false);
+    }
+  };
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -58,7 +74,8 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
 
   const isIncome = transaction.flowType === 'INCOME';
   const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
-  const flowLabel = isIncome ? 'Entrada' : isTransfer ? 'Transferencia propia' : 'Gasto';
+  const flowLabel = getTransactionFlowLabel(transaction);
+  const ownCardPayment = isBcpOwnCardPayment(transaction);
 
   return (
     <dialog
@@ -81,6 +98,18 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
         </p>
         <p className="mt-2 text-base font-medium">{transaction.contactName || 'Movimiento'}</p>
+        {ownCardPayment && isTransfer && <p role="status" className="mt-2 text-sm text-muted">No suma gastos ni entradas y no afecta el flujo neto.</p>}
+        {ownCardPayment && transaction.flowType === 'EXPENSE' && onUpdated && (
+          <div className="mt-4 border-l-2 border-brand pl-3">
+            <p className="text-sm text-muted">Si pagaste tu propia tarjeta, este movimiento no debe sumarse de nuevo como gasto.</p>
+            <button type="button" disabled={busy} onClick={() => void handleOwnCardPayment()}
+              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline disabled:opacity-50">
+              {isRepairing && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isRepairing ? 'Corrigiendo pago…' : 'Es un pago de mi tarjeta'}
+            </button>
+            {repairError && <p role="alert" className="mt-2 text-sm text-negative">{repairError}</p>}
+          </div>
+        )}
 
         <dl className="mt-7 divide-y divide-line border-y border-line text-sm">
           <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Tipo</dt><dd className="text-right font-medium">{flowLabel}</dd></div>
@@ -99,7 +128,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
               <div className="mt-1.5">
                 <CustomSelect
                   id="modal-category"
-                  disabled={loadingCategories || !!categoryError || isSaving}
+                  disabled={loadingCategories || !!categoryError || busy}
                   value={category}
                   onChange={(val) => setCategory(val)}
                   options={[
@@ -133,7 +162,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
               <button
                 type="button"
                 onClick={handleSaveClassification}
-                disabled={isSaving}
+                disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -143,7 +172,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           </div>
         </div>
 
-        {!isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={isSaving}
+        {!isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
           onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
           className="mt-4 text-sm font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 

@@ -143,6 +143,11 @@ export const api = {
   async getInstrumentSuggestions(transactionId: number): Promise<FinancialInstrument[]> {
     return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument-suggestions`));
   },
+  async markOwnCardPayment(transactionId: number): Promise<Transaction> {
+    return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/own-card-payment`, {
+      method: 'PATCH',
+    }));
+  },
   async getFinancialSummary(): Promise<FinancialSummary> {
     const response = await fetchWithAuth(`${BASE_URL}/analytics/summary`);
     return handleResponse<FinancialSummary>(response);

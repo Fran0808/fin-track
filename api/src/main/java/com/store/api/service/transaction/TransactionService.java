@@ -122,6 +122,23 @@ public class TransactionService {
         return mapToResponse(saved);
     }
 
+    @Transactional
+    public TransactionResponse markOwnCardPayment(Long id) {
+        User user = UserContext.requireCurrentUser();
+        Transaction tx = transactionRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movimiento no encontrado."));
+        // Only the explicit legacy BCP own-card marker is eligible for this repair.
+        if (!"Pago Tarjeta Crédito BCP".equals(tx.getContactName())
+                || !List.of("TARJETA_CREDITO_BCP", "TARJETA_DEBITO_BCP", "BCP_TRANSFERENCIA", "YAPE").contains(tx.getChannel())
+                || (tx.getFlowType() != FlowType.EXPENSE && tx.getFlowType() != FlowType.INTERNAL_TRANSFER)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Este movimiento no se reconoce como un pago de tarjeta propia.");
+        }
+        tx.setFlowType(FlowType.INTERNAL_TRANSFER);
+        // Preserve the stored hash, amount, date, category and product assignment.
+        return mapToResponse(transactionRepository.save(tx));
+    }
+
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getPendingTransactions(PendingReason reason, Pageable pageable) {
         User user = UserContext.requireCurrentUser();

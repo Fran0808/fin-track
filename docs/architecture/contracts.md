@@ -36,6 +36,7 @@ Paths below are relative to `/api/v1`.
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
 | `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `PATCH /transactions/{id}/classification` | Update transaction category | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `PATCH /transactions/{id}/own-card-payment` | Explicitly repair a legacy own-card repayment as an internal transfer | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
@@ -44,6 +45,15 @@ Paths below are relative to `/api/v1`.
 | `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
 
 ## Transaction ingestion payload
+
+Own-card repair accepts no body or user identifier. It resolves the authenticated
+web user's movement by ID (404 for absent/foreign IDs), requires the exact legacy
+`Pago Tarjeta Crédito BCP` contact plus a recognized BCP/Yape channel, and accepts
+only `EXPENSE` or already-corrected `INTERNAL_TRANSFER` (otherwise 400). It returns
+the standard transaction response, preserves amount/date/hash/category/product,
+and is idempotent. The UI offers it only after an explicit user click in a legacy
+payment's detail. Device credentials cannot call this endpoint. No schema change
+is required; the `FlowType` enum and Android payload are unchanged.
 
 The batch endpoint receives an array of the single-request object. Both endpoints
 currently return 201 with a transaction object or array, including when an existing

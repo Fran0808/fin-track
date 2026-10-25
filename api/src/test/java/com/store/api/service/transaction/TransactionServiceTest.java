@@ -50,9 +50,33 @@ class TransactionServiceTest {
         assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.processBatch(List.of())).getStatusCode().value());
         assertEquals(401, assertThrows(ResponseStatusException.class,
+                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
+        assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.getTransactions(null, null, null, null, PageRequest.of(0, 10)))
                 .getStatusCode().value());
         verifyNoInteractions(transactions, rawNotifications);
+    }
+
+    @Test
+    void cardPaymentRepairRequiresOwnershipAndDoesNotAcceptOrdinaryExpensesOrIncome() {
+        User user = User.builder().id(10L).build();
+        UserContext.setCurrentUser(user);
+        assertEquals(404, assertThrows(ResponseStatusException.class,
+                () -> service.markOwnCardPayment(99L)).getStatusCode().value());
+        Transaction tx = Transaction.builder().contactName("Ordinary purchase")
+                .flowType(FlowType.EXPENSE).channel("TARJETA_CREDITO_BCP").build();
+        when(transactions.findByIdAndUser(1L, user)).thenReturn(Optional.of(tx));
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
+        tx.setContactName("Pago Tarjeta Crédito BCP");
+        tx.setFlowType(FlowType.INCOME);
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
+        tx.setFlowType(FlowType.EXPENSE);
+        tx.setChannel("UNKNOWN");
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
+        verify(transactions, never()).save(any());
     }
 
     @Test

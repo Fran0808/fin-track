@@ -70,6 +70,80 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void ownCardPaymentRepairPreservesIdentityAndExcludesRepaymentsFromEveryExpenseMetric() {
+        var parser = new com.store.api.service.email.parser.BcpEmailParser();
+        var parsed = parser.parse("Constancia de pago de tarjeta de crédito propia",
+                "Realizaste un pago a tu tarjeta de S/ 81.25. Monto pagado: S/ 81.25",
+                LocalDateTime.of(2026, 1, 2, 12, 0));
+        assertNotNull(parsed);
+        assertEquals(FlowType.INTERNAL_TRANSFER, parsed.getFlowType());
+        TransactionSyncRequest replay = new TransactionSyncRequest();
+        replay.setAmount(parsed.getAmount()); replay.setFlowType(parsed.getFlowType());
+        replay.setContactName(parsed.getMerchantName()); replay.setChannel(parsed.getChannel());
+        replay.setTransactionDate(parsed.getTransactionDate()); replay.setTransactionHash(parsed.getTransactionHash());
+
+        Transaction legacy = store(owner, parsed.getTransactionHash(), target.getName(), FlowType.EXPENSE, account);
+        legacy.setContactName(parsed.getMerchantName()); legacy.setChannel(parsed.getChannel());
+        legacy.setAmount(parsed.getAmount()); legacy.setTransactionDate(parsed.getTransactionDate());
+        legacy.setCardLast4("1111");
+        Transaction foreign = store(other, parsed.getTransactionHash(), null, FlowType.EXPENSE, null);
+        foreign.setContactName(parsed.getMerchantName()); foreign.setChannel(parsed.getChannel());
+        Transaction purchase = store(owner, "card-purchase", target.getName(), FlowType.EXPENSE, null);
+        purchase.setContactName("School example"); purchase.setAmount(new BigDecimal("45.50"));
+        purchase.setChannel("TARJETA_CREDITO_BCP");
+        transactions.saveAllAndFlush(List.of(legacy, foreign, purchase));
+        assertEquals(legacy.getId(), service.processAndSave(replay).getId());
+        assertEquals(new BigDecimal("126.75"), analytics.getPeriodAnalytics(2026, 1).getMonthlyExpense());
+        assertEquals(404, assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.markOwnCardPayment(foreign.getId())).getStatusCode().value());
+        var repaired = service.markOwnCardPayment(legacy.getId());
+        assertEquals(FlowType.INTERNAL_TRANSFER, repaired.getFlowType());
+        assertEquals(parsed.getTransactionHash(), repaired.getTransactionHash());
+        assertEquals(parsed.getAmount(), repaired.getAmount());
+        assertEquals(parsed.getTransactionDate(), repaired.getTransactionDate());
+        assertEquals("1111", repaired.getCardLast4());
+        assertEquals(target.getName(), repaired.getCategory());
+        assertEquals(account.getId(), repaired.getFinancialInstrument().getId());
+        assertEquals(repaired.getId(), service.markOwnCardPayment(legacy.getId()).getId());
+        assertEquals(FlowType.INTERNAL_TRANSFER, service.processAndSave(replay).getFlowType());
+        assertEquals(FlowType.EXPENSE, transactions.findById(foreign.getId()).orElseThrow().getFlowType());
+        assertEquals(3, transactions.count());
+        var result = analytics.getPeriodAnalytics(2026, 1);
+        assertEquals(new BigDecimal("45.50"), result.getMonthlyExpense());
+        assertEquals(0, result.getMonthlyIncome().signum());
+        assertEquals(new BigDecimal("81.25"), result.getInternalTransfersAmount());
+        assertEquals(1, result.getTopMerchants().size());
+        assertEquals("School example", result.getTopMerchants().getFirst().getMerchantName());
+        assertEquals(new BigDecimal("45.50"), result.getCategoryBreakdown().getFirst().getAmount());
+        assertEquals(new BigDecimal("45.50"), result.getDailyExpenses().getFirst().getCumulativeAmount());
+        assertEquals(new BigDecimal("45.50"), result.getLargestExpense().getAmount());
+        assertEquals(new BigDecimal("45.50"), result.getPeakExpenseDay().getAmount());
+        var summary = analytics.getSummary();
+        assertEquals(new BigDecimal("45.50"), summary.getTotalExpense());
+        assertEquals(new BigDecimal("-45.50"), summary.getNetBalance());
+        var csv = new String(service.exportTransactionsCsv(null, null, FlowType.EXPENSE, null,
+                null, null, null, null, null), java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(csv.contains("School example"));
+        assertFalse(csv.contains("Pago Tarjeta"));
+    }
+
+    @Test void newOwnCardPaymentIsStoredOnceAsATransferAndNeverBecomesAnExpense() {
+        var parsed = new com.store.api.service.email.parser.BcpEmailParser().parse(
+                "Constancia de pago de tarjeta propia", "Monto: S/ 81.25", LocalDateTime.of(2026, 1, 1, 12, 0));
+        TransactionSyncRequest request = new TransactionSyncRequest();
+        request.setAmount(parsed.getAmount()); request.setFlowType(parsed.getFlowType());
+        request.setContactName(parsed.getMerchantName()); request.setChannel(parsed.getChannel());
+        request.setTransactionDate(parsed.getTransactionDate()); request.setTransactionHash(parsed.getTransactionHash());
+        var saved = service.processAndSave(request);
+        assertEquals(FlowType.INTERNAL_TRANSFER, saved.getFlowType());
+        assertEquals(saved.getId(), service.processAndSave(request).getId());
+        assertEquals(1, transactions.count());
+        assertEquals(0, analytics.getSummary().getTotalExpense().signum());
+        assertEquals(0, analytics.getSummary().getTotalIncome().signum());
+        assertEquals(0, analytics.getSummary().getNetBalance().signum());
+        assertTrue(analytics.getPeriodAnalytics(2026, 1).getTopMerchants().isEmpty());
+    }
+
     @Test void expenseHighlightsUseOwnedPeriodExpensesAndDistinguishSingleExpenseFromDailyTotal() {
         Transaction first = store(owner, "highlight-first", null, FlowType.EXPENSE, null);
         first.setContactName("Largest owned");first.setAmount(new BigDecimal("80.00"));

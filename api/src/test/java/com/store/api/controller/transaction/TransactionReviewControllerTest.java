@@ -32,6 +32,16 @@ class TransactionReviewControllerTest {
             mock(InstrumentAssignmentService.class), mock(FinancialInstrumentService.class)))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
+    @Test void ownCardPaymentRepairReturnsTheUpdatedMovement() throws Exception {
+        when(service.markOwnCardPayment(7L)).thenReturn(TransactionResponse.builder()
+                .id(7L).flowType(FlowType.INTERNAL_TRANSFER).amount(new BigDecimal("81.25")).build());
+        mvc.perform(patch("/api/v1/transactions/7/own-card-payment"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(7))
+                .andExpect(jsonPath("$.flowType").value("INTERNAL_TRANSFER"))
+                .andExpect(jsonPath("$.amount").value(81.25));
+        verify(service).markOwnCardPayment(7L);
+    }
+
     @ParameterizedTest @EnumSource(PendingReason.class)
     void listingAndExportForwardTheSameCombinedFilters(PendingReason reason) throws Exception {
         LocalDateTime start = LocalDateTime.parse("2026-09-01T00:00:00");

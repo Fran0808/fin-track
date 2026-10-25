@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 24, 2026. This is the entry point for current work, not a release
+Updated: October 25, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -17,7 +17,33 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: four Analysis improvements
+## Current checkpoint: own-card repayments
+
+- Owner/scope: current chat; exclude confirmed BCP own-card repayments from
+  expenses/income/net flow while preserving movement history and legacy hashes.
+  Purchases and third-party card payments retain their existing expense flow.
+- Changed: BCP parser/fixtures; authenticated per-ID repair in transaction service
+  and controller; detail action and shared row/detail flow label; API/UI/domain
+  documentation. No enum, schema, Android payload or existing hash migration.
+- Verification: 274 backend tests, including all four isolated PostgreSQL suites
+  and both migration regressions, passed. Coverage includes legacy hash replay,
+  preservation of amount/date/category/product, idempotent repair, tenant isolation,
+  unauthorized/device rejection and exclusion from expense metrics/CSV. 87 UI
+  tests, lint (same 9 warnings) and production build passed.
+- Browser verification: built UI → packaged API → fresh PostgreSQL passed in
+  headless Edge at 1440px and 390px. Two synthetic legacy repayments were repaired
+  explicitly; history/count/hash were preserved, totals refreshed and expense
+  ranking/CSV excluded them. Anonymous, foreign-ID and ordinary-expense attempts
+  were rejected. Screenshots inspected; no horizontal overflow. Temporary browser,
+  API/HTTP servers and PostgreSQL stopped and removed. Doc links/diff checks passed.
+- Status: verified for isolated scope. No existing service restart or live
+  financial read/write performed. Next: deploy/restart the updated API, reload UI
+  and use `Es un pago de mi tarjeta` on the existing payment's detail. No migration.
+  Unrelated AGENTS.md and ui/index.html edits are preserved/excluded from commit
+  proposals; no agent staging, commit or push. UI/domain docs reflect the feature;
+  no debug code added and the standard `npm run dev` startup remains available.
+
+## Checkpoint: four Analysis improvements
 
 - Owner/scope: current chat; category drill-down, daily/cumulative chart, explicit
   period comparison and factual expense highlights, implemented sequentially.

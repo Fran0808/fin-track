@@ -35,6 +35,15 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
+Confirmed BCP own-card repayments use the existing internal-transfer flow and
+display `Pago de tarjeta propia` in transaction rows/detail, without a plus/minus
+sign. They remain in history but do not contribute to expenses, income or net
+flow. In the detail of an older BCP own-card payment still marked as an expense,
+click `Es un pago de mi tarjeta` to repair that one movement. The action calls the
+authenticated PATCH endpoint and refreshes all dashboard resources after success;
+failure leaves the expense unchanged and permits retry. No automatic repair runs
+on opening the UI. Deploy/restart the updated API before using this action.
+
 Analysis includes all expense categories for the selected period, with amounts,
 shares and counts ordered by spending. Null/blank categories appear together as
 `Sin categoría`. It uses the server aggregate, not the current transaction page;

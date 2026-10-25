@@ -68,6 +68,11 @@ public class TransactionController {
         return transactionService.updateClassification(id, request);
     }
 
+    @PatchMapping("/{id}/own-card-payment")
+    public TransactionResponse markOwnCardPayment(@PathVariable Long id) {
+        return transactionService.markOwnCardPayment(id);
+    }
+
     @GetMapping("/{id}/financial-instrument-suggestions")
     public List<FinancialInstrumentResponse> instrumentSuggestions(@PathVariable Long id) {
         return assignmentService.suggestions(id);

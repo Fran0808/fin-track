@@ -1,7 +1,7 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Transaction, PageResponse } from '../../types';
 import { STANDARD_CATEGORIES } from '../../types';
-import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
+import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel } from '../../utils';
 
 interface TransactionTableProps {
   pageData: PageResponse<Transaction> | null;
@@ -88,7 +88,7 @@ export function TransactionTable({ pageData, loading, periodName, onPageChange, 
                           )}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                          <span>{isIncome ? 'Entrada' : isTransfer ? 'Transferencia propia' : 'Gasto'}</span>
+                          <span>{getTransactionFlowLabel(transaction)}</span>
                         </div>
                       </div>
                     </div>
