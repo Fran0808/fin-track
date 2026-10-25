@@ -133,6 +133,11 @@ export function useFinance(userId: number) {
       startDate, endDate, allHistory: false });
   };
 
+  const showCategoryTransactions = (category: string | null, startDate: string, endDate: string) => {
+    setFilters({ page: 0, size: 10, flowType: 'EXPENSE', search: '', categoryGroup: category ?? '',
+      startDate, endDate, allHistory: false });
+  };
+
   return {
     summary: summaryResource.data,
     periodAnalytics: analyticsResource.data,
@@ -153,6 +158,7 @@ export function useFinance(userId: number) {
     handlePageChange,
     handleFilterChange,
     showMerchantTransactions,
+    showCategoryTransactions,
     triggerEmailSync,
     refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {

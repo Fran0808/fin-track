@@ -17,7 +17,22 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: compact native combo boxes
+## Current checkpoint: four Analysis improvements
+
+- Owner/scope: current chat; category drill-down, daily/cumulative chart, explicit
+  period comparison and factual expense highlights, implemented sequentially.
+- Step 1 verified: category and uncategorized drill-down preserve exact grouping,
+  dates, user, expense flow, paging and CSV. 260 backend tests including all four
+  persistence suites plus both migration regressions passed in disposable PostgreSQL;
+  76 UI tests, lint (same 9 warnings), production build and doc/diff checks passed.
+  Full built UI → packaged API → fresh PostgreSQL browser check passed in headless
+  Edge at desktop/mobile sizes for both named/uncategorized groups and CSV.
+  Temporary processes/fixtures stopped and removed before starting step 2.
+- Remaining: daily/cumulative chart, explicit comparison and expense highlights.
+  No live financial access, existing-service restart, agent commit or push.
+  The unrelated ui/index.html title change is preserved and excluded from staging patches.
+
+## Checkpoint: compact native combo boxes
 
 - Owner/scope: current chat; shared styled native pickers for CustomSelect and the
   two visible rule-category selects. Existing colors/type retained; selection uses

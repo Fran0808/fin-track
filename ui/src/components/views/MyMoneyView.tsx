@@ -10,9 +10,10 @@ interface MyMoneyViewProps {
   selectedYear: number;
   selectedMonth: number;
   onSelectMerchant?: (merchantName: string) => void;
+  onSelectCategory?: (category: string | null) => void;
 }
 
-export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant }: MyMoneyViewProps) {
+export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory }: MyMoneyViewProps) {
   const expense = analytics?.monthlyExpense ?? 0;
   const income = analytics?.monthlyIncome ?? 0;
   const net = income - expense;
@@ -58,13 +59,17 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
           : !analytics?.categoryBreakdown ? <p role="alert" className="py-10 text-sm text-muted">El desglose por categoría requiere la API actualizada.</p>
           : !analytics.categoryBreakdown.length ? <p className="py-10 text-sm text-muted">No hay gastos registrados en este período.</p>
           : <ol className="divide-y divide-line">
-            {analytics.categoryBreakdown.map(item => <li key={JSON.stringify(item.category)} className="py-4">
+            {analytics.categoryBreakdown.map(item => <li key={JSON.stringify(item.category)}>
+              <button type="button" disabled={loading || !onSelectCategory} onClick={() => onSelectCategory?.(item.category)}
+                aria-label={`Ver movimientos de la categoría ${item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}`}
+                className="group block w-full rounded-lg py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-default">
               <div className="flex items-center justify-between gap-4 text-sm">
-                <span className="min-w-0 break-words font-semibold">{item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}</span>
+                <span className="min-w-0 break-words font-semibold text-brand group-hover:underline">{item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}</span>
                 <span className="font-num shrink-0 font-semibold">{formatCurrency(item.amount)}</span>
               </div>
               <div className="mt-2.5 h-1.5 rounded-full bg-canvas" aria-hidden="true"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }} /></div>
               <div className="font-num mt-2 flex justify-between text-xs text-muted"><span>{item.count} {item.count === 1 ? 'gasto' : 'gastos'}</span><span>{item.percentage.toFixed(1)}% del gasto</span></div>
+              </button>
             </li>)}
           </ol>}
       </section>

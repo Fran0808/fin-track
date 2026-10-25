@@ -99,6 +99,14 @@ the same filter. Deploy API and UI together.
 
 ## Transaction classification
 
+Category drill-down adds optional `categoryGroup` to transaction listing and CSV.
+It matches the stored category after trimming, case-sensitively, exactly as the
+analytics grouping does. Empty string selects null/blank categories; omission
+removes the restriction. The existing `category` filter keeps its prior behavior.
+Successful responses expose `X-Fintrack-Category-Filter: APPLIED` (or `NONE`);
+the client checks acknowledgment to avoid unfiltered results from an older API.
+User ownership, dates, expense flow, paging and CSV retain the analysis scope.
+
 `PATCH /transactions/{id}/classification` accepts category names up to 100 characters.
 New assignments must match an active category in the authenticated user's catalog
 (case-insensitive). Invalid assignments return HTTP 400 with a Spanish `message`.

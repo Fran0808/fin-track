@@ -72,6 +72,7 @@ export function TransactionsView({
       <section className="surface overflow-hidden" aria-label="Listado de movimientos">
         <div className="border-b border-line px-5 py-5 sm:px-6">
           <TransactionFilters
+            categoryGroup={filters.categoryGroup}
             merchantName={filters.merchantName}
             search={filters.search || ''}
             flowType={filters.flowType || ''}
@@ -87,6 +88,7 @@ export function TransactionsView({
             onReset={() =>
               onFilterChange({
                 merchantName: undefined,
+                categoryGroup: undefined,
                 search: '',
                 flowType: '',
                 category: '',

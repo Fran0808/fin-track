@@ -101,6 +101,7 @@ public class TransactionController {
             @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(required = false) PendingReason pendingReason,
             @RequestParam(required = false) String merchantName,
+            @RequestParam(required = false) String categoryGroup,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
@@ -111,10 +112,11 @@ public class TransactionController {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         Page<TransactionResponse> result = transactionService.getTransactions(
-                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName, pageable
+                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup, pageable
         );
         return ResponseEntity.ok().header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name())
-                .header("X-Fintrack-Merchant-Filter", merchantName == null ? "NONE" : "APPLIED").body(result);
+                .header("X-Fintrack-Merchant-Filter", merchantName == null ? "NONE" : "APPLIED")
+                .header("X-Fintrack-Category-Filter", categoryGroup == null ? "NONE" : "APPLIED").body(result);
     }
 
     @GetMapping("/export")
@@ -129,18 +131,20 @@ public class TransactionController {
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(required = false) PendingReason pendingReason,
-            @RequestParam(required = false) String merchantName
+            @RequestParam(required = false) String merchantName,
+            @RequestParam(required = false) String categoryGroup
     ) {
         if (financialInstrumentId != null) {
             instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
         }
         byte[] csvBytes = transactionService.exportTransactionsCsv(
-                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName
+                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup
         );
         String filename = "fintrack_movimientos_" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()
                 .header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name())
                 .header("X-Fintrack-Merchant-Filter", merchantName == null ? "NONE" : "APPLIED")
+                .header("X-Fintrack-Category-Filter", categoryGroup == null ? "NONE" : "APPLIED")
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(csvBytes);

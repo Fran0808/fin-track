@@ -28,6 +28,15 @@ it('shows category amounts, shares and uncategorized expenses', () => {
   expect(within(section).getByText('20.0% del gasto')).toBeDefined();
 });
 
+it('opens category groups using their actual value, including null for uncategorized', () => {
+  const select = vi.fn();
+  render(<MyMoneyView analytics={analytics} loading={false} selectedYear={2026} selectedMonth={1} onSelectCategory={select} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de la categoría Comida' }));
+  expect(select).toHaveBeenLastCalledWith('Comida');
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de la categoría Sin categoría' }));
+  expect(select).toHaveBeenLastCalledWith(null);
+});
+
 it('distinguishes loading, empty data and an older API', () => {
   const view = render(<MyMoneyView analytics={null} loading selectedYear={2026} selectedMonth={1} />);
   expect(screen.getByText('Calculando categorías...')).toBeDefined();

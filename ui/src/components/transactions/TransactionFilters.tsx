@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
 import type { FlowType, PendingReason } from '../../types';
+import { STANDARD_CATEGORIES } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
 import { CustomSelect } from '../common';
 import { TransactionDateFilter } from './TransactionDateFilter';
 
 interface TransactionFiltersProps {
+  categoryGroup?: string;
   merchantName?: string;
   search: string;
   flowType: FlowType | '';
@@ -39,6 +41,7 @@ const CHANNEL_OPTIONS = [
 ];
 
 export function TransactionFilters({
+  categoryGroup,
   merchantName,
   search,
   flowType,
@@ -76,10 +79,14 @@ export function TransactionFilters({
     maxAmount !== undefined && maxAmount !== null && !isNaN(maxAmount) ? maxAmount : '',
   ].filter(value => value !== '' && value !== undefined && value !== null).length;
 
-  const hasAnyFilter = Boolean(merchantName !== undefined || localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
+  const hasAnyFilter = Boolean(categoryGroup !== undefined || merchantName !== undefined || localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
 
   return (
     <div className="space-y-4">
+      {categoryGroup !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
+        <span className="min-w-0 break-words">Categoría: <strong>{categoryGroup ? STANDARD_CATEGORIES.find(item => item.id === categoryGroup)?.label ?? categoryGroup : 'Sin categoría'}</strong></span>
+        <button type="button" onClick={() => onFilterChange({ categoryGroup: undefined })} aria-label="Quitar filtro de categoría" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
+      </div>}
       {merchantName !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
         <span className="min-w-0 break-words">Comercio: <strong>{merchantName || 'Sin nombre'}</strong></span>
         <button type="button" onClick={() => onFilterChange({ merchantName: undefined })} aria-label="Quitar filtro de comercio" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
@@ -192,7 +199,7 @@ export function TransactionFilters({
               <div className="mt-1.5">
                 <CustomSelect
                   id="filter-category"
-                  disabled={pendingReason === 'CATEGORY'}
+                  disabled={pendingReason === 'CATEGORY' || categoryGroup !== undefined}
                   value={category}
                   onChange={(val) => onFilterChange({ category: val })}
                   options={[

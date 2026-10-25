@@ -57,6 +57,26 @@ it('allows restricting all-history review back to a month or date', () => {
   expect(change).toHaveBeenLastCalledWith({ allHistory: true, startDate: undefined, endDate: undefined });
 });
 
+it('opens category expenses with analysis dates and resets conflicting filters', async () => {
+  vi.spyOn(api, 'getTransactions').mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0, first: true, last: true, empty: true });
+  const { result } = renderHook(() => useFinance(1));
+  act(() => result.current.handleFilterChange({ merchantName: 'Old', category: 'Old', minAmount: 1000, allHistory: true }));
+  act(() => result.current.showCategoryTransactions(null, '2026-10-01T00:00:00', '2026-10-24T23:59:59.999999'));
+  expect(result.current.transactionFilters).toEqual({ page: 0, size: 10, flowType: 'EXPENSE', search: '', categoryGroup: '', allHistory: false,
+    startDate: '2026-10-01T00:00:00', endDate: '2026-10-24T23:59:59.999999' });
+  act(() => result.current.handlePageChange(1));expect(result.current.transactionFilters.categoryGroup).toBe('');
+  await waitFor(() => expect(api.getTransactions).toHaveBeenCalled());
+});
+
+it('serializes an empty category group for listing and CSV and refuses older servers', async () => {
+  const fetch = vi.fn().mockImplementation(async () => new Response('{}', { headers: { 'X-Fintrack-Category-Filter': 'APPLIED' } }));
+  vi.stubGlobal('fetch', fetch);await api.getTransactions({ categoryGroup: '' });await api.exportTransactionsCsv({ categoryGroup: '' });
+  for (const [url] of fetch.mock.calls) expect(new URL(url, 'http://localhost').searchParams.get('categoryGroup')).toBe('');
+  fetch.mockImplementation(async () => new Response('{}'));
+  await expect(api.getTransactions({ categoryGroup: '' })).rejects.toThrow('actualizarse');
+  await expect(api.exportTransactionsCsv({ categoryGroup: '' })).rejects.toThrow('actualizarse');
+});
+
 it('opens merchant expenses in the exact analysis interval and clears conflicting old filters', async () => {
   vi.spyOn(api, 'getTransactions').mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0, first: true, last: true, empty: true });
   const { result } = renderHook(() => useFinance(1));

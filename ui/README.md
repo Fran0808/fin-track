@@ -47,6 +47,12 @@ pagination starts at zero. The visible `Comercio` filter can be removed independ
 clearing all filters also restores the selected month. Paging and CSV retain the
 merchant/date scope. An older API lacking date bounds disables this shortcut.
 
+Category rows in Analysis also open their expenses, including `Sin categoría`.
+They retain the server's analysis dates, reset conflicting filters and start at
+page zero. The visible category-group filter can be removed; paging/CSV keep it.
+The advanced category selector is disabled while that group is active, preventing
+contradictory category selections. The API must support `categoryGroup`.
+
 The selected section is kept in the `vista` URL parameter, for example
 `?vista=movimientos` or `?vista=mi-dinero` (shown as `Análisis`). Reloading keeps
 that section, and browser Back/Forward follows section changes. Filters and the

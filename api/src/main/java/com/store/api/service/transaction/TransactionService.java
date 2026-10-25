@@ -235,10 +235,20 @@ public class TransactionService {
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
             Long financialInstrumentId, String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, String merchantName, Pageable pageable) {
+        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, category, channel,
+                minAmount, maxAmount, pendingReason, merchantName, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getTransactions(
+            LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
+            Long financialInstrumentId, String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
+            PendingReason pendingReason, String merchantName, String categoryGroup, Pageable pageable) {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         if (merchantName != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("contactName"), merchantName));
+        if (categoryGroup != null) spec = spec.and(categoryGroupSpecification(categoryGroup));
         return transactionRepository.findAll(spec, pageable).map(TransactionService::mapToResponse);
     }
 
@@ -272,10 +282,20 @@ public class TransactionService {
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
             Long financialInstrumentId, String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, String merchantName) {
+        return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId, category,
+                channel, minAmount, maxAmount, pendingReason, merchantName, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportTransactionsCsv(
+            LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
+            Long financialInstrumentId, String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
+            PendingReason pendingReason, String merchantName, String categoryGroup) {
         User currentUser = UserContext.requireCurrentUser();
         Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         if (merchantName != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("contactName"), merchantName));
+        if (categoryGroup != null) spec = spec.and(categoryGroupSpecification(categoryGroup));
         Sort sort = Sort.by(Sort.Direction.DESC, "transactionDate", "id");
         Page<Transaction> exportPage = transactionRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(0, 10001, sort));
         if (exportPage.getTotalElements() > 10000) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -300,6 +320,10 @@ public class TransactionService {
         }
 
         return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private Specification<Transaction> categoryGroupSpecification(String categoryGroup) {
+        return (root, query, cb) -> cb.equal(cb.trim(cb.coalesce(root.get("category"), "")), categoryGroup);
     }
 
     private static String escapeCsv(String value) {

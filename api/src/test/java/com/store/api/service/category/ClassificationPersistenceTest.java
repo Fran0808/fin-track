@@ -70,6 +70,30 @@ class ClassificationPersistenceTest {
                 .stream().map(item -> item.getId()).toList();
     }
 
+    @Test void categoryDrillDownMatchesTrimmedGroupAndUncategorizedWithoutMixingScopes() {
+        store(owner, "drill-trimmed", " Ocio ", FlowType.EXPENSE, null);
+        store(owner, "drill-exact", "Ocio", FlowType.EXPENSE, null);
+        store(owner, "drill-case", "ocio", FlowType.EXPENSE, null);
+        store(owner, "drill-blank", "  ", FlowType.EXPENSE, null);
+        store(owner, "drill-null", null, FlowType.EXPENSE, null);
+        store(owner, "drill-income", "Ocio", FlowType.INCOME, null);
+        store(owner, "drill-transfer", null, FlowType.INTERNAL_TRANSFER, null);
+        store(other, "drill-foreign", "Ocio", FlowType.EXPENSE, null);
+        Transaction old = store(owner, "drill-old", "Ocio", FlowType.EXPENSE, null);
+        old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 23, 59));transactions.saveAndFlush(old);
+        LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0), end = LocalDateTime.of(2026, 1, 1, 23, 59, 59);
+        for (String group : List.of("Ocio", "")) {
+            var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null, null,
+                    null, null, null, null, group, PageRequest.of(1, 1));
+            assertEquals(2, page.getTotalElements());assertEquals(1, page.getContent().size());
+            String csv = new String(service.exportTransactionsCsv(start, end, FlowType.EXPENSE, null,
+                    null, null, null, null, null, null, null, group), java.nio.charset.StandardCharsets.UTF_8);
+            assertEquals(3, csv.lines().count());assertFalse(csv.contains("drill-income"));
+            assertFalse(csv.contains("drill-transfer"));assertFalse(csv.contains("drill-foreign"));
+            assertFalse(csv.contains("drill-case"));assertFalse(csv.contains("drill-old"));
+        }
+    }
+
     @Test void exactMerchantFilterKeepsAnalysisScopeAcrossPagingAndCsv() {
         String name = "Literal %_ Shop";
         for (int index = 0; index < 3; index++) {

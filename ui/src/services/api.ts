@@ -60,6 +60,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export interface TransactionFilterParams {
+  categoryGroup?: string;
   merchantName?: string;
   financialInstrumentId?: number;
   page?: number;
@@ -85,6 +86,12 @@ function requireReviewFilter(response: Response, reason?: PendingReason | '') {
 function requireMerchantFilter(response: Response, merchantName?: string) {
   if (response.ok && merchantName !== undefined && response.headers.get('X-Fintrack-Merchant-Filter') !== 'APPLIED') {
     throw new Error('El servidor necesita actualizarse para filtrar por comercio.');
+  }
+}
+
+function requireCategoryFilter(response: Response, categoryGroup?: string) {
+  if (response.ok && categoryGroup !== undefined && response.headers.get('X-Fintrack-Category-Filter') !== 'APPLIED') {
+    throw new Error('El servidor necesita actualizarse para abrir los movimientos por categoría.');
   }
 }
 
@@ -156,6 +163,7 @@ export const api = {
     query.set('page', String(params.page ?? 0));
     query.set('size', String(params.size ?? 10));
     if (params.merchantName !== undefined) query.set('merchantName', params.merchantName);
+    if (params.categoryGroup !== undefined) query.set('categoryGroup', params.categoryGroup);
     if (params.pendingReason) query.set('pendingReason', params.pendingReason);
     if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
 
@@ -187,12 +195,14 @@ export const api = {
     const response = await fetchWithAuth(`${BASE_URL}/transactions?${query.toString()}`);
     requireReviewFilter(response, params.pendingReason);
     requireMerchantFilter(response, params.merchantName);
+    requireCategoryFilter(response, params.categoryGroup);
     return handleResponse<PageResponse<Transaction>>(response);
   },
 
   async exportTransactionsCsv(params: TransactionFilterParams = {}): Promise<Blob> {
     const query = new URLSearchParams();
     if (params.merchantName !== undefined) query.set('merchantName', params.merchantName);
+    if (params.categoryGroup !== undefined) query.set('categoryGroup', params.categoryGroup);
     if (params.pendingReason) query.set('pendingReason', params.pendingReason);
     if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
     if (params.flowType) query.set('flowType', params.flowType);
@@ -211,6 +221,7 @@ export const api = {
     const response = await fetchWithAuth(`${BASE_URL}/transactions/export?${query.toString()}`);
     requireReviewFilter(response, params.pendingReason);
     requireMerchantFilter(response, params.merchantName);
+    requireCategoryFilter(response, params.categoryGroup);
     if (!response.ok) {
       throw new Error(`Error al exportar transacciones: ${response.statusText}`);
     }
