@@ -11,8 +11,8 @@ $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if ($Plan) {
     Write-Output 'Check Java 21 (optional -JavaHome) and the installed PostgreSQL command-line tools.'
     Write-Output 'Create a new temporary PostgreSQL cluster on a free loopback port with private synthetic credentials.'
-    Write-Output 'Create four disposable suite databases and two disposable migration databases.'
-    Write-Output 'Run provenance/metadata migration regressions and Maven verify with all four persistence suites enabled and email scheduling disabled.'
+    Write-Output 'Create four disposable suite databases and three disposable migration databases.'
+    Write-Output 'Run provenance/metadata/operation migration regressions and Maven verify with all four persistence suites enabled and email scheduling disabled.'
     Write-Output 'Stop only the temporary cluster, remove its directory and restore process environment variables.'
     return
 }
@@ -77,7 +77,8 @@ try {
     $started = $true
     $provenanceDatabase = "fintrack_provenance_eval_$suffix"
     $metadataDatabase = "fintrack_metadata_eval_$suffix"
-    foreach ($database in @($databaseNames.Values) + @($provenanceDatabase, $metadataDatabase)) {
+    $operationsDatabase = "fintrack_operations_eval_$suffix"
+    foreach ($database in @($databaseNames.Values) + @($provenanceDatabase, $metadataDatabase, $operationsDatabase)) {
         Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'createdb.exe') -Arguments @(
             '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', $database)
     }
@@ -87,6 +88,9 @@ try {
     Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'psql.exe') -Arguments @(
         '-X', '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', '-v', 'ON_ERROR_STOP=1',
         '-d', $metadataDatabase, '-f', (Join-Path $root 'scripts/migrations/test_remove_transaction_metadata.sql'))
+    Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'psql.exe') -Arguments @(
+        '-X', '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', '-v', 'ON_ERROR_STOP=1',
+        '-d', $operationsDatabase, '-f', (Join-Path $root 'scripts/migrations/test_transaction_operation_type.sql'))
     Push-Location (Join-Path $root 'api')
     try {
         $arguments = @('verify', '-Dmail.sync.enabled=false', '-Dspring.jpa.show-sql=false')

@@ -16,12 +16,16 @@ summary field `netBalance` is this computed flow, not a bank balance. Internal
 transfers are reported separately. Period and all-history totals must be labeled
 according to their scope; do not combine them as if they cover the same dates.
 
-An explicitly confirmed payment of the user's own credit card is stored as
-`INTERNAL_TRANSFER`: purchases were already expenses when captured. Repayment
+An explicitly confirmed payment of the user's own credit card has
+`operationType=OWN_CARD_PAYMENT` and `flowType=INTERNAL_TRANSFER`: purchases were already expenses when captured. Repayment
 retains its positive amount and history but contributes to neither income nor
 expenses/net flow. This is not a live card balance or debt calculation. Card
-purchases and payments of third-party cards remain expenses. BCP recognition
-requires explicit own-card operation evidence, not just the word "card".
+purchases and payments of third-party cards remain expenses. Recognition in each
+provider adapter requires explicit own-card operation evidence, not just a bank,
+contact name or the word "card". `UNKNOWN` operation metadata preserves existing
+flow and does not mean that a movement is excluded from expenses. Historical
+rows default to `UNKNOWN`; an authenticated user can explicitly confirm ownership
+for their own expense/transfer without changing other users' records.
 Own-card BCP email hashes retain their legacy pre-fix flow input so reprocessing
 cannot create a second movement.
 

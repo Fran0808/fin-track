@@ -9,5 +9,6 @@ data class TransactionSyncDto(
     val channel: String = "YAPE",
     val transactionDate: String,
     val transactionHash: String,
-    val rawNotificationText: String? = null
+    val rawNotificationText: String? = null,
+    val operationType: String? = null
 )

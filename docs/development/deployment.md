@@ -85,6 +85,31 @@ Hibernate validation does not inspect every index/check: verify the unique
 The new code uses user-scoped processed-email keys in the existing column; old
 markers remain and emails can be re-read once, with movement hashes preserved.
 
+## Operation metadata rollout
+
+For an existing installation, apply
+[20261025_transaction_operation_type.sql](../../scripts/migrations/20261025_transaction_operation_type.sql)
+before starting the new API. It adds `operation_type` with default `UNKNOWN` and
+checks that `OWN_CARD_PAYMENT` uses neutral flow. It does not reclassify historical
+payments or change hashes/amounts/dates. It is repeatable for the expected prior
+schema; no automatic application at startup. Existing clients omitting the field
+remain compatible. The current empty-database initializer already includes it.
+
+With the intended host/database/user confirmed and backed up, supply their
+connection options privately and run from the root:
+
+```powershell
+psql -X -W -v ON_ERROR_STOP=1 -f scripts/migrations/20261025_transaction_operation_type.sql
+```
+
+Set explicit `-h`, `-p`, `-U`, `-d` options or the corresponding PostgreSQL
+connection environment variables for that target; do not rely on arbitrary
+defaults. Enter the password privately. Restart the updated API, reload the web UI, and confirm
+any known historical repayment through its detail. Old neutral transfers remain
+neutral even while their operation is `UNKNOWN`; this is not a reason to re-import
+emails or rewrite transaction hashes. Rolling back application code can retain
+the additional column; do not drop it and lose explicit confirmations.
+
 ## Reliability and limits
 
 Authenticated email ingestion requires that user's Google authorization. Global

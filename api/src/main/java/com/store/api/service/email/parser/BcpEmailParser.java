@@ -3,6 +3,7 @@ package com.store.api.service.email.parser;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 import com.store.api.model.enums.ChannelType;
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 import org.jsoup.Jsoup;
 import org.springframework.stereotype.Component;
 
@@ -93,7 +94,9 @@ public class BcpEmailParser implements BankEmailParser {
         // Keep the pre-fix hash input so replaying an old email cannot create a second movement.
         FlowType identityFlow = flowType;
         boolean ownCardPayment = OWN_CARD_PAYMENT_PATTERN.matcher(combined).find();
-        if (OWN_CARD_PAYMENT_CONFIRMATION_PATTERN.matcher(combined).find() && flowType == FlowType.EXPENSE) {
+        boolean confirmedOwnCardPayment = OWN_CARD_PAYMENT_CONFIRMATION_PATTERN.matcher(combined).find()
+                && flowType != FlowType.INCOME;
+        if (confirmedOwnCardPayment) {
             flowType = FlowType.INTERNAL_TRANSFER;
         }
 
@@ -167,6 +170,7 @@ public class BcpEmailParser implements BankEmailParser {
                 .amount(amount)
                 .currency(currency)
                 .flowType(flowType)
+                .operationType(confirmedOwnCardPayment ? OperationType.OWN_CARD_PAYMENT : OperationType.UNKNOWN)
                 .merchantName(merchant)
                 .channel(channel)
                 .cardLast4(cardLast4)

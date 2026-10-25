@@ -1,4 +1,5 @@
 export type FlowType = 'INCOME' | 'EXPENSE' | 'INTERNAL_TRANSFER';
+export type OperationType = 'UNKNOWN' | 'OWN_CARD_PAYMENT';
 
 export type ChannelType =
   | 'TARJETA_CREDITO_BCP'
@@ -13,6 +14,7 @@ export interface Transaction {
   financialInstrument?: FinancialInstrument | null;
   amount: number;
   flowType: FlowType;
+  operationType?: OperationType | null;
   contactName: string;
   channel: ChannelType | string;
   cardLast4?: string;

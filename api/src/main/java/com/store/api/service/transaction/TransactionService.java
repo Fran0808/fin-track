@@ -9,6 +9,7 @@ import com.store.api.model.entity.RawNotificationLog;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.service.category.ClassificationRuleService;
 import com.store.api.repository.RawNotificationRepository;
@@ -51,6 +52,11 @@ public class TransactionService {
     @Transactional
     public TransactionResponse processAndSave(@NotNull @Valid TransactionSyncRequest request) {
         User currentUser = UserContext.requireCurrentUser();
+        OperationType operationType = request.getOperationType() == null ? OperationType.UNKNOWN : request.getOperationType();
+        if (operationType == OperationType.OWN_CARD_PAYMENT && request.getFlowType() != FlowType.INTERNAL_TRANSFER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El pago de tarjeta propia debe registrarse sin efecto en gastos ni entradas.");
+        }
         String channel = (request.getChannel() != null && !request.getChannel().isBlank())
                 ? request.getChannel().trim()
                 : "UNKNOWN";
@@ -63,6 +69,7 @@ public class TransactionService {
                 .user(currentUser)
                 .amount(request.getAmount())
                 .flowType(request.getFlowType())
+                .operationType(operationType)
                 .contactName(request.getContactName().trim())
                 .channel(channel)
                 .cardLast4(request.getCardLast4())
@@ -127,13 +134,11 @@ public class TransactionService {
         User user = UserContext.requireCurrentUser();
         Transaction tx = transactionRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movimiento no encontrado."));
-        // Only the explicit legacy BCP own-card marker is eligible for this repair.
-        if (!"Pago Tarjeta Crédito BCP".equals(tx.getContactName())
-                || !List.of("TARJETA_CREDITO_BCP", "TARJETA_DEBITO_BCP", "BCP_TRANSFERENCIA", "YAPE").contains(tx.getChannel())
-                || (tx.getFlowType() != FlowType.EXPENSE && tx.getFlowType() != FlowType.INTERNAL_TRANSFER)) {
+        if (tx.getFlowType() != FlowType.EXPENSE && tx.getFlowType() != FlowType.INTERNAL_TRANSFER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Este movimiento no se reconoce como un pago de tarjeta propia.");
+                    "Una entrada no puede marcarse como pago de tarjeta propia.");
         }
+        tx.setOperationType(OperationType.OWN_CARD_PAYMENT);
         tx.setFlowType(FlowType.INTERNAL_TRANSFER);
         // Preserve the stored hash, amount, date, category and product assignment.
         return mapToResponse(transactionRepository.save(tx));
@@ -357,6 +362,7 @@ public class TransactionService {
                 .financialInstrument(FinancialInstrumentResponse.from(t.getFinancialInstrument()))
                 .amount(t.getAmount())
                 .flowType(t.getFlowType())
+                .operationType(t.getOperationType())
                 .contactName(t.getContactName())
                 .channel(t.getChannel())
                 .cardLast4(t.getCardLast4())

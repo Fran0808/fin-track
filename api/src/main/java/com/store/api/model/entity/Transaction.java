@@ -1,6 +1,7 @@
 package com.store.api.model.entity;
 
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "transactions", indexes = {
         @Index(name = "idx_tx_hash_user", columnList = "transaction_hash, user_id", unique = true),
         @Index(name = "idx_tx_date", columnList = "transaction_date"),
@@ -37,6 +39,10 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     @Column(name = "flow_type", nullable = false, length = 20)
     private FlowType flowType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operation_type", nullable = false, length = 32)
+    @Builder.Default
+    private OperationType operationType = OperationType.UNKNOWN;
     @Column(name = "contact_name", nullable = false, length = 150)
     private String contactName;
     @Column(name = "channel", nullable = false, length = 50)

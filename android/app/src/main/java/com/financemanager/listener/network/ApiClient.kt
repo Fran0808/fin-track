@@ -21,7 +21,7 @@ interface ApiService {
     ): Response<PairingVerifyDto>
 }
 
-data class SyncReceipt(val transactionHash: String)
+data class SyncReceipt(val transactionHash: String, val operationType: String? = null)
 
 object ApiClient {
     private var customBaseUrl: String? = null

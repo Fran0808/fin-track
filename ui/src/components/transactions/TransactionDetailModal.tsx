@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
-import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isBcpOwnCardPayment } from '../../utils';
+import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment, canConfirmOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
@@ -29,6 +29,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isRepairing, setIsRepairing] = useState(false);
   const [repairError, setRepairError] = useState<string | null>(null);
+  const [confirmingOwnCardPayment, setConfirmingOwnCardPayment] = useState(false);
   const busy = isSaving || isRepairing;
 
   const handleOwnCardPayment = async () => {
@@ -37,6 +38,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     try {
       const updated = await api.markOwnCardPayment(transaction.id);
       onUpdated?.(updated);
+      setConfirmingOwnCardPayment(false);
     } catch (err) {
       setRepairError(err instanceof Error ? err.message : 'No se pudo corregir el pago de tarjeta.');
     } finally {
@@ -75,7 +77,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const isIncome = transaction.flowType === 'INCOME';
   const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
   const flowLabel = getTransactionFlowLabel(transaction);
-  const ownCardPayment = isBcpOwnCardPayment(transaction);
+  const ownCardPayment = isOwnCardPayment(transaction);
 
   return (
     <dialog
@@ -99,14 +101,19 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         </p>
         <p className="mt-2 text-base font-medium">{transaction.contactName || 'Movimiento'}</p>
         {ownCardPayment && isTransfer && <p role="status" className="mt-2 text-sm text-muted">No suma gastos ni entradas y no afecta el flujo neto.</p>}
-        {ownCardPayment && transaction.flowType === 'EXPENSE' && onUpdated && (
+        {canConfirmOwnCardPayment(transaction) && onUpdated && (
           <div className="mt-4 border-l-2 border-brand pl-3">
-            <p className="text-sm text-muted">Si pagaste tu propia tarjeta, este movimiento no debe sumarse de nuevo como gasto.</p>
-            <button type="button" disabled={busy} onClick={() => void handleOwnCardPayment()}
+            {!confirmingOwnCardPayment ? <button type="button" disabled={busy} onClick={() => setConfirmingOwnCardPayment(true)}
+              className="text-sm font-semibold text-brand hover:underline disabled:opacity-50">Es un pago de mi tarjeta</button> : <>
+            <p id="own-card-payment-confirmation" className="text-sm text-muted">Confirma que pagaste una tarjeta de crédito propia. Las compras y los pagos a tarjetas de otras personas deben mantenerse como gastos.</p>
+            <button type="button" disabled={busy} aria-describedby="own-card-payment-confirmation" onClick={() => void handleOwnCardPayment()}
               className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline disabled:opacity-50">
               {isRepairing && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isRepairing ? 'Corrigiendo pago…' : 'Es un pago de mi tarjeta'}
+              {isRepairing ? 'Guardando…' : 'Confirmar pago de mi tarjeta'}
             </button>
+            <button type="button" disabled={busy} onClick={() => { setConfirmingOwnCardPayment(false); setRepairError(null); }}
+              className="ml-4 mt-2 text-sm text-muted hover:underline disabled:opacity-50">Cancelar</button>
+            </>}
             {repairError && <p role="alert" className="mt-2 text-sm text-negative">{repairError}</p>}
           </div>
         )}

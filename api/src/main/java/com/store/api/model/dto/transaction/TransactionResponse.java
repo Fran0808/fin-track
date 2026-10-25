@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class TransactionResponse {
     private FinancialInstrumentResponse financialInstrument;
     private BigDecimal amount;
     private FlowType flowType;
+    private OperationType operationType;
     private String contactName;
     private String channel;
     private String cardLast4;

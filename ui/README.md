@@ -35,14 +35,19 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
-Confirmed BCP own-card repayments use the existing internal-transfer flow and
+Confirmed own-card repayments use normalized `operationType=OWN_CARD_PAYMENT`
+and the existing internal-transfer flow, independently of provider/contact text, and
 display `Pago de tarjeta propia` in transaction rows/detail, without a plus/minus
 sign. They remain in history but do not contribute to expenses, income or net
-flow. In the detail of an older BCP own-card payment still marked as an expense,
-click `Es un pago de mi tarjeta` to repair that one movement. The action calls the
+flow. In the detail of an expense or transfer with operation type `UNKNOWN`,
+click `Es un pago de mi tarjeta`, check the ownership explanation and confirm (or
+cancel). This is available across providers, not only for old BCP records. The action calls the
 authenticated PATCH endpoint and refreshes all dashboard resources after success;
 failure leaves the expense unchanged and permits retry. No automatic repair runs
-on opening the UI. Deploy/restart the updated API before using this action.
+on opening the UI. An older API without operation metadata does not expose the
+action; the PATCH response must confirm both operation and neutral flow. Apply the
+[operation migration](../scripts/migrations/20261025_transaction_operation_type.sql),
+then deploy/restart the updated API before using this UI.
 
 Analysis includes all expense categories for the selected period, with amounts,
 shares and counts ordered by spending. Null/blank categories appear together as

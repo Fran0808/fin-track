@@ -113,6 +113,7 @@ public class EmailIngestionService {
                     TransactionSyncRequest req = new TransactionSyncRequest();
                     req.setAmount(parsed.getAmount());
                     req.setFlowType(parsed.getFlowType());
+                    req.setOperationType(parsed.getOperationType());
                     req.setContactName(parsed.getMerchantName());
                     req.setChannel(parsed.getChannel());
                     req.setCardLast4(parsed.getCardLast4());

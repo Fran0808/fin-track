@@ -1,6 +1,7 @@
 package com.store.api.model.dto.email;
 
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,8 @@ public class ParsedEmailTransaction {
     private BigDecimal amount;
     private String currency;
     private FlowType flowType;
+    @Builder.Default
+    private OperationType operationType = OperationType.UNKNOWN;
     private String merchantName;
     private String channel;
     private String cardLast4;

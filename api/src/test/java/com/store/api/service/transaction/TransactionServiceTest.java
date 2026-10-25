@@ -58,25 +58,29 @@ class TransactionServiceTest {
     }
 
     @Test
-    void cardPaymentRepairRequiresOwnershipAndDoesNotAcceptOrdinaryExpensesOrIncome() {
+    void cardPaymentConfirmationRequiresOwnershipAndRejectsIncomeIndependentlyOfProvider() {
         User user = User.builder().id(10L).build();
         UserContext.setCurrentUser(user);
         assertEquals(404, assertThrows(ResponseStatusException.class,
                 () -> service.markOwnCardPayment(99L)).getStatusCode().value());
-        Transaction tx = Transaction.builder().contactName("Ordinary purchase")
-                .flowType(FlowType.EXPENSE).channel("TARJETA_CREDITO_BCP").build();
+        Transaction tx = Transaction.builder().contactName("Unspecified operation")
+                .flowType(FlowType.INCOME).channel("EXAMPLE_WALLET").build();
         when(transactions.findByIdAndUser(1L, user)).thenReturn(Optional.of(tx));
         assertEquals(400, assertThrows(ResponseStatusException.class,
                 () -> service.markOwnCardPayment(1L)).getStatusCode().value());
-        tx.setContactName("Pago Tarjeta Crédito BCP");
-        tx.setFlowType(FlowType.INCOME);
-        assertEquals(400, assertThrows(ResponseStatusException.class,
-                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
-        tx.setFlowType(FlowType.EXPENSE);
-        tx.setChannel("UNKNOWN");
-        assertEquals(400, assertThrows(ResponseStatusException.class,
-                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
         verify(transactions, never()).save(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = FlowType.class, names = {"EXPENSE", "INCOME"})
+    void ingestionRejectsOwnCardPaymentsWithNonNeutralFlow(FlowType flow) {
+        UserContext.setCurrentUser(User.builder().id(10L).build());
+        var invalid = request();
+        invalid.setFlowType(flow);
+        invalid.setOperationType(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT);
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.processAndSave(invalid)).getStatusCode().value());
+        verifyNoInteractions(transactions, rawNotifications, rules);
     }
 
     @Test

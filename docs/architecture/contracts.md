@@ -46,14 +46,29 @@ Paths below are relative to `/api/v1`.
 
 ## Transaction ingestion payload
 
-Own-card repair accepts no body or user identifier. It resolves the authenticated
-web user's movement by ID (404 for absent/foreign IDs), requires the exact legacy
-`Pago Tarjeta Crédito BCP` contact plus a recognized BCP/Yape channel, and accepts
-only `EXPENSE` or already-corrected `INTERNAL_TRANSFER` (otherwise 400). It returns
-the standard transaction response, preserves amount/date/hash/category/product,
-and is idempotent. The UI offers it only after an explicit user click in a legacy
-payment's detail. Device credentials cannot call this endpoint. No schema change
-is required; the `FlowType` enum and Android payload are unchanged.
+`operationType` is provider-independent operation evidence, separate from the
+existing `flowType` and channel. Currently supported values are `UNKNOWN` (no
+specific evidence) and `OWN_CARD_PAYMENT` (requires `INTERNAL_TRANSFER`). Missing
+or null ingestion values become `UNKNOWN`; existing Android payloads remain valid.
+Contradictory own-payment/expense-or-income tuples and unknown enum values return
+400 before persistence. Responses expose the stored operation; retrying an old
+payload cannot erase an already-confirmed operation. Hash inputs are unchanged.
+Transaction updates write only changed fields, so a concurrent category/product
+edit cannot restore a stale operation type or flow over a confirmation.
+
+Own-card confirmation accepts no body or user identifier. It resolves the
+authenticated web user's movement by ID (404 for absent/foreign IDs), accepts
+`EXPENSE` or `INTERNAL_TRANSFER`, and rejects income with 400. The user explicitly
+confirms ownership; neither contact text, bank, channel nor assigned product is
+used to guess it. The endpoint sets `operationType=OWN_CARD_PAYMENT` and
+`flowType=INTERNAL_TRANSFER`, preserves amount/date/hash/category/product, and is
+idempotent. The UI offers this for `UNKNOWN` expenses/transfers, with a confirmation
+and cancel step before PATCH. Missing metadata from an older API disables this
+action; a successful response must confirm both operation and flow. Device
+credentials cannot call this endpoint. Apply the
+[operation migration](../../scripts/migrations/20261025_transaction_operation_type.sql)
+before deploying the updated API to an existing schema. CSV keeps its existing
+nine-column contract; flow-based filtering/export remains unchanged.
 
 The batch endpoint receives an array of the single-request object. Both endpoints
 currently return 201 with a transaction object or array, including when an existing
@@ -61,6 +76,7 @@ hash is returned instead of a new record.
 
 | Field | Current requirement |
 | --- | --- |
+| `operationType` | Optional `UNKNOWN` or `OWN_CARD_PAYMENT`; absent/null means `UNKNOWN`. Own-card payments require neutral `INTERNAL_TRANSFER` flow. |
 | `amount` | Required decimal number, `0.01`–`99999999.99`, at most two decimal places; direction is not encoded as a negative amount. |
 | `flowType` | Required `INCOME`, `EXPENSE` or `INTERNAL_TRANSFER`. |
 | `contactName` | Required nonblank string, at most 150 characters. |

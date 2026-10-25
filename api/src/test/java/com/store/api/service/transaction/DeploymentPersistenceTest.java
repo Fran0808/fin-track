@@ -44,6 +44,39 @@ class DeploymentPersistenceTest {
     @Autowired RawNotificationRepository rawLogs;
     @Autowired com.store.api.repository.GoogleOAuthTokenRepository googleTokens;
     @Autowired com.store.api.service.auth.GoogleOAuthService google;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    @Test void concurrentCategoryEditCannotEraseAnExplicitOperationConfirmation() throws Exception {
+        User owner = user();
+        UserContext.setCurrentUser(owner);
+        Long id;
+        try { id = service.processAndSave(request("operation-concurrency")).getId(); }
+        finally { UserContext.clear(); }
+        CountDownLatch loaded = new CountDownLatch(1);
+        CountDownLatch confirmed = new CountDownLatch(1);
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            var edit = executor.submit(() -> new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+                    .execute(status -> {
+                        var stale = transactions.findByIdAndUser(id, owner).orElseThrow();
+                        loaded.countDown();
+                        try { assertTrue(confirmed.await(10, TimeUnit.SECONDS)); }
+                        catch (InterruptedException ex) { Thread.currentThread().interrupt(); throw new RuntimeException(ex); }
+                        stale.setCategory("Synthetic category");
+                        transactions.saveAndFlush(stale);
+                        return true;
+                    }));
+            assertTrue(loaded.await(10, TimeUnit.SECONDS));
+            UserContext.setCurrentUser(owner);
+            try { service.markOwnCardPayment(id); }
+            finally { UserContext.clear(); confirmed.countDown(); }
+            assertTrue(edit.get(20, TimeUnit.SECONDS));
+        }
+        var persisted = transactions.findByIdAndUser(id, owner).orElseThrow();
+        assertEquals(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT, persisted.getOperationType());
+        assertEquals(FlowType.INTERNAL_TRANSFER, persisted.getFlowType());
+        assertEquals("Synthetic category", persisted.getCategory());
+        assertEquals("operation-concurrency", persisted.getTransactionHash());
+    }
 
     @Test void syncMetadataCannotMoveCursorBackwardOrOverwriteItWithStatus() {
         User owner = user();

@@ -1,6 +1,7 @@
 package com.store.api.model.dto.transaction;
 
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.OperationType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,6 +25,9 @@ public class TransactionSyncRequest {
 
     @NotNull(message = "Flow type (INCOME or EXPENSE) is required")
     private FlowType flowType;
+
+    // Optional for older device clients; absence/null means no operation evidence.
+    private OperationType operationType;
 
     @NotBlank(message = "Contact name is required")
     @Size(max = 150)

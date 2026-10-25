@@ -78,6 +78,24 @@ class EmailIngestionServiceTest {
     }
 
     @Test
+    void forwardsNormalizedOperationEvidenceWithoutProviderSpecificRules() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        stubGmail(null, List.of(EmailMessageDto.builder().messageId("normalized-operation").body("Synthetic confirmation").build()));
+        when(parserDispatcher.dispatchAndParse(any(), any(), any(), any())).thenReturn(Optional.of(
+                ParsedEmailTransaction.builder().amount(new BigDecimal("81.25")).flowType(FlowType.INTERNAL_TRANSFER)
+                        .operationType(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT)
+                        .merchantName("Reference only").channel("EXAMPLE_WALLET")
+                        .transactionDate(LocalDateTime.of(2026, 1, 1, 12, 0)).transactionHash("normalized-hash").build()));
+        when(transactionService.processAndSave(any())).thenReturn(TransactionResponse.builder().id(1L).build());
+        assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
+        verify(transactionService).processAndSave(argThat(request ->
+                request.getOperationType() == com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT
+                        && request.getFlowType() == FlowType.INTERNAL_TRANSFER
+                        && "EXAMPLE_WALLET".equals(request.getChannel())
+                        && "normalized-hash".equals(request.getTransactionHash())));
+    }
+
+    @Test
     void shouldMarkTheSurveyProcessedWithoutSavingATransaction() {
         ReflectionTestUtils.setField(emailIngestionService, "parserDispatcher",
                 new BankEmailParserDispatcher(List.of(new YapeEmailParser(), new BcpEmailParser())));

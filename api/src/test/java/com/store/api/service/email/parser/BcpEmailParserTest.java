@@ -214,6 +214,7 @@ class BcpEmailParserTest {
         assertEquals("PEN", tx.getCurrency());
         assertEquals(FlowType.INTERNAL_TRANSFER, tx.getFlowType());
         assertEquals("Pago Tarjeta Crédito BCP", tx.getMerchantName());
+        assertEquals(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT, tx.getOperationType());
         assertEquals("1111", tx.getCardLast4());
         String legacyInput = "EXPENSE_81.25_pago tarjeta crédito bcp_202609260819_20260926";
         String legacyHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
@@ -240,6 +241,7 @@ class BcpEmailParserTest {
                 "Monto pagado: S/ 81.25 Beneficiario: Persona Prueba", LocalDateTime.now());
         assertNotNull(thirdParty);
         assertEquals(FlowType.EXPENSE, thirdParty.getFlowType());
+        assertEquals(com.store.api.model.enums.OperationType.UNKNOWN, thirdParty.getOperationType());
         var purchaseWithReminder = parser.parse("Aviso de operación: Consumo con Tarjeta de Crédito",
                 "Realizaste un consumo de S/ 81.25. Recuerda realizar el pago a tu tarjeta a tiempo.", LocalDateTime.now());
         assertNotNull(purchaseWithReminder);
