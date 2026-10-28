@@ -16,4 +16,6 @@ public class GoogleAuthStatusResponse {
     private String email;
     private Instant lastSuccessfulSyncAt;
     private boolean lastSyncFailed;
+    private Instant lastSyncAttemptAt;
+    private com.store.api.model.enums.EmailSyncFailure lastSyncFailureCode;
 }

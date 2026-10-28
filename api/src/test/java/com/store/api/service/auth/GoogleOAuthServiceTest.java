@@ -73,6 +73,52 @@ class GoogleOAuthServiceTest {
         verifyNoInteractions(tokens);
     }
 
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"401,AUTH_REQUIRED", "429,RATE_LIMITED", "503,TEMPORARY", "400,UNKNOWN", "400,AUTH_REQUIRED"})
+    void failedCredentialRefreshRetainsSafeCauseInsteadOfClaimingEveryFailureNeedsReauthorization(
+            int status, com.store.api.model.enums.EmailSyncFailure expected) {
+        UserContext.setCurrentUser(User.builder().id(10L).build());
+        when(tokens.findByUserId(10L)).thenReturn(Optional.of(GoogleOAuthToken.builder()
+                .accessToken("synthetic-expired-access").refreshToken("synthetic-refresh")
+                .expiresAt(LocalDateTime.now().minusHours(1)).build()));
+        var builder = org.springframework.web.client.RestClient.builder();
+        var server = org.springframework.test.web.client.MockRestServiceServer.bindTo(builder).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "restClient", builder.build());
+        server.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("https://oauth2.googleapis.com/token"))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(org.springframework.http.HttpStatus.valueOf(status)).body(
+                                status == 400 && expected == com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED
+                                        ? "{\"error\":\"invalid_grant\"}" : "private provider text"));
+        var error = assertThrows(com.store.api.service.email.EmailSyncException.class, service::getValidAccessToken);
+        assertEquals(expected, error.getFailure());
+        assertFalse(error.toString().contains("private provider text"));
+        verify(tokens, never()).save(any());
+        server.verify();
+    }
+
+    @Test void recordsSafeFailureAndClearsItAfterRecovery() {
+        UserContext.setCurrentUser(User.builder().id(10L).build());
+        service.recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.PROCESSING);
+        service.recordSyncResult(true, com.store.api.model.enums.EmailSyncFailure.TEMPORARY);
+        verify(tokens).recordSyncResult(eq(10L), eq(true), any(), eq(com.store.api.model.enums.EmailSyncFailure.PROCESSING));
+        verify(tokens).recordSyncResult(eq(10L), eq(false), any(), isNull());
+    }
+
+    @Test void statusIncludesOnlyOwnedMetadataWithoutRefreshingCredentials() {
+        UserContext.setCurrentUser(User.builder().id(10L).build());
+        when(tokens.findByUserId(10L)).thenReturn(Optional.of(GoogleOAuthToken.builder()
+                .email("owner@example.test").lastSyncFailed(true)
+                .lastSyncAttemptAt(java.time.Instant.parse("2026-10-27T12:00:00Z"))
+                .lastSyncFailureCode(com.store.api.model.enums.EmailSyncFailure.TEMPORARY).build()));
+        var result = service.getStatus();
+        assertTrue(result.isLastSyncFailed());
+        assertEquals(com.store.api.model.enums.EmailSyncFailure.TEMPORARY, result.getLastSyncFailureCode());
+        assertNotNull(result.getLastSyncAttemptAt());
+        assertNull(result.getLastSuccessfulSyncAt());
+        verify(tokens).findByUserId(10L);
+        verifyNoMoreInteractions(tokens);
+    }
+
     @Test
     void googleCredentialsAreResolvedOnlyForTheCurrentUser() {
         UserContext.setCurrentUser(User.builder().id(10L).build());

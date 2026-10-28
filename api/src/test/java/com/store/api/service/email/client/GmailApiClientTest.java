@@ -35,6 +35,20 @@ class GmailApiClientTest {
         ReflectionTestUtils.setField(client, "restClient", builder.build());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"401,AUTH_REQUIRED", "403,ACCESS_DENIED", "429,RATE_LIMITED", "503,TEMPORARY", "400,UNKNOWN"})
+    void exposesOnlySafeFailureCodes(int status, com.store.api.model.enums.EmailSyncFailure expected) {
+        server.expect(requestTo(startsWith("https://gmail.googleapis.com/gmail/v1/users/me/messages?")))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(org.springframework.http.HttpStatus.valueOf(status)).body("private provider text"));
+        var error = assertThrows(com.store.api.service.email.EmailSyncException.class,
+                () -> client.fetchFinancialEmails("synthetic-token", 20));
+        assertEquals(expected, error.getFailure());
+        org.junit.jupiter.api.Assertions.assertFalse(error.toString().contains("private provider text"));
+        org.junit.jupiter.api.Assertions.assertNull(error.getCause());
+        server.verify();
+    }
+
     @Test
     void shouldNotInventABankSenderWhenFromIsMissing() {
         expectMessage("{\"name\":\"Subject\",\"value\":\"Constancia de transferencia BCP\"}");

@@ -228,7 +228,18 @@ public class GoogleOAuthService {
             return Optional.of(newAccessToken);
         } catch (Exception ex) {
             log.warn("Google access token could not be refreshed");
-            return Optional.empty();
+            var failure = com.store.api.service.email.EmailSyncException.classify(ex);
+            if (ex instanceof org.springframework.web.client.RestClientResponseException response
+                    && response.getStatusCode().value() == 400) {
+                try {
+                    if ("invalid_grant".equals(objectMapper.readTree(response.getResponseBodyAsString()).path("error").asText())) {
+                        failure = com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED;
+                    }
+                } catch (Exception ignored) {
+                    // An unrecognized provider response remains an unknown failure.
+                }
+            }
+            throw new com.store.api.service.email.EmailSyncException(failure);
         }
     }
 
@@ -244,6 +255,8 @@ public class GoogleOAuthService {
                     .email(tokenOpt.get().getEmail())
                     .lastSuccessfulSyncAt(tokenOpt.get().getLastSuccessfulSyncAt())
                     .lastSyncFailed(Boolean.TRUE.equals(tokenOpt.get().getLastSyncFailed()))
+                    .lastSyncAttemptAt(tokenOpt.get().getLastSyncAttemptAt())
+                    .lastSyncFailureCode(tokenOpt.get().getLastSyncFailureCode())
                     .build();
         }
         return GoogleAuthStatusResponse.builder()
@@ -273,7 +286,13 @@ public class GoogleOAuthService {
 
     @Transactional
     public void recordSyncResult(boolean success) {
-        tokenRepository.recordSyncResult(UserContext.requireCurrentUser().getId(), !success, Instant.now());
+        recordSyncResult(success, success ? null : com.store.api.model.enums.EmailSyncFailure.UNKNOWN);
+    }
+
+    @Transactional
+    public void recordSyncResult(boolean success, com.store.api.model.enums.EmailSyncFailure failure) {
+        tokenRepository.recordSyncResult(UserContext.requireCurrentUser().getId(), !success, Instant.now(),
+                success ? null : (failure == null ? com.store.api.model.enums.EmailSyncFailure.UNKNOWN : failure));
     }
 
     @Transactional

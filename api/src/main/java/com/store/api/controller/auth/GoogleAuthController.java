@@ -105,7 +105,7 @@ public class GoogleAuthController {
 
     @GetMapping("/status")
     public ResponseEntity<GoogleAuthStatusResponse> getStatus() {
-        return ResponseEntity.ok(googleOAuthService.getStatus());
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(googleOAuthService.getStatus());
     }
 
     @PostMapping("/disconnect")

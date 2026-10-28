@@ -79,13 +79,16 @@ public class EmailIngestionService {
                     msg -> processMessage(msg, progress)
             );
             if (progress.errors == 0 && progress.maxDate > 0) googleOAuthService.updateLastSyncedInternalDate(progress.maxDate);
-            googleOAuthService.recordSyncResult(progress.errors == 0);
+            googleOAuthService.recordSyncResult(progress.errors == 0, progress.errors == 0 ? null : com.store.api.model.enums.EmailSyncFailure.PROCESSING);
             return EmailSyncResponse.builder().status(progress.errors == 0 ? "SUCCESS" : "PARTIAL")
                     .scannedCount(progress.scanned).processedInBatch(progress.scanned).savedCount(progress.saved)
                     .transactions(progress.transactions).message(progress.errors == 0
                             ? "Emails synchronized successfully" : "Some email messages could not be processed").build();
         } catch (RuntimeException ex) {
-            googleOAuthService.recordSyncResult(false);
+            var failure = ex instanceof org.springframework.web.server.ResponseStatusException status
+                    && status.getStatusCode().value() == 409 ? com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED
+                    : com.store.api.service.email.EmailSyncException.classify(ex);
+            googleOAuthService.recordSyncResult(false, failure);
             throw ex;
         }
     }

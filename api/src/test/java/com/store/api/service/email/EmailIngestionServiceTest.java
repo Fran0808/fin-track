@@ -178,7 +178,7 @@ class EmailIngestionServiceTest {
 
         verify(processedEmailRepository, times(1)).save(any());
         verify(googleOAuthService, times(1)).updateLastSyncedInternalDate(1700000060000L);
-        verify(googleOAuthService).recordSyncResult(true);
+        verify(googleOAuthService).recordSyncResult(true, null);
     }
 
     @Test
@@ -196,7 +196,7 @@ class EmailIngestionServiceTest {
         assertEquals(0, response.getSavedCount());
         verify(processedEmailRepository, never()).save(any());
         verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
-        verify(googleOAuthService).recordSyncResult(true);
+        verify(googleOAuthService).recordSyncResult(true, null);
     }
 
     @Test
@@ -214,7 +214,7 @@ class EmailIngestionServiceTest {
         EmailSyncResponse response = emailIngestionService.syncEmails();
 
         assertEquals("PARTIAL", response.getStatus());
-        verify(googleOAuthService).recordSyncResult(false);
+        verify(googleOAuthService).recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.PROCESSING);
         verify(processedEmailRepository, never()).save(any());
         verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
     }
@@ -242,7 +242,7 @@ class EmailIngestionServiceTest {
                 .visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any());
         assertThrows(IllegalStateException.class, emailIngestionService::syncEmails);
         verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
-        verify(googleOAuthService).recordSyncResult(false);
+        verify(googleOAuthService).recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.UNKNOWN);
     }
 
     @Test

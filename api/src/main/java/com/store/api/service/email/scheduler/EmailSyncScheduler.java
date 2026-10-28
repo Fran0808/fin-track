@@ -31,11 +31,6 @@ public class EmailSyncScheduler {
         for (User user : connectedUsers) {
             UserContext.setCurrentUser(user);
             try {
-                if (!emailIngestionService.hasActiveConnection()) {
-                    googleOAuthService.recordSyncResult(false);
-                    log.warn("Background email synchronization skipped: connection unavailable");
-                    continue;
-                }
                 EmailSyncResponse response = emailIngestionService.syncEmails();
                 log.info("Scheduled email sync completed: scanned={}, saved={}", response.getScannedCount(), response.getSavedCount());
             } catch (Exception e) {

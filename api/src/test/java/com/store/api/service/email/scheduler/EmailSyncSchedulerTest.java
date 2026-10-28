@@ -27,7 +27,7 @@ class EmailSyncSchedulerTest {
         User first = User.builder().id(10L).email("first@example.test").build();
         User second = User.builder().id(20L).email("second@example.test").build();
         when(google.getConnectedUsers()).thenReturn(List.of(first, second));
-        when(ingestion.hasActiveConnection()).thenReturn(true);
+
         List<Long> syncedUsers = new ArrayList<>();
         when(ingestion.syncEmails()).thenAnswer(invocation -> {
             Long id = UserContext.requireCurrentUser().getId();

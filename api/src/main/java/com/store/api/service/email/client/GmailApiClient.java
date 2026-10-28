@@ -101,7 +101,7 @@ public class GmailApiClient {
             } while (pageToken != null);
         } catch (Exception ex) {
             log.warn("Gmail synchronization could not finish");
-            throw new IllegalStateException("Gmail synchronization could not finish");
+            throw new com.store.api.service.email.EmailSyncException(com.store.api.service.email.EmailSyncException.classify(ex));
         }
     }
 
