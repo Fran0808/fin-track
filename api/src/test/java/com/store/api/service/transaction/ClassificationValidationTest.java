@@ -21,7 +21,7 @@ class ClassificationValidationTest {
     private final TransactionRepository transactions = mock(TransactionRepository.class);
     private final CategoryRepository categories = mock(CategoryRepository.class);
     private final TransactionService service = new TransactionService(transactions,
-            mock(RawNotificationRepository.class), categories, mock(com.store.api.service.category.ClassificationRuleService.class));
+            mock(RawNotificationRepository.class), categories, mock(com.store.api.service.category.ClassificationRuleService.class), mock(com.store.api.repository.UserRepository.class));
     private final User owner = User.builder().id(1L).build();
 
     @AfterEach void clear() { UserContext.clear(); }

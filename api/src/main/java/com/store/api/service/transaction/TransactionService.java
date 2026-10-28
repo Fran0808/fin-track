@@ -50,10 +50,13 @@ public class TransactionService {
     private final RawNotificationRepository rawNotificationRepository;
     private final CategoryRepository categoryRepository;
     private final ClassificationRuleService classificationRules;
+    private final com.store.api.repository.UserRepository users;
 
     @Transactional
     public TransactionResponse processAndSave(@NotNull @Valid TransactionSyncRequest request) {
-        return saveCapture(request, CaptureOrigin.PHONE, null);
+        TransactionResponse response = saveCapture(request, CaptureOrigin.PHONE, null);
+        users.recordPhoneReception(UserContext.requireCurrentUser().getId(), java.time.Instant.now());
+        return response;
     }
 
     @Transactional

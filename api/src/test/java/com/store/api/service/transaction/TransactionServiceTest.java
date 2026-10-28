@@ -35,7 +35,7 @@ class TransactionServiceTest {
     private final RawNotificationRepository rawNotifications = mock(RawNotificationRepository.class);
     private final CategoryRepository categories = mock(CategoryRepository.class);
     private final com.store.api.service.category.ClassificationRuleService rules = mock(com.store.api.service.category.ClassificationRuleService.class);
-    private final TransactionService service = new TransactionService(transactions, rawNotifications, categories, rules);
+    private final TransactionService service = new TransactionService(transactions, rawNotifications, categories, rules, mock(com.store.api.repository.UserRepository.class));
 
     @AfterEach
     public void clearContext() {

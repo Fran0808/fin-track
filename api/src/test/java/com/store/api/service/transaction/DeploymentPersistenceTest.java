@@ -88,11 +88,62 @@ class DeploymentPersistenceTest {
             google.updateLastSyncedInternalDate(200L);
             google.updateLastSyncedInternalDate(100L);
             google.recordSyncResult(true);
-            google.recordSyncResult(false);
+            google.recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.PROCESSING);
             var token = googleTokens.findByUserId(owner.getId()).orElseThrow();
             assertEquals(200L, token.getLastSyncedInternalDate());
             assertTrue(token.getLastSyncFailed());
             assertNotNull(token.getLastSuccessfulSyncAt());
+            assertNotNull(token.getLastSyncAttemptAt());
+            assertEquals(com.store.api.model.enums.EmailSyncFailure.PROCESSING, token.getLastSyncFailureCode());
+            var successfulAt = token.getLastSuccessfulSyncAt();
+            google.recordSyncResult(true);
+            var recovered = googleTokens.findByUserId(owner.getId()).orElseThrow();
+            assertFalse(recovered.getLastSyncFailed());
+            assertNull(recovered.getLastSyncFailureCode());
+            assertFalse(recovered.getLastSuccessfulSyncAt().isBefore(successfulAt));
+            var transaction = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
+            var future = java.time.Instant.now().plusSeconds(60).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+            transaction.executeWithoutResult(status -> {
+                googleTokens.recordSyncResult(owner.getId(), true, future, com.store.api.model.enums.EmailSyncFailure.RATE_LIMITED);
+                googleTokens.recordSyncResult(owner.getId(), false, future.minusSeconds(1), null);
+            });
+            var ordered = googleTokens.findByUserId(owner.getId()).orElseThrow();
+            assertEquals(com.store.api.model.enums.EmailSyncFailure.RATE_LIMITED, ordered.getLastSyncFailureCode());
+            assertTrue(ordered.getLastSyncFailed());
+            assertEquals(future.truncatedTo(java.time.temporal.ChronoUnit.MICROS),
+                    ordered.getLastSyncAttemptAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+        } finally { UserContext.clear(); }
+    }
+
+    @Test void phoneReceptionTracksAcceptedRetriesButNotEmailOrInvalidBatches() {
+        User owner = user();
+        User other = user();
+        UserContext.setCurrentUser(owner);
+        try {
+            var req = request("reception");
+            service.processEmailAndSave(req, null);
+            assertTrue(users.findLastPhoneReceivedAt(owner.getId()).isEmpty());
+            service.processAndSave(req);
+            var first = users.findLastPhoneReceivedAt(owner.getId()).orElseThrow();
+            service.processBatch(List.of(req));
+            var second = users.findLastPhoneReceivedAt(owner.getId()).orElseThrow();
+            assertFalse(second.isBefore(first));
+            assertTrue(users.findLastPhoneReceivedAt(other.getId()).isEmpty());
+            var invalid = request("invalid-reception"); invalid.setAmount(new BigDecimal("-1"));
+            assertThrows(jakarta.validation.ConstraintViolationException.class, () -> service.processBatch(List.of(req, invalid)));
+            assertEquals(second, users.findLastPhoneReceivedAt(owner.getId()).orElseThrow());
+            owner.setFullName("Synthetic updated profile");
+            users.saveAndFlush(owner);
+            assertEquals(second, users.findLastPhoneReceivedAt(owner.getId()).orElseThrow());
+            var contradictory = request("contradictory-reception");
+            contradictory.setOperationType(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT);
+            var valid = request("rolled-back-reception");
+            assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                    () -> service.processBatch(List.of(valid, contradictory)));
+            assertEquals(second, users.findLastPhoneReceivedAt(owner.getId()).orElseThrow());
+            assertFalse(transactions.existsByTransactionHashAndUser(valid.getTransactionHash(), owner));
+            assertEquals(com.store.api.model.enums.CaptureOrigin.EMAIL,
+                    transactions.findByTransactionHashAndUser(req.getTransactionHash(), owner).orElseThrow().getCaptureOrigin());
         } finally { UserContext.clear(); }
     }
 

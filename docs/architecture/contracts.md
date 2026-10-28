@@ -46,6 +46,18 @@ Paths below are relative to `/api/v1`.
 
 ## Transaction ingestion payload
 
+Source diagnostics are additive: `GET /auth/google/status` adds nullable
+`lastSyncAttemptAt` (UTC completion time) and `lastSyncFailureCode` (safe enum).
+Full success clears the failure and updates `lastSuccessfulSyncAt`; partial/failure
+preserves the last success. Both explicit and scheduled scans record these fields.
+`GET /user/phone-status` returns only `{ "lastReceivedAt": <UTC instant or null> }`
+for the current web user. Both status responses use `Cache-Control: no-store`.
+Device access to phone status is forbidden. Accepted single/batch sync, including
+deduplicated retries, advances reception atomically with the ingestion transaction;
+email and rejected batches do not. Phone payloads/responses are unchanged.
+Apply the [diagnostics migration](../../scripts/migrations/20261027_source_diagnostics.sql)
+before deploying the API. See [diagnostic codes and limits](../domain/source-diagnostics.md).
+
 `operationType` is provider-independent operation evidence, separate from the
 existing `flowType` and channel. Currently supported values are `UNKNOWN` (no
 specific evidence) and `OWN_CARD_PAYMENT` (requires `INTERNAL_TRANSFER`). Missing
