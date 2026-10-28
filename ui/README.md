@@ -43,6 +43,15 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
+Settings separates email synchronization from phone reception. Email shows the
+last successful scan, last completed attempt and safe failure-specific recovery
+advice; a partial scan is explicitly incomplete. Phone shows the last accepted
+movement submission (including retries), with independent loading/error/retry
+and no claim of current connectivity or pending-queue knowledge. Source captions
+use `Correo` / `Teléfono`. Apply the
+[source diagnostics migration](../scripts/migrations/20261027_source_diagnostics.sql)
+before deploying/restarting the API. See [semantics and rollout](../docs/domain/source-diagnostics.md).
+
 Movement details show the first capture origin as `Correo` or `Teléfono`, the
 server registration time and an explicit email receipt reference when recorded.
 Historical rows show `Origen no disponible`; source is never guessed from the

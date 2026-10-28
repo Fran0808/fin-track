@@ -17,6 +17,40 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: source synchronization diagnostics
+
+- Owner/scope: current chat; evaluation finding 7 only. Settings separates email
+  synchronization from phone reception, with safe recovery advice and independent
+  source status. See [semantics and rollout](domain/source-diagnostics.md).
+- Implemented: additive nullable metadata, fixed email failure codes and completion
+  times, preserved last success and monotonic concurrent results. Scheduled/explicit
+  scans share the result path; partial ingestion is explicitly incomplete.
+  Accepted single/batch phone sync and retries record reception transactionally;
+  rejected/rolled-back batches and email do not advance it. Historical data is not
+  guessed and phone payloads remain compatible. Device/anonymous reads rejected.
+- UI: separate Correo/Teléfono, independent phone loading/error/retry, status refresh,
+  reauthorization only with supporting evidence, legacy/unavailable states and
+  mobile date layout. No heartbeat, device identity or pending-queue inference.
+- Verification: 334 backend tests with all four disposable persistence suites and
+  five SQL migration regressions passed; 118 UI tests, lint (same 9 warnings),
+  production build, 18 script groups and documentation checks passed. Hosted CI
+  not executed. Full final-tree checks do not certify each proposed intermediate commit.
+- Runtime: built UI → packaged API → fresh synthetic PostgreSQL passed in Edge at
+  1440px and 390px for authorization failure, preserved success, phone reception/
+  retry, invalid batch, tenant/security boundaries, independent source failures,
+  status retries and partial-result messaging. No browser errors or horizontal
+  overflow. Screenshots inspected; final mobile date refinement verified.
+- Status: verified for isolated end-to-end scope. Temporary browser, API, HTTP
+  server and PostgreSQL stopped and data removed. No live database access/migration,
+  existing-service restart, real email import, device installation, staging, commit
+  or push performed. Earlier evaluator/title/progress changes preserved. User
+  reports previous origin migration and commits done.
+- Next: confirm/back up intended database, apply the
+  [diagnostics migration](../scripts/migrations/20261027_source_diagnostics.sql)
+  before deploying/restarting the new API, then reload Settings. Four atomic
+  groups and a checkpoint-only staging patch are in ignored
+  `logs/source-diagnostics-commit-proposal.md`.
+
 ## Current checkpoint: movement capture origin
 
 - Owner/scope: current chat; show first-capture origin in movement detail using

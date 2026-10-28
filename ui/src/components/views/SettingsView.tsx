@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { PhoneReceptionPanel } from '../settings/PhoneReceptionPanel';
+import { emailFailureAdvice } from '../settings/sourceDiagnostics';
 import {
   AlertCircle,
   CheckCircle2,
@@ -21,7 +23,8 @@ interface SettingsViewProps {
 }
 
 function formatSyncDate(value: string | null) {
-  if (!value) return 'Todavía no hay una sincronización correcta';
+  if (!value) return 'Sin registro';
+  if (Number.isNaN(Date.parse(value))) return 'Fecha no disponible';
   return new Intl.DateTimeFormat('es-PE', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -60,8 +63,10 @@ export function SettingsView({
     try {
       const result = await onSync();
       setFeedback({
-        type: 'success',
-        message: result.savedCount > 0
+        type: result.status === 'PARTIAL' ? 'error' : 'success',
+        message: result.status === 'PARTIAL'
+          ? `Sincronización incompleta: ${result.savedCount} movimientos guardados; algunos correos no pudieron procesarse. Reintenta la sincronización.`
+          : result.savedCount > 0
           ? `Sincronización completa: ${result.savedCount} movimientos nuevos.`
           : 'Sincronización completa. No se encontraron movimientos nuevos.',
       });
@@ -92,7 +97,7 @@ export function SettingsView({
   };
 
   const gmailConnected = googleStatus?.connected === true;
-  const gmailFailed = gmailConnected && googleStatus.lastSyncFailed;
+  const gmailFailed = !statusUnavailable && gmailConnected && googleStatus.lastSyncFailed;
   const checkingStatus = googleStatus === null && !statusUnavailable;
 
   return (
@@ -158,19 +163,25 @@ export function SettingsView({
                   {googleStatus?.email ?? 'Ninguna cuenta vinculada'}
                 </dd>
               </div>
-              <div className="flex items-center justify-between gap-4 py-3">
-                <dt className="text-muted">Última sincronización</dt>
-                <dd className="text-right font-medium text-ink">{formatSyncDate(googleStatus?.lastSuccessfulSyncAt ?? null)}</dd>
+              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
+                <dt className="text-muted">Última sincronización correcta</dt>
+                <dd className="font-medium text-ink sm:text-right">{statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSuccessfulSyncAt ?? null)}</dd>
+              </div>
+              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
+                <dt className="text-muted">Último intento completado</dt>
+                <dd className="font-medium text-ink sm:text-right">{statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSyncAttemptAt ?? null)}</dd>
               </div>
             </dl>
 
             {gmailFailed && (
               <p className="mt-4 flex gap-2 rounded-xl bg-negative/5 px-3 py-2.5 text-sm text-negative">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                La última sincronización falló. Prueba nuevamente o vuelve a conectar Gmail.
+                {emailFailureAdvice(googleStatus)}
               </p>
             )}
 
+            <p className="mt-4 text-xs leading-5 text-muted">Este estado corresponde solo al correo. Una sincronización correcta no garantiza que todos tus gastos tengan un comprobante compatible.</p>
+            <button type="button" onClick={() => void onStatusRefresh()} className="mt-3 self-start text-sm font-semibold text-brand underline">Actualizar estado de correo</button>
             <div className="mt-auto flex flex-wrap gap-3 pt-6">
               {gmailConnected ? (
                 <>
@@ -183,6 +194,9 @@ export function SettingsView({
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden="true" />
                     {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
                   </button>
+                  {gmailFailed && ['AUTH_REQUIRED', 'ACCESS_DENIED'].includes(googleStatus.lastSyncFailureCode ?? '') && (
+                    <button type="button" disabled={connecting} onClick={() => void handleConnect()} className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-brand disabled:opacity-50">{connecting ? 'Abriendo Google...' : 'Volver a conectar Gmail'}</button>
+                  )}
                   <button
                     type="button"
                     onClick={() => void handleDisconnect()}
@@ -217,31 +231,22 @@ export function SettingsView({
                 </span>
                 <div>
                   <p className="eyebrow">Dispositivo móvil</p>
-                  <h2 id="mobile-source-title" className="font-display mt-1 text-xl font-semibold">Android · Yape</h2>
+                  <h2 id="mobile-source-title" className="font-display mt-1 text-xl font-semibold">Teléfono</h2>
                 </div>
               </div>
               <span className="inline-flex items-center gap-2 rounded-full bg-yape/10 px-3 py-1 text-xs font-semibold text-yape">
                 <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                Código disponible
+                Vinculación
               </span>
             </div>
           </div>
 
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <p className="text-sm leading-6 text-muted">
-              Vincula la aplicación Android para recibir movimientos desde las notificaciones autorizadas de Yape.
+              Vincula tu teléfono para recibir movimientos desde las notificaciones autorizadas.
             </p>
-            <div className="mt-6 rounded-2xl border border-line bg-canvas p-4">
-              <p className="text-sm font-semibold text-ink">La vinculación incluye</p>
-              <ul className="mt-3 space-y-2 text-sm text-muted">
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />Código QR y token manual</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />Dirección del servidor editable</li>
-                <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-positive" aria-hidden="true" />Opción para revocar el código actual</li>
-              </ul>
-            </div>
-            <p className="mt-4 text-xs leading-5 text-muted">
-              El sistema todavía no registra el nombre ni la última actividad del teléfono. Regenerar el código desvincula los dispositivos anteriores.
-            </p>
+            <PhoneReceptionPanel />
+            <p className="mt-4 text-xs leading-5 text-muted">Regenerar el código de vinculación desvincula los dispositivos anteriores. La fecha de recepción corresponde a la cuenta y no identifica un dispositivo específico.</p>
             <div className="mt-auto pt-6">
               <button
                 type="button"

@@ -228,11 +228,17 @@ export interface EmailConnectionStatus {
   message?: string;
 }
 
+export interface PhoneReceptionStatus {
+  lastReceivedAt: string | null;
+}
+
 export interface GoogleAuthStatus {
   connected: boolean;
   email: string | null;
   lastSuccessfulSyncAt: string | null;
   lastSyncFailed: boolean;
+  lastSyncAttemptAt?: string | null;
+  lastSyncFailureCode?: string | null;
 }
 
 export interface UserProfile {

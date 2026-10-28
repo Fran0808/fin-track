@@ -24,9 +24,9 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
       : !connected
         ? 'Gmail no conectado'
         : failed
-          ? 'Falló la última sincronización'
+          ? 'Falló la sincronización de correo'
           : status.lastSuccessfulSyncAt
-            ? `Sincronizado: ${formatSyncDate(status.lastSuccessfulSyncAt)}`
+            ? `Correo sincronizado: ${formatSyncDate(status.lastSuccessfulSyncAt)}`
             : 'Aún sin sincronizar';
   const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : connected ? CheckCircle2 : Mail;
 

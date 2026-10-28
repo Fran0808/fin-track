@@ -8,6 +8,7 @@ import type {
   EmailSyncResponse,
   EmailConnectionStatus,
   GoogleAuthStatus,
+  PhoneReceptionStatus,
   UserProfile,
   FlowType,
   DevicePairingInfo,
@@ -301,8 +302,18 @@ export const api = {
     return data.token;
   },
 
+  async getPhoneReceptionStatus(): Promise<PhoneReceptionStatus> {
+    const response = await fetchWithAuth(`${BASE_URL}/user/phone-status`, { cache: 'no-store' });
+    const data = await handleResponse<PhoneReceptionStatus>(response);
+    if (!data || !Object.prototype.hasOwnProperty.call(data, 'lastReceivedAt') ||
+        (data.lastReceivedAt !== null && (typeof data.lastReceivedAt !== 'string' || Number.isNaN(Date.parse(data.lastReceivedAt))))) {
+      throw new Error('El servidor no ofrece información válida de recepción del teléfono.');
+    }
+    return data;
+  },
+
   async getGoogleAuthStatus(): Promise<GoogleAuthStatus> {
-    const response = await fetchWithAuth(`${BASE_URL}/auth/google/status`);
+    const response = await fetchWithAuth(`${BASE_URL}/auth/google/status`, { cache: 'no-store' });
     return handleResponse<GoogleAuthStatus>(response);
   },
 
