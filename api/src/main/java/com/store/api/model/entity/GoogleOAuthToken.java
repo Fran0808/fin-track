@@ -13,6 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@org.hibernate.annotations.DynamicUpdate
 public class GoogleOAuthToken {
 
     @Id
@@ -45,6 +46,12 @@ public class GoogleOAuthToken {
 
     @Column(name = "last_sync_failed")
     private Boolean lastSyncFailed;
+
+    private Instant lastSyncAttemptAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 32)
+    private com.store.api.model.enums.EmailSyncFailure lastSyncFailureCode;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

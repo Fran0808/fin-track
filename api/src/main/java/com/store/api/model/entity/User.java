@@ -42,6 +42,9 @@ public class User {
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
+    @Column(name = "last_phone_received_at", updatable = false)
+    private java.time.Instant lastPhoneReceivedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

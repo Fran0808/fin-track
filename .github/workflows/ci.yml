@@ -99,6 +99,12 @@ jobs:
           createdb -h localhost -U postgres fintrack_classification_eval_ci
           createdb -h localhost -U postgres fintrack_provenance_eval_ci
           createdb -h localhost -U postgres fintrack_capture_origin_eval_ci
+          createdb -h localhost -U postgres fintrack_sources_eval_ci
+
+      - name: Verify incremental source diagnostics migration
+        env:
+          PGPASSWORD: admin
+        run: psql -X -h localhost -U postgres -v ON_ERROR_STOP=1 -d fintrack_sources_eval_ci -f scripts/migrations/test_source_diagnostics.sql
 
       - name: Verify incremental capture origin migration
         env:

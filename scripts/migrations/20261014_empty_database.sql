@@ -9,7 +9,7 @@ CREATE TABLE users (
     email VARCHAR(150) NOT NULL UNIQUE,
     full_name VARCHAR(200), picture_url TEXT, google_sub_id VARCHAR(100),
     device_pairing_token VARCHAR(64) UNIQUE,
-    created_at TIMESTAMP NOT NULL, last_login_at TIMESTAMP
+    created_at TIMESTAMP NOT NULL, last_login_at TIMESTAMP, last_phone_received_at TIMESTAMP WITH TIME ZONE
 );
 CREATE UNIQUE INDEX idx_user_email ON users(email);
 CREATE UNIQUE INDEX idx_user_pairing_token ON users(device_pairing_token);
@@ -74,6 +74,8 @@ CREATE TABLE google_oauth_tokens (
     access_token TEXT NOT NULL, refresh_token TEXT, expires_at TIMESTAMP NOT NULL,
     scope VARCHAR(255), last_synced_internal_date BIGINT,
     last_successful_sync_at TIMESTAMP WITH TIME ZONE, last_sync_failed BOOLEAN,
+    last_sync_attempt_at TIMESTAMP WITH TIME ZONE, last_sync_failure_code VARCHAR(32),
+    CONSTRAINT chk_email_sync_failure CHECK (last_sync_failure_code IS NULL OR last_sync_failure_code IN ('AUTH_REQUIRED', 'ACCESS_DENIED', 'RATE_LIMITED', 'TEMPORARY', 'PROCESSING', 'UNKNOWN')),
     created_at TIMESTAMP, updated_at TIMESTAMP
 );
 CREATE TABLE processed_email_messages (

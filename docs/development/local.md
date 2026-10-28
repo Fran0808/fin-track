@@ -139,10 +139,11 @@ For a fully isolated local run, use installed PostgreSQL tools with
 # .\scripts\checks\test-persistence.ps1 -PgBinPath 'C:\Program Files\PostgreSQL\17\bin' -JavaHome 'C:\path\to\jdk-21'
 ```
 
-This creates a new temporary cluster and eight databases: four for the JVM suites,
-and four for the provenance, metadata-retirement,
-[operation](../../scripts/migrations/test_transaction_operation_type.sql) and
-[capture-origin migration regressions](../../scripts/migrations/test_transaction_capture_origin.sql).
+This creates a new temporary cluster and nine databases: four for the JVM suites,
+and five for the provenance, metadata-retirement,
+[operation](../../scripts/migrations/test_transaction_operation_type.sql),
+[capture-origin](../../scripts/migrations/test_transaction_capture_origin.sql) and
+[source-diagnostics migration regressions](../../scripts/migrations/test_source_diagnostics.sql).
 It enables every opt-in suite, disables email scheduling, restores its environment
 variables and stops/removes only its own cluster on exit. It never loads `.env`,
 reuses an existing server or installs tools. Java 21 and Maven dependencies must
