@@ -49,15 +49,22 @@ CREATE TABLE transactions (
     amount NUMERIC(10,2) NOT NULL, flow_type VARCHAR(20) NOT NULL,
     operation_type VARCHAR(32) NOT NULL DEFAULT 'UNKNOWN',
     capture_origin VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN', operation_reference VARCHAR(100),
+    manual_request_fingerprint VARCHAR(64), reconciled_to_id BIGINT, reconciled_at TIMESTAMP,
+    reconciliation_revision INTEGER NOT NULL DEFAULT 0,
     contact_name VARCHAR(150) NOT NULL, channel VARCHAR(50) NOT NULL, card_last4 VARCHAR(10),
     transaction_date TIMESTAMP NOT NULL, category VARCHAR(100),
     transaction_hash VARCHAR(64) NOT NULL, created_at TIMESTAMP NOT NULL,
+    CONSTRAINT uq_tx_id_user UNIQUE(id,user_id),
+    CONSTRAINT fk_tx_reconciled_owner FOREIGN KEY(reconciled_to_id,user_id) REFERENCES transactions(id,user_id),
+    CONSTRAINT chk_tx_manual_evidence CHECK ((capture_origin='MANUAL' AND manual_request_fingerprint IS NOT NULL AND manual_request_fingerprint ~ '^[a-f0-9]{64}$') OR (capture_origin<>'MANUAL' AND manual_request_fingerprint IS NULL)),
+    CONSTRAINT chk_tx_reconciliation CHECK (reconciliation_revision>=0 AND ((reconciled_to_id IS NULL AND reconciled_at IS NULL) OR (capture_origin='MANUAL' AND reconciled_to_id IS NOT NULL AND reconciled_to_id<>id AND reconciled_at IS NOT NULL))),
     CONSTRAINT chk_transaction_operation_flow CHECK (operation_type <> 'OWN_CARD_PAYMENT' OR flow_type = 'INTERNAL_TRANSFER'),
-    CONSTRAINT chk_transaction_capture_origin CHECK (capture_origin IN ('UNKNOWN', 'EMAIL', 'PHONE')),
+    CONSTRAINT chk_transaction_capture_origin CHECK (capture_origin IN ('UNKNOWN', 'EMAIL', 'PHONE', 'MANUAL')),
     CONSTRAINT chk_transaction_operation_reference CHECK (operation_reference IS NULL OR
         (capture_origin = 'EMAIL' AND operation_reference ~ '^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$'))
 );
 CREATE UNIQUE INDEX idx_tx_hash_user ON transactions(transaction_hash, user_id);
+CREATE UNIQUE INDEX idx_tx_reconciled_to ON transactions(reconciled_to_id);
 CREATE INDEX idx_tx_date ON transactions(transaction_date);
 CREATE INDEX idx_tx_user ON transactions(user_id);
 CREATE INDEX idx_tx_user_instrument_date ON transactions(user_id, financial_instrument_id, transaction_date);

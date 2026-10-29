@@ -65,6 +65,15 @@ public class Transaction {
     private CaptureOrigin captureOrigin = CaptureOrigin.UNKNOWN;
     @Column(name = "operation_reference", length = 100)
     private String operationReference;
+    @Column(name = "manual_request_fingerprint", length = 64, updatable = false)
+    private String manualRequestFingerprint;
+    @Column(name = "reconciled_to_id")
+    private Long reconciledToId;
+    @Column(name = "reconciled_at")
+    private LocalDateTime reconciledAt;
+    @Column(name = "reconciliation_revision", nullable = false)
+    @Builder.Default
+    private int reconciliationRevision = 0;
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     @PrePersist
