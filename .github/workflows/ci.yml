@@ -99,7 +99,13 @@ jobs:
           createdb -h localhost -U postgres fintrack_capture_origin_eval_ci
           createdb -h localhost -U postgres fintrack_sources_eval_ci
           createdb -h localhost -U postgres fintrack_manual_eval_ci
+          createdb -h localhost -U postgres fintrack_corrections_eval_ci
           createdb -h localhost -U postgres fintrack_remove_instruments_eval_ci
+
+      - name: Verify transaction corrections migration
+        env:
+          PGPASSWORD: admin
+        run: psql -X -h localhost -U postgres -v ON_ERROR_STOP=1 -d fintrack_corrections_eval_ci -f scripts/migrations/test_transaction_corrections.sql
 
       - name: Verify financial instruments retirement migration
         env:

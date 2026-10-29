@@ -22,7 +22,7 @@ second command interface without adding isolation or verification guarantees.
 | Entry point | Prerequisites | Behavior and effects |
 | --- | --- | --- |
 | `setup/initialize-local.ps1` | Git, Node 24/npm; Docker Compose v2 or later (default) or Java 21/PostgreSQL client (`-Mode Native`) | Creates `.env` only if absent, preserves existing values, checks required setting names/JWT length without printing secrets. No services or database access. Missing settings return nonzero after template creation. `-InstallUiDependencies` explicitly runs `npm ci`; `-Plan` has no effects. |
-| `checks/test-persistence.ps1` | Java 21, installed PostgreSQL tools, cached Maven dependencies for `-Offline` | Creates its own temporary PostgreSQL cluster on a free loopback port, three suite databases and seven SQL regression databases. Runs provenance, metadata, operation, capture-origin, source-diagnostics, manual registration/reconciliation and financial-instruments-retirement migration regressions and full Maven `verify`, disables email scheduling, restores environment and stops/removes only its own cluster. No application database/device access. `-PgBinPath` and `-JavaHome` select installed tools; `-Plan` does not execute them. |
+| `checks/test-persistence.ps1` | Java 21, installed PostgreSQL tools, cached Maven dependencies for `-Offline` | Creates its own temporary PostgreSQL cluster on a free loopback port, three suite databases and eight SQL regression databases. Runs provenance, metadata, operation, capture-origin, source-diagnostics, manual registration/reconciliation, financial-instruments-retirement and corrections migration regressions and full Maven `verify`, disables email scheduling, restores environment and stops/removes only its own cluster. No application database/device access. `-PgBinPath` and `-JavaHome` select installed tools; `-Plan` does not execute them. |
 | `checks/verify-all.ps1` | Java 21, Node 24, installed UI dependencies, Android SDK; wrapper dependencies available | Runs database-free backend tests, UI tests/lint/build, Android JVM tests and debug APK assembly. No installation or live ingestion. Nonzero on any selected failure. |
 | `checks/test-scripts.ps1` | PowerShell | Parses scripts and exercises failure handling, command selection and mocked HTTP/command operations; exports branding only in a temporary repository. No real API, database or device. |
 | `checks/test-docs.ps1` | PowerShell, Git | Checks local Markdown file links, rooted script references and `docs/*.md` paths in `.env.example`, including untracked files; does not check web availability or heading fragments. |
@@ -72,7 +72,7 @@ To reproduce all backend persistence checks without reusing any database:
 ```
 
 The persistence runner starts only a newly initialized temporary PostgreSQL process,
-with separate disposable databases for provenance, transaction-metadata, operation, capture-origin, source-diagnostics, manual and financial-instruments-retirement migration
+with separate disposable databases for provenance, transaction-metadata, operation, capture-origin, source-diagnostics, manual, financial-instruments-retirement and corrections migration
 regressions, as well as the three backend suites. The metadata regression checks
 repeatable column removal and preservation of money/ownership/idempotency. See
 [metadata retirement](../docs/domain/transaction-metadata-retirement.md) for deployment order.
