@@ -16,8 +16,7 @@ import static org.mockito.Mockito.*;
 class ManualTransactionServiceTest {
     private final TransactionRepository transactions = mock(TransactionRepository.class);
     private final CategoryRepository categories = mock(CategoryRepository.class);
-    private final FinancialInstrumentRepository products = mock(FinancialInstrumentRepository.class);
-    private final ManualTransactionService service = new ManualTransactionService(transactions,categories,products,"synthetic-signing-key-at-least-32-bytes");
+    private final ManualTransactionService service = new ManualTransactionService(transactions,categories,"synthetic-signing-key-at-least-32-bytes");
     private final User owner = User.builder().id(1L).build();
     @AfterEach void clear() { UserContext.clear(); }
 
@@ -34,7 +33,7 @@ class ManualTransactionServiceTest {
         assertThrows(ResponseStatusException.class,()->service.undo(1L,2L,1));
         var apply = new ManualReconciliationRequest(); apply.setCapturedId(2L);
         assertThrows(ResponseStatusException.class,()->service.reconcile(1L,apply));
-        verifyNoInteractions(transactions,categories,products);
+        verifyNoInteractions(transactions,categories);
     }
 
     @Test void createsManualEvidenceWithoutPretendingToBeAPhoneCaptureOrApplyingRules() {
@@ -47,7 +46,7 @@ class ManualTransactionServiceTest {
         assertEquals(owner,saved.getValue().getUser()); assertNull(saved.getValue().getOperationReference());
         assertEquals(64,saved.getValue().getManualRequestFingerprint().length());
         verify(transactions).lockTransactionHash(1L,"manual:01234567-89ab-cdef-0123-456789abcdef");
-        verifyNoInteractions(categories,products);
+        verifyNoInteractions(categories);
     }
 
     @Test void rejectsTransfersAndForeignOrArchivedCatalogEntries() {
@@ -56,10 +55,6 @@ class ManualTransactionServiceTest {
         req.setFlowType(FlowType.EXPENSE); req.setCategoryId(2L);
         assertThrows(ResponseStatusException.class,()->service.create(req));
         when(categories.findByIdAndUser(2L,owner)).thenReturn(Optional.of(Category.builder().id(2L).active(false).build()));
-        assertThrows(ResponseStatusException.class,()->service.create(req));
-        req.setCategoryId(null); req.setFinancialInstrumentId(3L);
-        assertThrows(ResponseStatusException.class,()->service.create(req));
-        when(products.findByIdAndUser(3L,owner)).thenReturn(Optional.of(FinancialInstrument.builder().id(3L).active(false).build()));
         assertThrows(ResponseStatusException.class,()->service.create(req)); verify(transactions,never()).save(any());
     }
 

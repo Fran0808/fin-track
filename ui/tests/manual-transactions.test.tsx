@@ -12,7 +12,6 @@ beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   HTMLDialogElement.prototype.close = function () { this.open = false; };
   vi.spyOn(api, 'getCategories').mockResolvedValue([{ id: 7, name: 'Synthetic category', active: true, system: false }]);
-  vi.spyOn(api, 'getFinancialInstruments').mockResolvedValue([]);
   vi.spyOn(api, 'createManualTransaction').mockResolvedValue(manual);
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -68,4 +67,3 @@ it('cancels creation without writing and restores the invoking control on unmoun
   expect(close).toHaveBeenCalledOnce(); expect(api.createManualTransaction).not.toHaveBeenCalled();
   view.unmount(); expect(document.activeElement).toBe(opener); opener.remove();
 });
-

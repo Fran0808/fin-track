@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
 import { BrandMark } from '../common/BrandMark';
-import { ArrowLeftRight, ChartNoAxesCombined, CreditCard, LayoutDashboard, ListFilter, Settings2, Tags } from 'lucide-react';
+import { ArrowLeftRight, ChartNoAxesCombined, LayoutDashboard, ListFilter, Settings2, Tags } from 'lucide-react';
 
-export type NavView = 'inicio' | 'mi-dinero' | 'movimientos' | 'reglas' | 'tarjetas' | 'categorias' | 'configuracion';
+export type NavView = 'inicio' | 'mi-dinero' | 'movimientos' | 'reglas' | 'categorias' | 'configuracion';
 
 interface SidebarNavigationProps {
   activeView: NavView;
@@ -20,7 +20,6 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'mi-dinero', label: 'Análisis', icon: ChartNoAxesCombined },
   { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
   { id: 'reglas', label: 'Reglas', icon: ListFilter },
-  { id: 'tarjetas', label: 'Tarjetas y cuentas', icon: CreditCard },
   { id: 'categorias', label: 'Categorías', icon: Tags },
   { id: 'configuracion', label: 'Configuración', icon: Settings2 },
 ];

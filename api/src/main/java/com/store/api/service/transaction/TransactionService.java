@@ -5,7 +5,6 @@ import com.store.api.model.dto.transaction.TransactionClassificationRequest;
 import com.store.api.model.dto.transaction.TransactionResponse;
 import com.store.api.model.dto.transaction.TransactionPageResponse;
 import com.store.api.model.dto.transaction.TransactionSyncRequest;
-import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
 import com.store.api.model.entity.RawNotificationLog;
 import com.store.api.model.entity.Transaction;
 import com.store.api.model.entity.User;
@@ -160,7 +159,7 @@ public class TransactionService {
         }
         tx.setOperationType(OperationType.OWN_CARD_PAYMENT);
         tx.setFlowType(FlowType.INTERNAL_TRANSFER);
-        // Preserve the stored hash, amount, date, category and product assignment.
+        // Preserve the stored hash, amount, date and category.
         return mapToResponse(transactionRepository.save(tx));
     }
 
@@ -175,11 +174,8 @@ public class TransactionService {
             Predicate missingCategory = cb.and(
                     cb.notEqual(root.get("flowType"), FlowType.INTERNAL_TRANSFER),
                     cb.equal(cb.trim(cb.coalesce(root.get("category"), "")), ""));
-            Predicate missingInstrument = cb.isNull(root.get("financialInstrument"));
             Predicate needsReview = switch (reason) {
-                case CATEGORY -> missingCategory;
-                case INSTRUMENT -> missingInstrument;
-                case ALL -> cb.or(missingCategory, missingInstrument);
+                case CATEGORY, ALL -> missingCategory;
             };
             return cb.and(cb.equal(root.get("user"), user), cb.isNull(root.get("reconciledToId")), needsReview);
         };
@@ -191,7 +187,6 @@ public class TransactionService {
             LocalDateTime endDate,
             FlowType flowType,
             String search,
-            Long financialInstrumentId,
             String category,
             String channel,
             BigDecimal minAmount,
@@ -202,9 +197,6 @@ public class TransactionService {
             predicates.add(cb.equal(root.get("user"), currentUser));
             predicates.add(cb.isNull(root.get("reconciledToId")));
 
-            if (financialInstrumentId != null) {
-                predicates.add(cb.equal(root.get("financialInstrument").get("id"), financialInstrumentId));
-            }
             if (startDate != null) {
                 predicates.add(cb.greaterThanOrEqualTo(root.get("transactionDate"), startDate));
             }
@@ -239,12 +231,7 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, null, null, null, null, null, pageable);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<TransactionResponse> getTransactions(LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search, Long financialInstrumentId, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, null, null, null, null, pageable);
+        return getTransactions(startDate, endDate, flowType, search, null, null, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -253,42 +240,41 @@ public class TransactionService {
             LocalDateTime endDate,
             FlowType flowType,
             String search,
-            Long financialInstrumentId,
             String category,
             String channel,
             BigDecimal minAmount,
             BigDecimal maxAmount,
             Pageable pageable
     ) {
-        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId,
+        return getTransactions(startDate, endDate, flowType, search,
                 category, channel, minAmount, maxAmount, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel,
+            String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, category,
+        return getTransactions(startDate, endDate, flowType, search, category,
                 channel, minAmount, maxAmount, pendingReason, null, pageable);
     }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getTransactions(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel,
+            String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, String merchantName, Pageable pageable) {
-        return getTransactions(startDate, endDate, flowType, search, financialInstrumentId, category, channel,
+        return getTransactions(startDate, endDate, flowType, search, category, channel,
                 minAmount, maxAmount, pendingReason, merchantName, null, pageable);
     }
 
     @Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public Page<TransactionResponse> getTransactions(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
+            String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
             PendingReason pendingReason, String merchantName, String categoryGroup, Pageable pageable) {
         User currentUser = UserContext.requireCurrentUser();
-        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
+        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         if (merchantName != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("contactName"), merchantName));
         if (categoryGroup != null) spec = spec.and(categoryGroupSpecification(categoryGroup));
@@ -302,41 +288,40 @@ public class TransactionService {
             LocalDateTime endDate,
             FlowType flowType,
             String search,
-            Long financialInstrumentId,
             String category,
             String channel,
             BigDecimal minAmount,
             BigDecimal maxAmount
     ) {
-        return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId,
+        return exportTransactionsCsv(startDate, endDate, flowType, search,
                 category, channel, minAmount, maxAmount, null);
     }
 
     @Transactional(readOnly = true)
     public byte[] exportTransactionsCsv(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel,
+            String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason) {
-        return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId, category,
+        return exportTransactionsCsv(startDate, endDate, flowType, search, category,
                 channel, minAmount, maxAmount, pendingReason, null);
     }
 
     @Transactional(readOnly = true)
     public byte[] exportTransactionsCsv(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel,
+            String category, String channel,
             BigDecimal minAmount, BigDecimal maxAmount, PendingReason pendingReason, String merchantName) {
-        return exportTransactionsCsv(startDate, endDate, flowType, search, financialInstrumentId, category,
+        return exportTransactionsCsv(startDate, endDate, flowType, search, category,
                 channel, minAmount, maxAmount, pendingReason, merchantName, null);
     }
 
     @Transactional(readOnly = true)
     public byte[] exportTransactionsCsv(
             LocalDateTime startDate, LocalDateTime endDate, FlowType flowType, String search,
-            Long financialInstrumentId, String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
+            String category, String channel, BigDecimal minAmount, BigDecimal maxAmount,
             PendingReason pendingReason, String merchantName, String categoryGroup) {
         User currentUser = UserContext.requireCurrentUser();
-        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount);
+        Specification<Transaction> spec = buildSpecification(currentUser, startDate, endDate, flowType, search, category, channel, minAmount, maxAmount);
         if (pendingReason != null) spec = spec.and(pendingSpecification(currentUser, pendingReason));
         if (merchantName != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("contactName"), merchantName));
         if (categoryGroup != null) spec = spec.and(categoryGroupSpecification(categoryGroup));
@@ -383,7 +368,6 @@ public class TransactionService {
                 .id(t.getId())
                 .captureOrigin(t.getCaptureOrigin())
                 .reconciledToId(t.getReconciledToId())
-                .financialInstrument(FinancialInstrumentResponse.from(t.getFinancialInstrument()))
                 .amount(t.getAmount())
                 .flowType(t.getFlowType())
                 .operationType(t.getOperationType())

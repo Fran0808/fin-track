@@ -4,8 +4,6 @@ import com.store.api.config.GlobalExceptionHandler;
 import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.model.dto.transaction.TransactionResponse;
-import com.store.api.service.instrument.FinancialInstrumentService;
-import com.store.api.service.transaction.InstrumentAssignmentService;
 import com.store.api.service.transaction.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,8 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class TransactionReviewControllerTest {
     private final TransactionService service = mock(TransactionService.class);
-    private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new TransactionController(service,
-            mock(InstrumentAssignmentService.class), mock(FinancialInstrumentService.class)))
+    private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new TransactionController(service))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test void listingAddsFilterTotalsWithoutChangingPaginationFields() throws Exception {
@@ -38,7 +35,7 @@ class TransactionReviewControllerTest {
                         PageRequest.of(1, 1), 12),
                 new com.store.api.model.dto.transaction.TransactionFilterSummary(
                         new BigDecimal("123.45"), new BigDecimal("987.65"), new BigDecimal("42.10")));
-        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(page);
         mvc.perform(get("/api/v1/transactions").param("page", "1").param("size", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].id").value(1))
@@ -64,10 +61,10 @@ class TransactionReviewControllerTest {
     void listingAndExportForwardTheSameCombinedFilters(PendingReason reason) throws Exception {
         LocalDateTime start = LocalDateTime.parse("2026-09-01T00:00:00");
         LocalDateTime end = LocalDateTime.parse("2026-10-24T23:59:59");
-        when(service.getTransactions(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"), isNull(),
+        when(service.getTransactions(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"),
                 isNull(), eq("YAPE"), eq(new BigDecimal("0.00")), isNull(), eq(reason), isNull(), isNull(), any()))
                 .thenReturn(Page.empty(PageRequest.of(1, 10)));
-        when(service.exportTransactionsCsv(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"), isNull(),
+        when(service.exportTransactionsCsv(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"),
                 isNull(), eq("YAPE"), eq(new BigDecimal("0.00")), isNull(), eq(reason), isNull(), isNull()))
                 .thenReturn("ID,Fecha\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         for (String path : new String[]{"/api/v1/transactions", "/api/v1/transactions/export"}) {
@@ -76,39 +73,39 @@ class TransactionReviewControllerTest {
                     .param("channel", "YAPE").param("minAmount", "0.00").param("pendingReason", reason.name()).param("page", "1"))
                     .andExpect(status().isOk()).andExpect(header().string("X-Fintrack-Review-Filter", reason.name()));
         }
-        verify(service).getTransactions(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"), isNull(),
+        verify(service).getTransactions(eq(start), eq(end), eq(FlowType.EXPENSE), eq("CINE"),
                 isNull(), eq("YAPE"), eq(new BigDecimal("0.00")), isNull(), eq(reason), isNull(), isNull(),
                 argThat(page -> page.getPageNumber() == 1 && page.getSort().getOrderFor("id").isDescending()));
-        verify(service).exportTransactionsCsv(start, end, FlowType.EXPENSE, "CINE", null, null, "YAPE", new BigDecimal("0.00"), null, reason, null, null);
+        verify(service).exportTransactionsCsv(start, end, FlowType.EXPENSE, "CINE", null, "YAPE", new BigDecimal("0.00"), null, reason, null, null);
     }
 
     @Test void merchantFilterIsForwardedAndAcknowledgedForListingAndCsv() throws Exception {
-        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), eq("Exact Shop"), isNull(), any())).thenReturn(Page.empty(PageRequest.of(0, 10)));
-        when(service.exportTransactionsCsv(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.exportTransactionsCsv(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), eq("Exact Shop"), isNull())).thenReturn(new byte[0]);
         for (String path : new String[]{"/api/v1/transactions", "/api/v1/transactions/export"}) {
             mvc.perform(get(path).param("merchantName", "Exact Shop")).andExpect(status().isOk())
                     .andExpect(header().string("X-Fintrack-Merchant-Filter", "APPLIED"));
         }
-        verify(service).getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        verify(service).getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), eq("Exact Shop"), isNull(), any());
-        verify(service).exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, "Exact Shop", null);
+        verify(service).exportTransactionsCsv(null, null, null, null, null, null, null, null, null, "Exact Shop", null);
     }
 
     @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings = {"Ocio", ""})
     void categoryGroupIsForwardedIncludingUncategorized(String group) throws Exception {
-        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), eq(group), any())).thenReturn(Page.empty(PageRequest.of(0, 10)));
-        when(service.exportTransactionsCsv(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.exportTransactionsCsv(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), eq(group))).thenReturn(new byte[0]);
         for (String path : new String[]{"/api/v1/transactions", "/api/v1/transactions/export"}) {
             mvc.perform(get(path).param("categoryGroup", group)).andExpect(status().isOk())
                     .andExpect(header().string("X-Fintrack-Category-Filter", "APPLIED"));
         }
-        verify(service).getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        verify(service).getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), eq(group), any());
-        verify(service).exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, null, group);
+        verify(service).exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, group);
     }
 
     @Test void rejectsUnknownReviewReasonsBeforeQuerying() throws Exception {
@@ -119,7 +116,7 @@ class TransactionReviewControllerTest {
     }
 
     @Test void omittedReviewFilterPreservesOrdinaryListing() throws Exception {
-        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(Page.empty(PageRequest.of(0, 10)));
         mvc.perform(get("/api/v1/transactions")).andExpect(status().isOk())
                 .andExpect(header().string("X-Fintrack-Review-Filter", "NONE"));
@@ -127,7 +124,7 @@ class TransactionReviewControllerTest {
 
     @Test void listingAndClassificationExposeCategoryWithoutRetiredMetadata() throws Exception {
         var movement = TransactionResponse.builder().id(1L).category("Ocio").amount(new BigDecimal("12.34")).build();
-        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(),
                 isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(new PageImpl<>(List.of(movement), PageRequest.of(0, 10), 1));
         when(service.updateClassification(eq(1L), any())).thenReturn(movement);
         mvc.perform(get("/api/v1/transactions"))

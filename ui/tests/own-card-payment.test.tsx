@@ -15,8 +15,6 @@ const payment: Transaction = {
 };
 beforeEach(() => {
   vi.spyOn(api, 'getCategories').mockResolvedValue([{ id: 1, name: 'Ocio', active: true, system: false }]);
-  vi.spyOn(api, 'getFinancialInstruments').mockResolvedValue([]);
-  vi.spyOn(api, 'getInstrumentSuggestions').mockResolvedValue([]);
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });

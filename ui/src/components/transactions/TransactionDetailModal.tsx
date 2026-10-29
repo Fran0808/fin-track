@@ -4,7 +4,6 @@ import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment, canConfirmOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
-import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
 import { CustomSelect } from '../common';
 import { TransactionOriginPanel } from './TransactionOriginPanel';
 import { ManualReconciliationPanel } from './ManualReconciliationPanel';
@@ -192,8 +191,6 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         {!readOnly && !isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
           onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
           className="mt-4 text-sm font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
-
-        {onUpdated && !readOnly && !reconciling && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
 
       </div>
     </dialog>

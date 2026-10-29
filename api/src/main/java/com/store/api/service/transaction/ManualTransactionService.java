@@ -34,14 +34,12 @@ public class ManualTransactionService {
     private static final int LIMIT = 50;
     private final TransactionRepository transactions;
     private final CategoryRepository categories;
-    private final FinancialInstrumentRepository instruments;
     private final byte[] signingKey;
 
     public ManualTransactionService(TransactionRepository transactions, CategoryRepository categories,
-            FinancialInstrumentRepository instruments, @Value("${jwt.secret}") String secret) {
+            @Value("${jwt.secret}") String secret) {
         this.transactions = transactions;
         this.categories = categories;
-        this.instruments = instruments;
         this.signingKey = secret.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -71,12 +69,6 @@ public class ManualTransactionService {
                     .orElseThrow(() -> bad("Selecciona una categoría activa de tu catálogo."));
             if (!category.isActive()) throw bad("Selecciona una categoría activa de tu catálogo.");
             transaction.setCategory(category.getName());
-        }
-        if (request.getFinancialInstrumentId() != null) {
-            var product = instruments.findByIdAndUser(request.getFinancialInstrumentId(), user)
-                    .orElseThrow(() -> bad("Selecciona una tarjeta o cuenta activa de tu catálogo."));
-            if (!product.isActive()) throw bad("Selecciona una tarjeta o cuenta activa de tu catálogo.");
-            transaction.setFinancialInstrument(product);
         }
         return TransactionService.mapToResponse(transactions.save(transaction));
     }
@@ -118,7 +110,7 @@ public class ManualTransactionService {
         manual.setReconciledToId(captured.getId());
         manual.setReconciledAt(LocalDateTime.now());
         manual.setReconciliationRevision(manual.getReconciliationRevision() + 1);
-        // Preserve both financial records and the capture's existing classification and product.
+        // Preserve both financial records and the capture's existing classification.
         transactions.save(manual);
         return TransactionService.mapToResponse(captured);
     }
@@ -180,7 +172,6 @@ public class ManualTransactionService {
             data.writeUTF(request.getFlowType().name()); data.writeUTF(request.getContactName().trim());
             data.writeUTF(request.getTransactionDate().toString()); data.writeUTF(request.getPaymentMethod().name());
             data.writeLong(request.getCategoryId() == null ? 0 : request.getCategoryId());
-            data.writeLong(request.getFinancialInstrumentId() == null ? 0 : request.getFinancialInstrumentId());
         }, false);
     }
 
@@ -192,7 +183,6 @@ public class ManualTransactionService {
                 data.writeUTF(item.getFlowType().name()); data.writeUTF(item.getTransactionDate().toString());
                 data.writeUTF(item.getContactName()); data.writeUTF(item.getChannel()); data.writeUTF(item.getCaptureOrigin().name());
                 data.writeUTF(Objects.toString(item.getCategory(), ""));
-                data.writeLong(item.getFinancialInstrument() == null ? 0 : item.getFinancialInstrument().getId());
             }
         }, true);
     }

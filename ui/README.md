@@ -127,16 +127,15 @@ selected month remain in memory while navigating between sections; reloading
 resets them. Home's recent movements always use the global month independently
 of the filters, custom dates and page selected in Movements.
 
-Only available features appear in the sidebar. The retired `presupuestos` view
-and its placeholder screen are removed; old `?vista=presupuestos` links fall back
-to Inicio, like any unsupported view. Desktop and mobile share the same menu.
+Only available features appear in the sidebar. The retired `presupuestos` and
+`tarjetas` views are removed; old `?vista=presupuestos` or `?vista=tarjetas` links
+fall back to Inicio, like any unsupported view. Desktop and mobile share the same menu.
 
 CSV export downloads the complete server result for the applied filters. A failed
 export shows an error and can be retried; it never silently exports just one page.
 The detail dialog edits only the category. Tags and personal notes are retired
 from the API, shared types, table, filters and CSV. Search covers contact/category.
-It preserves unsaved category edits when assigning a product
-and reloads its category catalog each time it opens. Catalog failures provide a
+It reloads its category catalog each time it opens. Catalog failures provide a
 retry action rather than invented fallback options.
 
 Native selects provide keyboard selection.
@@ -163,8 +162,8 @@ as a native modal dialog; Escape closes it. The sidebar scrolls on short screens
 and the movement table prioritizes contact, amount and detail below 640 px; date
 and payment method remain available in the detail dialog.
 
-`Movimientos` includes advanced review filters for missing category, missing assigned
-card/account, or either condition. Selecting one searches `Todo el historial`;
+`Movimientos` includes an advanced review filter for missing category (`Sin categoría`).
+Selecting it searches `Todo el historial`;
 date controls can narrow the scope again. Search and other filters apply to both
 listing and full CSV. Old `?vista=pendientes` links open this review in Movements;
 the separate view and menu entry are removed.

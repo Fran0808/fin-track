@@ -3,29 +3,26 @@ import { useState } from 'react';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { TransactionDetailModal } from '../src/components/transactions/TransactionDetailModal';
+import { HomeView } from '../src/components/views/HomeView';
 import { TransactionsView } from '../src/components/views/TransactionsView';
 import { useCategories } from '../src/hooks/useCategories';
 import { api } from '../src/services/api';
-import type { Category, FinancialInstrument, Transaction } from '../src/types';
+import type { Category, PeriodAnalytics, Transaction } from '../src/types';
 
 const category: Category = { id: 1, name: 'Nueva categoría', active: true, system: false };
-const card: FinancialInstrument = { id: 2, alias: 'Synthetic card', bank: 'BCP', type: 'DEBIT_CARD', currency: 'PEN', active: true };
 const tx: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic' };
 const page = { content: [tx], totalElements: 30, totalPages: 3, number: 0, size: 10, first: true, last: false, empty: false };
 
 beforeEach(() => {
   window.history.replaceState({}, '', '/');
   vi.spyOn(api, 'getCategories').mockResolvedValue([category]);
-  vi.spyOn(api, 'getFinancialInstruments').mockResolvedValue([card]);
-  vi.spyOn(api, 'getInstrumentSuggestions').mockResolvedValue([card]);
   HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new Event('close')); };
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it('preserves the category draft when assigning a product and saves only the category', async () => {
-  vi.spyOn(api, 'assignFinancialInstrument').mockResolvedValue({ ...tx, financialInstrument: card });
-  const save = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...tx, financialInstrument: card, category: category.name });
+it('saves the category classification for a movement', async () => {
+  const save = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...tx, category: category.name });
   function Detail() {
     const [transaction, setTransaction] = useState(tx);
     return <TransactionDetailModal transaction={transaction} onClose={() => {}} onUpdated={setTransaction} />;
@@ -33,12 +30,24 @@ it('preserves the category draft when assigning a product and saves only the cat
   render(<Detail />);
   await screen.findByRole('option', { name: category.name });
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
-  fireEvent.click(await screen.findByRole('button', { name: /Confirmar Synthetic card/ }));
-  await screen.findByText(card.alias);
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe(category.name);
   fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
   await waitFor(() => expect(save).toHaveBeenCalledWith(tx.id, { category: category.name }));
   await screen.findByText('Cambios guardados');
+});
+
+it('omits the internal transfers note under Medios de pago in HomeView', () => {
+  const analytics: PeriodAnalytics = {
+    periodName: 'Octubre 2026', monthlyExpense: 1322.66, monthlyIncome: 232.76, internalTransfersAmount: 1075.16,
+    previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 5,
+    lastExpenseMerchant: 'Synthetic', lastExpenseAmount: 10, lastExpenseDate: '2026-10-01T12:00:00',
+    topChannel: 'TARJETA_CREDITO_BCP', topChannelAmount: 1114.66, topChannelPercentage: 84.3,
+    channelBreakdown: [{ channel: 'TARJETA_CREDITO_BCP', cardLast4: '3127', displayName: 'BCP Crédito ··3127', amount: 1114.66, percentage: 84.3, count: 3 }],
+    topMerchants: [], categoryBreakdown: [],
+  };
+  render(<HomeView analytics={analytics} recentTransactions={[tx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} />);
+  expect(screen.getByText('BCP Crédito ··3127')).toBeTruthy();
+  expect(screen.queryByText(/en transferencias propias, excluidas de gastos/i)).toBeNull();
 });
 
 it('reloads categories on each detail opening and resets the draft for a different movement', async () => {
@@ -81,4 +90,3 @@ it('reports a failed CSV export without downloading a partial page and supports 
   expect(exportCsv).toHaveBeenLastCalledWith(filters);
   expect(screen.queryByRole('alert')).toBeNull();
 });
-

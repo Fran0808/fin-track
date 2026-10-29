@@ -3,14 +3,9 @@ package com.store.api.controller.transaction;
 import com.store.api.model.dto.transaction.TransactionClassificationRequest;
 import com.store.api.model.dto.transaction.TransactionResponse;
 import com.store.api.model.dto.transaction.TransactionSyncRequest;
-import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
-import com.store.api.model.dto.transaction.InstrumentAssignmentRequest;
-import com.store.api.config.security.UserContext;
 import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.service.transaction.TransactionService;
-import com.store.api.service.instrument.FinancialInstrumentService;
-import com.store.api.service.transaction.InstrumentAssignmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -38,8 +33,6 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
-    private final InstrumentAssignmentService assignmentService;
-    private final FinancialInstrumentService instrumentService;
 
     @GetMapping("/pending")
     public Page<TransactionResponse> pending(
@@ -54,12 +47,6 @@ public class TransactionController {
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate", "id")));
     }
 
-    @PatchMapping("/{id}/financial-instrument")
-    public TransactionResponse assignInstrument(@PathVariable Long id,
-            @Valid @RequestBody InstrumentAssignmentRequest request) {
-        return assignmentService.assign(id, request.getFinancialInstrumentId());
-    }
-
     @PatchMapping("/{id}/classification")
     public TransactionResponse updateClassification(
             @PathVariable Long id,
@@ -71,11 +58,6 @@ public class TransactionController {
     @PatchMapping("/{id}/own-card-payment")
     public TransactionResponse markOwnCardPayment(@PathVariable Long id) {
         return transactionService.markOwnCardPayment(id);
-    }
-
-    @GetMapping("/{id}/financial-instrument-suggestions")
-    public List<FinancialInstrumentResponse> instrumentSuggestions(@PathVariable Long id) {
-        return assignmentService.suggestions(id);
     }
 
     // Single transaction ingestion from mobile device
@@ -99,7 +81,6 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) FlowType flowType,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long financialInstrumentId,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
@@ -113,11 +94,8 @@ public class TransactionController {
         if (page < 0 || size < 1 || size > 100) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "La página no puede ser negativa y el tamaño debe estar entre 1 y 100.");
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate", "id"));
-        if (financialInstrumentId != null) {
-            instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
-        }
         Page<TransactionResponse> result = transactionService.getTransactions(
-                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup, pageable
+                startDate, endDate, flowType, search, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup, pageable
         );
         return ResponseEntity.ok().header("X-Fintrack-Review-Filter", pendingReason == null ? "NONE" : pendingReason.name())
                 .header("X-Fintrack-Merchant-Filter", merchantName == null ? "NONE" : "APPLIED")
@@ -130,7 +108,6 @@ public class TransactionController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) FlowType flowType,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Long financialInstrumentId,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String channel,
             @RequestParam(required = false) BigDecimal minAmount,
@@ -139,11 +116,8 @@ public class TransactionController {
             @RequestParam(required = false) String merchantName,
             @RequestParam(required = false) String categoryGroup
     ) {
-        if (financialInstrumentId != null) {
-            instrumentService.requireOwned(financialInstrumentId, UserContext.requireCurrentUser());
-        }
         byte[] csvBytes = transactionService.exportTransactionsCsv(
-                startDate, endDate, flowType, search, financialInstrumentId, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup
+                startDate, endDate, flowType, search, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup
         );
         String filename = "fintrack_movimientos_" + LocalDate.now() + ".csv";
         return ResponseEntity.ok()

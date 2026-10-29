@@ -23,7 +23,6 @@ class CorsConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "/api/v1/transactions/1/classification",
-            "/api/v1/transactions/1/financial-instrument",
             "/api/v1/categories/1/toggle"
     })
     void allowsPatchPreflight(String path) throws Exception {
@@ -46,7 +45,6 @@ class CorsConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "/api/v1/transactions/1/classification",
-            "/api/v1/transactions/1/financial-instrument",
             "/api/v1/categories/1/toggle"
     })
     void forwardsActualPatchToAuthentication(String path) throws Exception {

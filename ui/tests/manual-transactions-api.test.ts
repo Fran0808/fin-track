@@ -4,7 +4,7 @@ import { api } from '../src/services/api';
 import type { ManualTransactionRequest, Transaction } from '../src/types';
 
 const request: ManualTransactionRequest = { requestId: '01234567-89ab-cdef-0123-456789abcdef', amount: '0.10', flowType: 'EXPENSE',
-  contactName: 'Synthetic', transactionDate: '2026-01-31T12:00:00', paymentMethod: 'CASH', categoryId: null, financialInstrumentId: null };
+  contactName: 'Synthetic', transactionDate: '2026-01-31T12:00:00', paymentMethod: 'CASH', categoryId: null };
 const manual: Transaction = { id: 1, captureOrigin: 'MANUAL', amount: 0.1, flowType: 'EXPENSE', contactName: 'Synthetic',
   channel: 'CASH', transactionDate: request.transactionDate, transactionHash: 'synthetic', createdAt: request.transactionDate };
 afterEach(() => { vi.restoreAllMocks(); localStorage.clear(); });

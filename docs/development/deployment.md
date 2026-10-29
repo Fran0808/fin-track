@@ -132,7 +132,7 @@ merge different email and Android identities automatically.
 ## Verification and rollout
 
 Use the local [persistence runner](../../scripts/checks/test-persistence.ps1) to
-reproduce all four opt-in suites and the repeatable incremental migration test
+reproduce all three opt-in suites and the repeatable incremental migration tests
 in a newly created temporary PostgreSQL cluster. Actual local results and their
 limits are recorded in [validation evidence](persistence-progress.md).
 
@@ -140,7 +140,7 @@ Run [the documented checks](local.md#backend-verification) against disposable
 databases. `DeploymentPersistenceTest` applies the empty schema and starts a
 production-profile context with fake credentials, validating concurrent retries,
 tenant isolation, batches and cursor updates. CI provisions fresh databases for
-this test, `AppTests`, instruments and classification, each in its own disposable
+this test, `AppTests` and classification, each in its own disposable
 database. Reusing the deployment test schema intentionally fails initialization.
 
 Build the backend image from `docker/Dockerfile.api` and dashboard with `npm run

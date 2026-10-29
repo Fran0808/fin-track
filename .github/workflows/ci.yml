@@ -55,7 +55,6 @@ jobs:
     env:
       APP_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/fintrack_app_eval_ci
       DEPLOYMENT_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/fintrack_deployment_eval_ci
-      INSTRUMENT_TEST_DATABASE_URL: jdbc:postgresql://localhost:5432/fintrack_instruments_eval_ci
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: admin
       CLASSIFICATION_TEST_DATABASE_URL: jdbc:postgresql://127.0.0.1:5432/fintrack_classification_eval_ci
@@ -95,12 +94,17 @@ jobs:
           PGPASSWORD: admin
         run: |
           createdb -h localhost -U postgres fintrack_deployment_eval_ci
-          createdb -h localhost -U postgres fintrack_instruments_eval_ci
           createdb -h localhost -U postgres fintrack_classification_eval_ci
           createdb -h localhost -U postgres fintrack_provenance_eval_ci
           createdb -h localhost -U postgres fintrack_capture_origin_eval_ci
           createdb -h localhost -U postgres fintrack_sources_eval_ci
           createdb -h localhost -U postgres fintrack_manual_eval_ci
+          createdb -h localhost -U postgres fintrack_remove_instruments_eval_ci
+
+      - name: Verify financial instruments retirement migration
+        env:
+          PGPASSWORD: admin
+        run: psql -X -h localhost -U postgres -v ON_ERROR_STOP=1 -d fintrack_remove_instruments_eval_ci -f scripts/migrations/test_remove_financial_instruments.sql
 
       - name: Verify manual registration and reconciliation migration
         env:

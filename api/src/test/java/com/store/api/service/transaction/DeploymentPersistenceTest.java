@@ -98,7 +98,7 @@ class DeploymentPersistenceTest {
             var page=service.getTransactions(null,null,null,null,org.springframework.data.domain.PageRequest.of(0,10));
             assertEquals(1,page.getTotalElements()); assertEquals(capture.getId(),page.getContent().getFirst().getId());
             assertEquals(1,service.getPendingTransactions(com.store.api.model.enums.PendingReason.ALL,org.springframework.data.domain.PageRequest.of(0,10)).getTotalElements());
-            String csv=new String(service.exportTransactionsCsv(null,null,null,null,null,null,null,null,null),java.nio.charset.StandardCharsets.UTF_8);
+            String csv=new String(service.exportTransactionsCsv(null,null,null,null,null,null,null,null),java.nio.charset.StandardCharsets.UTF_8);
             assertFalse(csv.contains("Synthetic manual only")); assertTrue(csv.contains("Example store"));
             var state=manual.status(capture.getId()); assertEquals(entry.getId(),state.getManual().getId());
             assertNotNull(state.getReconciledAt()); assertEquals(entry.getAmount(),state.getManual().getAmount());

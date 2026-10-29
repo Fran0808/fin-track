@@ -186,13 +186,11 @@ export function TransactionFilters({
                 <CustomSelect<PendingReason | ''> id="filter-review" value={pendingReason}
                   onChange={value => onFilterChange({ pendingReason: value,
                     ...(value ? { allHistory: true, startDate: undefined, endDate: undefined } : {}),
-                    ...(value === 'CATEGORY' ? { category: '' } : {}),
+                    ...(value === 'CATEGORY' || value === 'ALL' ? { category: '' } : {}),
                   })}
                   options={[
                     { value: '', label: 'Todos los movimientos' },
                     { value: 'CATEGORY', label: 'Sin categoría' },
-                    { value: 'INSTRUMENT', label: 'Sin tarjeta/cuenta asignada' },
-                    { value: 'ALL', label: 'Sin categoría o tarjeta/cuenta' },
                   ]} />
               </div>
               {pendingReason && <p className="mt-2 text-xs text-muted">Puedes limitar la búsqueda con las opciones de fecha.</p>}
@@ -204,7 +202,7 @@ export function TransactionFilters({
               <div className="mt-1.5">
                 <CustomSelect
                   id="filter-category"
-                  disabled={pendingReason === 'CATEGORY' || categoryGroup !== undefined}
+                  disabled={pendingReason === 'CATEGORY' || pendingReason === 'ALL' || categoryGroup !== undefined}
                   value={category}
                   onChange={(val) => onFilterChange({ category: val })}
                   options={[

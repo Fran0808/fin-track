@@ -5,8 +5,6 @@ import com.store.api.controller.transaction.TransactionController;
 import com.store.api.model.dto.category.ClassificationRuleResponse;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.service.category.ClassificationRuleService;
-import com.store.api.service.instrument.FinancialInstrumentService;
-import com.store.api.service.transaction.InstrumentAssignmentService;
 import com.store.api.service.transaction.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
@@ -22,7 +20,7 @@ class ClassificationRuleControllerTest {
     private final ClassificationRuleService rules = mock(ClassificationRuleService.class);
     private final TransactionService transactions = mock(TransactionService.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ClassificationRuleController(rules),
-                    new TransactionController(transactions, mock(InstrumentAssignmentService.class), mock(FinancialInstrumentService.class)))
+                    new TransactionController(transactions))
             .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test void validatesRulePayloadAndReturnsCreatedRule() throws Exception {

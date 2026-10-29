@@ -11,8 +11,8 @@ $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if ($Plan) {
     Write-Output 'Check Java 21 (optional -JavaHome) and the installed PostgreSQL command-line tools.'
     Write-Output 'Create a new temporary PostgreSQL cluster on a free loopback port with private synthetic credentials.'
-    Write-Output 'Create four disposable suite databases and six disposable migration databases.'
-    Write-Output 'Run provenance/metadata/operation/capture-origin/source-diagnostics/manual migration regressions and Maven verify with all four persistence suites enabled and email scheduling disabled.'
+    Write-Output 'Create three disposable suite databases and seven disposable migration databases.'
+    Write-Output 'Run provenance/metadata/operation/capture-origin/source-diagnostics/manual/remove-instruments migration regressions and Maven verify with all three persistence suites enabled and email scheduling disabled.'
     Write-Output 'Stop only the temporary cluster, remove its directory and restore process environment variables.'
     return
 }
@@ -43,7 +43,6 @@ $password = [guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N')
 $databaseNames = @{
     APP_TEST_DATABASE_URL = "fintrack_app_eval_$suffix"
     DEPLOYMENT_TEST_DATABASE_URL = "fintrack_deployment_eval_$suffix"
-    INSTRUMENT_TEST_DATABASE_URL = "fintrack_instruments_eval_$suffix"
     CLASSIFICATION_TEST_DATABASE_URL = "fintrack_classification_eval_$suffix"
 }
 $testEnvironment = @{
@@ -58,7 +57,7 @@ foreach ($name in $databaseNames.Keys) {
     $hostName = if ($name -eq 'CLASSIFICATION_TEST_DATABASE_URL') { '127.0.0.1' } else { 'localhost' }
     $testEnvironment[$name] = "jdbc:postgresql://${hostName}:$port/$($databaseNames[$name])"
 }
-$testEnvironment['SPRING_DATASOURCE_URL'] = $testEnvironment['INSTRUMENT_TEST_DATABASE_URL']
+$testEnvironment['SPRING_DATASOURCE_URL'] = $testEnvironment['DEPLOYMENT_TEST_DATABASE_URL']
 $previousEnvironment = @{}
 foreach ($name in $testEnvironment.Keys) { $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 $started = $false
@@ -81,7 +80,8 @@ try {
     $captureOriginDatabase = "fintrack_capture_origin_eval_$suffix"
     $sourcesDatabase = "fintrack_sources_eval_$suffix"
     $manualDatabase = "fintrack_manual_eval_$suffix"
-    foreach ($database in @($databaseNames.Values) + @($provenanceDatabase, $metadataDatabase, $operationsDatabase, $captureOriginDatabase, $sourcesDatabase, $manualDatabase)) {
+    $removeInstrumentsDatabase = "fintrack_remove_instruments_eval_$suffix"
+    foreach ($database in @($databaseNames.Values) + @($provenanceDatabase, $metadataDatabase, $operationsDatabase, $captureOriginDatabase, $sourcesDatabase, $manualDatabase, $removeInstrumentsDatabase)) {
         Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'createdb.exe') -Arguments @(
             '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', $database)
     }
@@ -103,6 +103,9 @@ try {
     Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'psql.exe') -Arguments @(
         '-X', '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', '-v', 'ON_ERROR_STOP=1',
         '-d', $manualDatabase, '-f', (Join-Path $root 'scripts/migrations/test_manual_transactions.sql'))
+    Invoke-CheckedCommand -Command (Join-Path $PgBinPath 'psql.exe') -Arguments @(
+        '-X', '-h', '127.0.0.1', '-p', "$port", '-U', 'postgres', '--no-password', '-v', 'ON_ERROR_STOP=1',
+        '-d', $removeInstrumentsDatabase, '-f', (Join-Path $root 'scripts/migrations/test_remove_financial_instruments.sql'))
     Push-Location (Join-Path $root 'api')
     try {
         $arguments = @('verify', '-Dmail.sync.enabled=false', '-Dspring.jpa.show-sql=false')

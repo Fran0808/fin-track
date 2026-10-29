@@ -1,7 +1,5 @@
 package com.store.api.model.dto.transaction;
 
-import com.store.api.model.dto.instrument.FinancialInstrumentResponse;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -17,7 +15,6 @@ public class TransactionResponse {
     private Long id;
     private com.store.api.model.enums.CaptureOrigin captureOrigin;
     private Long reconciledToId;
-    private FinancialInstrumentResponse financialInstrument;
     private BigDecimal amount;
     private FlowType flowType;
     private OperationType operationType;

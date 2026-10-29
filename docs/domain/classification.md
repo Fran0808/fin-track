@@ -4,15 +4,12 @@ The dashboard integrates review into `Movimientos` through the advanced `Revisi√
 filter. There is no separate `Pendientes` navigation entry. A movement needs review when:
 
 - Its category is null or blank, unless it is an `INTERNAL_TRANSFER`.
-- Its financial instrument is unassigned, including internal transfers.
 
-The filter supports missing category, missing instrument, or either condition.
-Each movement appears once even when both fields are missing. Complete it through
-the existing detail dialog; the listing reloads after a saved classification,
-instrument assignment or successful manual sync from the header. A movement disappears
+Complete it through
+the existing detail dialog; the listing reloads after a saved classification
+or successful manual sync from the header. A movement disappears
 when it no longer meets the selected filter; an empty final page returns to a valid page.
-Archived assigned instruments still count as assigned. No review flag or
-dismissal state is stored.
+No review flag or dismissal state is stored.
 
 Selecting a review reason activates the explicitly labeled `Todo el historial`
 date scope and clears custom dates. Search, flow, channel and amount filters

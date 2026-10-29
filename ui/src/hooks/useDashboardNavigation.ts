@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { NavView } from '../components/layout/SidebarNavigation';
 
-const views: NavView[] = ['inicio', 'mi-dinero', 'movimientos', 'reglas', 'tarjetas', 'categorias', 'configuracion'];
+const views: NavView[] = ['inicio', 'mi-dinero', 'movimientos', 'reglas', 'categorias', 'configuracion'];
 
 function currentView(): NavView {
   const value = new URLSearchParams(window.location.search).get('vista');

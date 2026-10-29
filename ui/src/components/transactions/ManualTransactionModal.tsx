@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
-import { useQueryResource } from '../../hooks/useQueryResource';
 import type { ManualTransactionRequest, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 
@@ -29,13 +28,10 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
   const [date, setDate] = useState(localNow);
   const [method, setMethod] = useState<ManualTransactionRequest['paymentMethod']>('CASH');
   const [categoryId, setCategoryId] = useState('');
-  const [productId, setProductId] = useState('');
   const [review, setReview] = useState<ManualTransactionRequest | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const categories = useCategories(true);
-  const productQuery = useCallback(() => api.getFinancialInstruments(true), []);
-  const products = useQueryResource(productQuery, 'No se pudieron cargar las tarjetas y cuentas.');
   const categoryItems = categories.categories.flatMap(parent => [parent, ...(parent.subcategories ?? []).filter(item => item.active)]);
   useEffect(() => {
     const element = dialog.current;
@@ -53,7 +49,7 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
     }
     setReview({ requestId, amount: normalized, flowType: flow, contactName: contact.trim(),
       transactionDate: date.length === 16 ? `${date}:00` : date, paymentMethod: method,
-      categoryId: categoryId ? Number(categoryId) : null, financialInstrumentId: productId ? Number(productId) : null });
+      categoryId: categoryId ? Number(categoryId) : null });
   };
   const save = async () => {
     if (!review || saving) return;
@@ -85,9 +81,6 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
         <div><label className="block text-sm font-medium">Categoría (opcional)<select className={input} value={categoryId} disabled={categories.loading || !!categories.error} onChange={event => setCategoryId(event.target.value)}>
           <option value="">Sin categoría</option>{categoryItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></label>{categories.error && <p className="mt-2 text-sm text-negative">{categories.error} <button type="button" onClick={() => void categories.refresh()} className="underline">Reintentar categorías</button></p>}</div>
-        <div><label className="block text-sm font-medium">Tarjeta o cuenta (opcional)<select className={input} value={productId} disabled={products.loading || !!products.error} onChange={event => setProductId(event.target.value)}>
-          <option value="">Sin asignar</option>{products.data?.map(item => <option key={item.id} value={item.id}>{item.alias}</option>)}
-        </select></label>{products.error && <p className="mt-2 text-sm text-negative">{products.error} <button type="button" onClick={() => void products.refresh()} className="underline">Reintentar productos</button></p>}</div>
         <button type="submit" className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white">Revisar movimiento</button>
       </form> : <div className="space-y-4">
         <p className="font-display text-3xl font-semibold">{review.flowType === 'INCOME' ? '+ ' : '− '}{formatCurrency(Number(review.amount))}</p>
@@ -96,7 +89,6 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
             ['Tipo', review.flowType === 'INCOME' ? 'Entrada' : 'Gasto'], ['Comercio o concepto', review.contactName],
             ['Fecha y hora', formatDate(review.transactionDate)], ['Medio', getChannelLabel(review.paymentMethod)],
             ['Categoría', categoryItems.find(item => item.id === review.categoryId)?.name ?? 'Sin categoría'],
-            ['Tarjeta o cuenta', products.data?.find(item => item.id === review.financialInstrumentId)?.alias ?? 'Sin asignar'],
           ].map(([label, value]) => <div key={label} className="py-2.5 sm:flex sm:justify-between sm:gap-4"><dt className="text-muted">{label}</dt><dd className="mt-1 break-words font-medium sm:mt-0 sm:text-right">{value}</dd></div>)}
         </dl>
         <p className="text-sm leading-6 text-muted">Este registro sumará a tus movimientos. Si ya existe o después llega la misma operación por correo o teléfono, abre su registro manual y concílialo con la captura para contarlo una sola vez.</p>

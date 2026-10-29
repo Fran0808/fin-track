@@ -139,12 +139,13 @@ For a fully isolated local run, use installed PostgreSQL tools with
 # .\scripts\checks\test-persistence.ps1 -PgBinPath 'C:\Program Files\PostgreSQL\17\bin' -JavaHome 'C:\path\to\jdk-21'
 ```
 
-This creates a new temporary cluster and ten databases: four for the JVM suites,
-and six for the provenance, metadata-retirement,
+This creates a new temporary cluster and ten databases: three for the JVM suites,
+and seven for the provenance, metadata-retirement,
 [operation](../../scripts/migrations/test_transaction_operation_type.sql),
 [capture-origin](../../scripts/migrations/test_transaction_capture_origin.sql),
-[source diagnostics](../../scripts/migrations/test_source_diagnostics.sql) and
-[manual registration/reconciliation](../../scripts/migrations/test_manual_transactions.sql) migration regressions.
+[source diagnostics](../../scripts/migrations/test_source_diagnostics.sql),
+[manual registration/reconciliation](../../scripts/migrations/test_manual_transactions.sql) and
+[financial instruments retirement](../../scripts/migrations/test_remove_financial_instruments.sql) migration regressions.
 It enables every opt-in suite, disables email scheduling, restores its environment
 variables and stops/removes only its own cluster on exit. It never loads `.env`,
 reuses an existing server or installs tools. Java 21 and Maven dependencies must
@@ -152,10 +153,6 @@ already be available; omit `-Offline` to permit Maven dependency downloads.
 See [the catalogue](../../scripts/README.md) for cleanup/failure behavior.
 
 For manually managed disposable databases, use the procedures below.
-
-Cards and accounts have an opt-in PostgreSQL integration test. Its disposable
-database setup and schema changes are documented in
-[cards and accounts](../domain/financial-instruments.md#schema-preparation-and-verification).
 
 `AppTests` now runs only when `APP_TEST_DATABASE_URL` names a disposable database
 matching `jdbc:postgresql://localhost:<port>/fintrack_app_eval_<suffix>`. It explicitly
@@ -183,10 +180,10 @@ try {
 
 After creating the two disposable databases, set their opt-in URL variables and
 test credentials, then run `./mvnw.cmd verify` from `api` for context and deployment
-checks as well. To include instruments and classification, configure their separate
-opt-in URLs and credentials from the domain guides too; running `verify` alone
-does not enable those suites. CI provisions all four disposable databases and
-enables all four suites. The deployment test covers
+checks as well. To include classification, configure its separate
+opt-in URL and credentials from the domain guide too; running `verify` alone
+does not enable that suite. CI provisions all three disposable databases and
+enables all three suites. The deployment test covers
 schema validation, concurrent retries, overlapping batches and monotonic cursors.
 See [production deployment](deployment.md) for setup and runtime limitations.
 The Maven wrapper uses the configured Java installation; first-time dependency

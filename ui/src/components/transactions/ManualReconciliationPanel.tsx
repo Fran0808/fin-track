@@ -11,7 +11,6 @@ function Evidence({ transaction }: { transaction: Transaction }) {
     <div><dt className="inline text-muted">Fecha: </dt><dd className="inline">{formatDate(transaction.transactionDate)}</dd></div>
     <div><dt className="inline text-muted">Medio: </dt><dd className="inline">{getChannelLabel(transaction.channel)}</dd></div>
     <div><dt className="inline text-muted">Categoría: </dt><dd className="inline">{transaction.category || 'Sin categoría'}</dd></div>
-    <div><dt className="inline text-muted">Producto: </dt><dd className="inline">{transaction.financialInstrument?.alias || 'Sin asignar'}</dd></div>
   </dl>;
 }
 
@@ -75,7 +74,7 @@ export function ManualReconciliationPanel({ transaction, onUpdated, onBusyChange
         </label>)}
       </fieldset>}
       {preview.hasMore && <p className="text-sm text-muted">Hay más capturas compatibles fuera de estas {preview.limit} opciones. No confirmes si la tuya no está en la revisión.</p>}
-      {candidate && <p className="rounded-xl bg-brand/5 p-3 text-sm leading-6">El registro manual de {formatCurrency(preview.manual.amount)} del {formatDate(preview.manual.transactionDate)} dejará de sumar en esa fecha. Se conservará la captura del {formatDate(candidate.transaction.transactionDate)}, con su categoría y producto actuales. Esto puede cambiar los totales de un mes si las fechas pertenecen a meses distintos. Ambos registros se conservarán como evidencia.</p>}
+      {candidate && <p className="rounded-xl bg-brand/5 p-3 text-sm leading-6">El registro manual de {formatCurrency(preview.manual.amount)} del {formatDate(preview.manual.transactionDate)} dejará de sumar en esa fecha. Se conservará la captura del {formatDate(candidate.transaction.transactionDate)}, con su categoría actual. Esto puede cambiar los totales de un mes si las fechas pertenecen a meses distintos. Ambos registros se conservarán como evidencia.</p>}
       <div className="flex flex-wrap gap-3"><button type="button" disabled={!candidate || busy} onClick={() => void apply(false)} className="rounded-xl bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Conciliando...' : 'Confirmar conciliación'}</button>
         <button type="button" disabled={busy} onClick={() => { setPreview(null); setSelected(null); setError(null); }} className="rounded-xl border border-line px-3 py-2 text-sm">Cancelar revisión</button></div>
     </div>}

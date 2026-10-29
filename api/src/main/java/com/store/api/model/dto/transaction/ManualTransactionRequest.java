@@ -18,5 +18,4 @@ public class ManualTransactionRequest {
     @NotNull private LocalDateTime transactionDate;
     @NotNull private ManualPaymentMethod paymentMethod;
     @Positive private Long categoryId;
-    @Positive private Long financialInstrumentId;
 }

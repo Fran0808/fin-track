@@ -19,7 +19,6 @@ export interface Transaction {
   id: number;
   captureOrigin?: TransactionOrigin['origin'];
   reconciledToId?: number | null;
-  financialInstrument?: FinancialInstrument | null;
   amount: number;
   flowType: FlowType;
   operationType?: OperationType | null;
@@ -40,7 +39,6 @@ export interface ManualTransactionRequest {
   transactionDate: string;
   paymentMethod: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'WALLET' | 'OTHER';
   categoryId: number | null;
-  financialInstrumentId: number | null;
 }
 
 export interface ManualReconciliationPreview {
@@ -62,7 +60,7 @@ export interface TransactionClassificationRequest {
   category?: string | null;
 }
 
-export type PendingReason = 'ALL' | 'CATEGORY' | 'INSTRUMENT';
+export type PendingReason = 'ALL' | 'CATEGORY';
 
 export interface ClassificationRuleDraft {
   matchText: string;
@@ -128,31 +126,6 @@ export const STANDARD_CATEGORIES = [
   { id: 'FINANZAS', label: 'Transferencias y finanzas' },
   { id: 'OTROS', label: 'Otros gastos' },
 ] as const;
-
-export type InstrumentType = 'BANK_ACCOUNT' | 'DEBIT_CARD' | 'CREDIT_CARD';
-export type Bank = 'BCP' | 'INTERBANK' | 'BBVA' | 'OTHER';
-
-export interface FinancialInstrument {
-  id: number;
-  type: InstrumentType;
-  alias: string;
-  bank: Bank;
-  institutionName?: string | null;
-  lastFour?: string | null;
-  currency: 'PEN';
-  active: boolean;
-  linkedAccountId?: number | null;
-}
-
-export interface FinancialInstrumentRequest {
-  type: InstrumentType;
-  alias: string;
-  bank: Bank;
-  institutionName: string | null;
-  lastFour: string | null;
-  active: boolean;
-  linkedAccountId: number | null;
-}
 
 export interface FinancialSummary {
   netBalance: number;
@@ -285,4 +258,3 @@ export interface DevicePairingInfo {
   serverUrl: string;
   qrPayload: string;
 }
-

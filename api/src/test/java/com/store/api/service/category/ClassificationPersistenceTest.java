@@ -38,7 +38,6 @@ class ClassificationPersistenceTest {
     @Autowired private UserRepository users;
     @Autowired private TransactionRepository transactions;
     @Autowired private CategoryRepository categories;
-    @Autowired private FinancialInstrumentRepository instruments;
     @Autowired private ClassificationRuleService rules;
     @Autowired private RuleHistoryService history;
     @Autowired private CategoryService categoryService;
@@ -48,14 +47,11 @@ class ClassificationPersistenceTest {
     private User owner;
     private User other;
     private Category target;
-    private FinancialInstrument account;
 
     @BeforeEach void setup() {
         owner = users.saveAndFlush(User.builder().email("owner@example.test").build());
         other = users.saveAndFlush(User.builder().email("other@example.test").build());
         target = categories.saveAndFlush(Category.builder().user(owner).name("Ocio").active(true).build());
-        account = instruments.saveAndFlush(FinancialInstrument.builder().user(owner).alias("Test account")
-                .bank(Bank.BCP).type(InstrumentType.BANK_ACCOUNT).build());
         UserContext.setCurrentUser(owner);
     }
 
@@ -83,7 +79,7 @@ class ClassificationPersistenceTest {
         assertEquals(CaptureOrigin.PHONE,origins.getOrigin(phone.getId()).getOrigin());
         assertNull(origins.getOrigin(phone.getId()).getOperationReference());
         UserContext.setCurrentUser(owner);
-        var legacy = store(owner,"capture-legacy",null,FlowType.EXPENSE,null);
+        var legacy = store(owner,"capture-legacy",null,FlowType.EXPENSE);
         assertEquals(CaptureOrigin.UNKNOWN,origins.getOrigin(legacy.getId()).getOrigin());
         request.setTransactionHash("capture-legacy");service.processEmailAndSave(request,"LATE-123");
         assertEquals(CaptureOrigin.UNKNOWN,origins.getOrigin(legacy.getId()).getOrigin());
@@ -99,15 +95,15 @@ class ClassificationPersistenceTest {
     @Test void historyPreviewAndApplyPreserveMoneyIdentityOtherUsersAndInterveningClassifications() {
         var rule = rules.create(ClassificationRuleRequest.builder().matchText("TEST merchant").categoryId(target.getId())
                 .priority(100).enabled(true).build());
-        var expense = store(owner,"history-expense",null,FlowType.EXPENSE,account);
-        var income = store(owner,"history-income","   ",FlowType.INCOME,null);
-        var assigned = store(owner,"history-assigned","Existing",FlowType.EXPENSE,null);
-        var transfer = store(owner,"history-transfer",null,FlowType.INTERNAL_TRANSFER,null);
-        var foreign = store(other,"history-foreign",null,FlowType.EXPENSE,null);
+        var expense = store(owner,"history-expense",null,FlowType.EXPENSE);
+        var income = store(owner,"history-income","   ",FlowType.INCOME);
+        var assigned = store(owner,"history-assigned","Existing",FlowType.EXPENSE);
+        var transfer = store(owner,"history-transfer",null,FlowType.INTERNAL_TRANSFER);
+        var foreign = store(other,"history-foreign",null,FlowType.EXPENSE);
         var preview = history.preview(rule.getId());
         assertEquals(List.of(expense.getId(),income.getId()),preview.getTransactions().stream().map(t->t.getId()).toList());
         assertNull(expense.getCategory());
-        var later = store(owner,"history-arrived-later",null,FlowType.EXPENSE,null);
+        var later = store(owner,"history-arrived-later",null,FlowType.EXPENSE);
         income.setCategory("Manual"); transactions.flush();
         var result = history.apply(rule.getId(),historyRequest(preview));
         transactions.flush();
@@ -117,7 +113,6 @@ class ClassificationPersistenceTest {
         assertNull(foreign.getCategory()); assertNull(later.getCategory());
         assertEquals(new BigDecimal("10.25"),expense.getAmount());
         assertEquals(FlowType.EXPENSE,expense.getFlowType()); assertEquals("history-expense",expense.getTransactionHash());
-        assertEquals(account.getId(),expense.getFinancialInstrument().getId());
         assertEquals(LocalDateTime.of(2026,1,1,12,0),expense.getTransactionDate()); assertEquals(6,transactions.count());
         var replay = history.apply(rule.getId(),historyRequest(preview));
         assertEquals(0,replay.getAppliedCount()); assertEquals(2,replay.getSkippedCount());
@@ -127,9 +122,9 @@ class ClassificationPersistenceTest {
     @Test void historyHonorsPriorityLiteralMatchingAndCategoryLifecycle() {
         var selected = rules.create(ClassificationRuleRequest.builder().matchText("%_ merchant").categoryId(target.getId())
                 .priority(100).enabled(true).build());
-        var literal = store(owner,"history-literal",null,FlowType.EXPENSE,null);
+        var literal = store(owner,"history-literal",null,FlowType.EXPENSE);
         literal.setContactName("%_ MERCHANT");
-        var wildcard = store(owner,"history-no-wildcards",null,FlowType.EXPENSE,null);
+        var wildcard = store(owner,"history-no-wildcards",null,FlowType.EXPENSE);
         wildcard.setContactName("abc merchant"); transactions.flush();
         assertEquals(List.of(literal.getId()),history.preview(selected.getId()).getTransactions().stream().map(t->t.getId()).toList());
         var prior = rules.create(ClassificationRuleRequest.builder().matchText("merchant").categoryId(target.getId())
@@ -149,8 +144,8 @@ class ClassificationPersistenceTest {
     @Test void historyRejectsCrossTenantRequestsAndForgedSelections() {
         var selected = rules.create(ClassificationRuleRequest.builder().matchText("merchant").categoryId(target.getId())
                 .priority(100).enabled(true).build());
-        var owned = store(owner,"history-owned",null,FlowType.EXPENSE,null);
-        var foreign = store(other,"history-not-owned",null,FlowType.EXPENSE,null);
+        var owned = store(owner,"history-owned",null,FlowType.EXPENSE);
+        var foreign = store(other,"history-not-owned",null,FlowType.EXPENSE);
         var preview = history.preview(selected.getId());
         UserContext.setCurrentUser(other);
         assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,
@@ -164,9 +159,9 @@ class ClassificationPersistenceTest {
         assertNull(owned.getCategory()); assertNull(foreign.getCategory());
     }
 
-    private Transaction store(User user, String hash, String category, FlowType flow, FinancialInstrument instrument) {
+    private Transaction store(User user, String hash, String category, FlowType flow) {
         return transactions.saveAndFlush(Transaction.builder().user(user).transactionHash(hash).contactName("Test merchant")
-                .amount(new BigDecimal("10.25")).flowType(flow).category(category).financialInstrument(instrument)
+                .amount(new BigDecimal("10.25")).flowType(flow).category(category)
                 .transactionDate(LocalDateTime.of(2026, 1, 1, 12, 0)).build());
     }
 
@@ -177,17 +172,17 @@ class ClassificationPersistenceTest {
 
     @Test void filterTotalsSpanPagesPreserveDecimalsAndSeparateTransfersAndTenants() {
         for (int i = 0; i < 12; i++) {
-            var row = store(owner, "summary-expense-" + i, null, FlowType.EXPENSE, null);
+            var row = store(owner, "summary-expense-" + i, null, FlowType.EXPENSE);
             row.setAmount(new BigDecimal("0.10"));
         }
-        store(owner, "summary-income", null, FlowType.INCOME, null);
-        var transfer = store(owner, "summary-transfer", null, FlowType.INTERNAL_TRANSFER, null);
+        store(owner, "summary-income", null, FlowType.INCOME);
+        var transfer = store(owner, "summary-transfer", null, FlowType.INTERNAL_TRANSFER);
         transfer.setOperationType(OperationType.OWN_CARD_PAYMENT);
-        store(other, "summary-foreign", null, FlowType.EXPENSE, null);
+        store(other, "summary-foreign", null, FlowType.EXPENSE);
         transactions.flush();
         for (int page : new int[]{0, 1, 6, 20}) {
             var result = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
-                    null, null, null, null, null, null, null, null, null, null, null, null, PageRequest.of(page, 2));
+                    null, null, null, null, null, null, null, null, null, null, null, PageRequest.of(page, 2));
             assertEquals(14, result.getTotalElements());
             assertEquals(0, new BigDecimal("1.20").compareTo(result.getSummary().getTotalExpense()));
             assertEquals(0, new BigDecimal("10.25").compareTo(result.getSummary().getTotalIncome()));
@@ -202,19 +197,19 @@ class ClassificationPersistenceTest {
     }
 
     @Test void filterTotalsUseEveryListingPredicateIncludingHistoricalDrillDownAndReview() {
-        var match = store(owner, "summary-match", "Ocio", FlowType.EXPENSE, account);
+        var match = store(owner, "summary-match", "Ocio", FlowType.EXPENSE);
         match.setChannel("TEST_WALLET"); match.setContactName("Exact %_ Shop");
-        var income = store(owner, "summary-other-flow", "Ocio", FlowType.INCOME, account);
+        var income = store(owner, "summary-other-flow", "Ocio", FlowType.INCOME);
         income.setChannel("TEST_WALLET"); income.setContactName("Exact %_ Shop");
-        var outside = store(owner, "summary-other-date", "Ocio", FlowType.EXPENSE, account);
+        var outside = store(owner, "summary-other-date", "Ocio", FlowType.EXPENSE);
         outside.setTransactionDate(LocalDateTime.of(2025, 1, 1, 12, 0));
-        var foreign = store(other, "summary-other-user", " Ocio ", FlowType.EXPENSE, null);
+        var foreign = store(other, "summary-other-user", " Ocio ", FlowType.EXPENSE);
         foreign.setContactName("Exact %_ Shop"); foreign.setChannel("TEST_WALLET");
-        store(owner, "summary-unclassified", null, FlowType.EXPENSE, null);
+        store(owner, "summary-unclassified", null, FlowType.EXPENSE);
         transactions.flush();
         var result = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
                 LocalDateTime.of(2026, 1, 1, 0, 0), LocalDateTime.of(2026, 1, 1, 23, 59),
-                FlowType.EXPENSE, "Shop", account.getId(), " Ocio ", "TEST_WALLET",
+                FlowType.EXPENSE, "Shop", " Ocio ", "TEST_WALLET",
                 new BigDecimal("10.25"), new BigDecimal("10.25"), null, "Exact %_ Shop", "Ocio", PageRequest.of(0, 1));
         assertEquals(List.of(match.getId()), result.getContent().stream().map(t -> t.getId()).toList());
         assertEquals(0, new BigDecimal("10.25").compareTo(result.getSummary().getTotalExpense()));
@@ -222,7 +217,7 @@ class ClassificationPersistenceTest {
         assertEquals(0, result.getSummary().getInternalTransfersAmount().signum());
         for (var reason : PendingReason.values()) {
             var review = (com.store.api.model.dto.transaction.TransactionPageResponse) service.getTransactions(
-                    null, null, null, null, null, null, null, null, null, reason, null, "", PageRequest.of(0, 1));
+                    null, null, null, null, null, null, null, null, reason, null, "", PageRequest.of(0, 1));
             assertEquals(1, review.getTotalElements());
             assertEquals(0, new BigDecimal("10.25").compareTo(review.getSummary().getTotalExpense()));
             assertEquals(0, review.getSummary().getTotalIncome().signum());
@@ -242,13 +237,13 @@ class ClassificationPersistenceTest {
         replay.setContactName(parsed.getMerchantName()); replay.setChannel(parsed.getChannel());
         replay.setTransactionDate(parsed.getTransactionDate()); replay.setTransactionHash(parsed.getTransactionHash());
 
-        Transaction legacy = store(owner, parsed.getTransactionHash(), target.getName(), FlowType.EXPENSE, account);
+        Transaction legacy = store(owner, parsed.getTransactionHash(), target.getName(), FlowType.EXPENSE);
         legacy.setContactName(parsed.getMerchantName()); legacy.setChannel(parsed.getChannel());
         legacy.setAmount(parsed.getAmount()); legacy.setTransactionDate(parsed.getTransactionDate());
         legacy.setCardLast4("1111");
-        Transaction foreign = store(other, parsed.getTransactionHash(), null, FlowType.EXPENSE, null);
+        Transaction foreign = store(other, parsed.getTransactionHash(), null, FlowType.EXPENSE);
         foreign.setContactName(parsed.getMerchantName()); foreign.setChannel(parsed.getChannel());
-        Transaction purchase = store(owner, "card-purchase", target.getName(), FlowType.EXPENSE, null);
+        Transaction purchase = store(owner, "card-purchase", target.getName(), FlowType.EXPENSE);
         purchase.setContactName("School example"); purchase.setAmount(new BigDecimal("45.50"));
         purchase.setChannel("TARJETA_CREDITO_BCP");
         transactions.saveAllAndFlush(List.of(legacy, foreign, purchase));
@@ -264,7 +259,6 @@ class ClassificationPersistenceTest {
         assertEquals(parsed.getTransactionDate(), repaired.getTransactionDate());
         assertEquals("1111", repaired.getCardLast4());
         assertEquals(target.getName(), repaired.getCategory());
-        assertEquals(account.getId(), repaired.getFinancialInstrument().getId());
         assertEquals(repaired.getId(), service.markOwnCardPayment(legacy.getId()).getId());
         assertEquals(FlowType.INTERNAL_TRANSFER, service.processAndSave(replay).getFlowType());
         assertEquals(FlowType.EXPENSE, transactions.findById(foreign.getId()).orElseThrow().getFlowType());
@@ -283,7 +277,7 @@ class ClassificationPersistenceTest {
         assertEquals(new BigDecimal("45.50"), summary.getTotalExpense());
         assertEquals(new BigDecimal("-45.50"), summary.getNetBalance());
         var csv = new String(service.exportTransactionsCsv(null, null, FlowType.EXPENSE, null,
-                null, null, null, null, null), java.nio.charset.StandardCharsets.UTF_8);
+                null, null, null, null), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(csv.contains("School example"));
         assertFalse(csv.contains("Pago Tarjeta"));
     }
@@ -310,7 +304,7 @@ class ClassificationPersistenceTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"EXAMPLE_BANK", "EXAMPLE_WALLET", "UNKNOWN"})
     void explicitOwnCardConfirmationDoesNotDependOnProviderOrContactText(String channel) {
-        var tx = store(owner, "provider-independent", target.getName(), FlowType.EXPENSE, account);
+        var tx = store(owner, "provider-independent", target.getName(), FlowType.EXPENSE);
         tx.setChannel(channel); tx.setContactName("Reference only");
         transactions.saveAndFlush(tx);
         assertEquals(OperationType.UNKNOWN, tx.getOperationType());
@@ -320,7 +314,6 @@ class ClassificationPersistenceTest {
         assertEquals(channel, confirmed.getChannel());
         assertEquals("Reference only", confirmed.getContactName());
         assertEquals(new BigDecimal("10.25"), confirmed.getAmount());
-        assertEquals(account.getId(), confirmed.getFinancialInstrument().getId());
         assertEquals(tx.getTransactionHash(), confirmed.getTransactionHash());
         assertEquals(confirmed.getId(), service.markOwnCardPayment(tx.getId()).getId());
         assertEquals(0, analytics.getSummary().getNetBalance().signum());
@@ -328,17 +321,17 @@ class ClassificationPersistenceTest {
     }
 
     @Test void expenseHighlightsUseOwnedPeriodExpensesAndDistinguishSingleExpenseFromDailyTotal() {
-        Transaction first = store(owner, "highlight-first", null, FlowType.EXPENSE, null);
+        Transaction first = store(owner, "highlight-first", null, FlowType.EXPENSE);
         first.setContactName("Largest owned");first.setAmount(new BigDecimal("80.00"));
         first.setTransactionDate(LocalDateTime.of(2026, 1, 2, 12, 0));
-        Transaction tied = store(owner, "highlight-tied", null, FlowType.EXPENSE, null);
+        Transaction tied = store(owner, "highlight-tied", null, FlowType.EXPENSE);
         tied.setAmount(new BigDecimal("80.00"));tied.setTransactionDate(LocalDateTime.of(2026, 1, 3, 12, 0));
-        Transaction dayA = store(owner, "highlight-day-a", null, FlowType.EXPENSE, null);dayA.setAmount(new BigDecimal("50.25"));
-        Transaction dayB = store(owner, "highlight-day-b", null, FlowType.EXPENSE, null);dayB.setAmount(new BigDecimal("49.75"));
-        Transaction foreign = store(other, "highlight-foreign", null, FlowType.EXPENSE, null);foreign.setAmount(new BigDecimal("9999.00"));
-        Transaction income = store(owner, "highlight-income", null, FlowType.INCOME, null);income.setAmount(new BigDecimal("9000.00"));
-        Transaction transfer = store(owner, "highlight-transfer", null, FlowType.INTERNAL_TRANSFER, null);transfer.setAmount(new BigDecimal("8000.00"));
-        Transaction old = store(owner, "highlight-old", null, FlowType.EXPENSE, null);old.setAmount(new BigDecimal("7000.00"));
+        Transaction dayA = store(owner, "highlight-day-a", null, FlowType.EXPENSE);dayA.setAmount(new BigDecimal("50.25"));
+        Transaction dayB = store(owner, "highlight-day-b", null, FlowType.EXPENSE);dayB.setAmount(new BigDecimal("49.75"));
+        Transaction foreign = store(other, "highlight-foreign", null, FlowType.EXPENSE);foreign.setAmount(new BigDecimal("9999.00"));
+        Transaction income = store(owner, "highlight-income", null, FlowType.INCOME);income.setAmount(new BigDecimal("9000.00"));
+        Transaction transfer = store(owner, "highlight-transfer", null, FlowType.INTERNAL_TRANSFER);transfer.setAmount(new BigDecimal("8000.00"));
+        Transaction old = store(owner, "highlight-old", null, FlowType.EXPENSE);old.setAmount(new BigDecimal("7000.00"));
         old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 12, 0));
         transactions.saveAllAndFlush(List.of(first, tied, dayA, dayB, foreign, income, transfer, old));
         var result = analytics.getPeriodAnalytics(2026, 1);
@@ -353,23 +346,23 @@ class ClassificationPersistenceTest {
     }
 
     @Test void categoryDrillDownMatchesTrimmedGroupAndUncategorizedWithoutMixingScopes() {
-        store(owner, "drill-trimmed", " Ocio ", FlowType.EXPENSE, null);
-        store(owner, "drill-exact", "Ocio", FlowType.EXPENSE, null);
-        store(owner, "drill-case", "ocio", FlowType.EXPENSE, null);
-        store(owner, "drill-blank", "  ", FlowType.EXPENSE, null);
-        store(owner, "drill-null", null, FlowType.EXPENSE, null);
-        store(owner, "drill-income", "Ocio", FlowType.INCOME, null);
-        store(owner, "drill-transfer", null, FlowType.INTERNAL_TRANSFER, null);
-        store(other, "drill-foreign", "Ocio", FlowType.EXPENSE, null);
-        Transaction old = store(owner, "drill-old", "Ocio", FlowType.EXPENSE, null);
+        store(owner, "drill-trimmed", " Ocio ", FlowType.EXPENSE);
+        store(owner, "drill-exact", "Ocio", FlowType.EXPENSE);
+        store(owner, "drill-case", "ocio", FlowType.EXPENSE);
+        store(owner, "drill-blank", "  ", FlowType.EXPENSE);
+        store(owner, "drill-null", null, FlowType.EXPENSE);
+        store(owner, "drill-income", "Ocio", FlowType.INCOME);
+        store(owner, "drill-transfer", null, FlowType.INTERNAL_TRANSFER);
+        store(other, "drill-foreign", "Ocio", FlowType.EXPENSE);
+        Transaction old = store(owner, "drill-old", "Ocio", FlowType.EXPENSE);
         old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 23, 59));transactions.saveAndFlush(old);
         LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0), end = LocalDateTime.of(2026, 1, 1, 23, 59, 59);
         for (String group : List.of("Ocio", "")) {
-            var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null, null,
+            var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null,
                     null, null, null, null, group, PageRequest.of(1, 1));
             assertEquals(2, page.getTotalElements());assertEquals(1, page.getContent().size());
             String csv = new String(service.exportTransactionsCsv(start, end, FlowType.EXPENSE, null,
-                    null, null, null, null, null, null, null, group), java.nio.charset.StandardCharsets.UTF_8);
+                    null, null, null, null, null, null, group), java.nio.charset.StandardCharsets.UTF_8);
             assertEquals(3, csv.lines().count());assertFalse(csv.contains("drill-income"));
             assertFalse(csv.contains("drill-transfer"));assertFalse(csv.contains("drill-foreign"));
             assertFalse(csv.contains("drill-case"));assertFalse(csv.contains("drill-old"));
@@ -379,28 +372,28 @@ class ClassificationPersistenceTest {
     @Test void exactMerchantFilterKeepsAnalysisScopeAcrossPagingAndCsv() {
         String name = "Literal %_ Shop";
         for (int index = 0; index < 3; index++) {
-            Transaction mine = store(owner, "merchant-exact-" + index, null, FlowType.EXPENSE, null);
+            Transaction mine = store(owner, "merchant-exact-" + index, null, FlowType.EXPENSE);
             mine.setContactName(name);
             transactions.saveAndFlush(mine);
         }
-        Transaction similar = store(owner, "merchant-similar", null, FlowType.EXPENSE, null);
+        Transaction similar = store(owner, "merchant-similar", null, FlowType.EXPENSE);
         similar.setContactName(name + " Extra");
-        Transaction foreign = store(other, "merchant-foreign", null, FlowType.EXPENSE, null);
+        Transaction foreign = store(other, "merchant-foreign", null, FlowType.EXPENSE);
         foreign.setContactName(name);
-        Transaction income = store(owner, "merchant-income", null, FlowType.INCOME, null);
+        Transaction income = store(owner, "merchant-income", null, FlowType.INCOME);
         income.setContactName(name);
-        Transaction future = store(owner, "merchant-future", null, FlowType.EXPENSE, null);
+        Transaction future = store(owner, "merchant-future", null, FlowType.EXPENSE);
         future.setContactName(name);
         future.setTransactionDate(LocalDateTime.of(2026, 1, 2, 0, 0));
         transactions.saveAllAndFlush(List.of(similar, foreign, income, future));
         LocalDateTime start = LocalDateTime.of(2026, 1, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2026, 1, 1, 23, 59, 59);
-        var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null, null,
+        var page = service.getTransactions(start, end, FlowType.EXPENSE, null, null, null,
                 null, null, null, name, PageRequest.of(1, 2));
         assertEquals(3, page.getTotalElements());
         assertEquals(1, page.getContent().size());
         assertEquals(name, page.getContent().getFirst().getContactName());
-        String csv = new String(service.exportTransactionsCsv(start, end, FlowType.EXPENSE, null, null,
+        String csv = new String(service.exportTransactionsCsv(start, end, FlowType.EXPENSE, null,
                 null, null, null, null, null, name), java.nio.charset.StandardCharsets.UTF_8);
         assertEquals(4, csv.lines().count());
         assertFalse(csv.contains("merchant-similar"));
@@ -410,19 +403,19 @@ class ClassificationPersistenceTest {
     }
 
     @Test void categoryBreakdownIncludesUnclassifiedExpensesAndRespectsOwnerPeriodAndFlow() {
-        Transaction first = store(owner, "category-food", " Comida ", FlowType.EXPENSE, null);
+        Transaction first = store(owner, "category-food", " Comida ", FlowType.EXPENSE);
         first.setAmount(new BigDecimal("60.25"));
-        Transaction second = store(owner, "category-food-two", "Comida", FlowType.EXPENSE, null);
+        Transaction second = store(owner, "category-food-two", "Comida", FlowType.EXPENSE);
         second.setAmount(new BigDecimal("19.75"));
-        Transaction blank = store(owner, "category-blank", "  ", FlowType.EXPENSE, null);
+        Transaction blank = store(owner, "category-blank", "  ", FlowType.EXPENSE);
         blank.setAmount(new BigDecimal("15.00"));
-        Transaction missing = store(owner, "category-null", null, FlowType.EXPENSE, null);
+        Transaction missing = store(owner, "category-null", null, FlowType.EXPENSE);
         missing.setAmount(new BigDecimal("5.00"));
         transactions.saveAllAndFlush(List.of(first, second, blank, missing));
-        store(other, "category-foreign", "Foreign", FlowType.EXPENSE, null);
-        store(owner, "category-income", "Income", FlowType.INCOME, null);
-        store(owner, "category-transfer", "Transfer", FlowType.INTERNAL_TRANSFER, null);
-        Transaction old = store(owner, "category-old", "Outside", FlowType.EXPENSE, null);
+        store(other, "category-foreign", "Foreign", FlowType.EXPENSE);
+        store(owner, "category-income", "Income", FlowType.INCOME);
+        store(owner, "category-transfer", "Transfer", FlowType.INTERNAL_TRANSFER);
+        Transaction old = store(owner, "category-old", "Outside", FlowType.EXPENSE);
         old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 23, 59));
         transactions.saveAndFlush(old);
         var result = analytics.getPeriodAnalytics(2026, 1);
@@ -448,11 +441,11 @@ class ClassificationPersistenceTest {
         storeMerchant(owner, "Fifth", "20.00", 1);
         storeMerchant(owner, "Outside top five", "10.00", 1);
         storeMerchant(other, "Foreign", "10000.00", 1);
-        Transaction transfer = store(owner, "ranking-transfer", null, FlowType.INTERNAL_TRANSFER, account);
+        Transaction transfer = store(owner, "ranking-transfer", null, FlowType.INTERNAL_TRANSFER);
         transfer.setAmount(new BigDecimal("9000.00"));
-        Transaction income = store(owner, "ranking-income", null, FlowType.INCOME, account);
+        Transaction income = store(owner, "ranking-income", null, FlowType.INCOME);
         income.setAmount(new BigDecimal("8000.00"));
-        Transaction old = store(owner, "ranking-old", null, FlowType.EXPENSE, account);
+        Transaction old = store(owner, "ranking-old", null, FlowType.EXPENSE);
         old.setTransactionDate(LocalDateTime.of(2025, 12, 31, 12, 0));
         old.setAmount(new BigDecimal("7000.00"));
         transactions.saveAllAndFlush(List.of(transfer, income, old));
@@ -469,7 +462,7 @@ class ClassificationPersistenceTest {
 
     private void storeMerchant(User user, String name, String amount, int count) {
         for (int index = 0; index < count; index++) {
-            Transaction movement = store(user, "ranking-" + name + "-" + index, null, FlowType.EXPENSE, null);
+            Transaction movement = store(user, "ranking-" + name + "-" + index, null, FlowType.EXPENSE);
             movement.setContactName(name);
             movement.setAmount(new BigDecimal(amount));
             transactions.saveAndFlush(movement);
@@ -477,15 +470,15 @@ class ClassificationPersistenceTest {
     }
 
     @Test void listingSearchAndCsvWorkWithoutMetadataColumnsAndRemainUserScoped() {
-        Transaction mine = store(owner, "search-owner", "Ocio", FlowType.EXPENSE, account);
-        Transaction foreign = store(other, "search-other", "Ocio", FlowType.EXPENSE, null);
+        Transaction mine = store(owner, "search-owner", "Ocio", FlowType.EXPENSE);
+        Transaction foreign = store(other, "search-other", "Ocio", FlowType.EXPENSE);
         foreign.setContactName("Foreign merchant");
         transactions.saveAndFlush(foreign);
         var page = service.getTransactions(null, null, null, "ocio", PageRequest.of(0, 10));
         assertEquals(List.of(mine.getId()), page.getContent().stream().map(item -> item.getId()).toList());
         assertEquals(1, service.getTransactions(null, null, null, "merchant", PageRequest.of(0, 10)).getTotalElements());
         assertEquals(0, service.getTransactions(null, null, null, "no match", PageRequest.of(0, 10)).getTotalElements());
-        String csv = new String(service.exportTransactionsCsv(null, null, null, "ocio", null, null, null, null, null),
+        String csv = new String(service.exportTransactionsCsv(null, null, null, "ocio", null, null, null, null),
                 java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(csv.startsWith("\uFEFFID,Fecha,Comercio o contacto,Importe,Tipo,Categoria,Medio,Tarjeta,Hash\n"));
         assertTrue(csv.contains("\"10.25\""));
@@ -495,16 +488,15 @@ class ClassificationPersistenceTest {
     }
 
     @Test void inboxCombinesMissingFieldsScopesUserAndProtectsTransfers() {
-        Transaction categoryOnly = store(owner, "category", "  ", FlowType.EXPENSE, account);
-        Transaction instrumentOnly = store(owner, "instrument", "Ocio", FlowType.EXPENSE, null);
-        Transaction both = store(owner, "both", null, FlowType.INCOME, null);
-        store(owner, "transfer-complete", null, FlowType.INTERNAL_TRANSFER, account);
-        Transaction transferMissing = store(owner, "transfer-missing", null, FlowType.INTERNAL_TRANSFER, null);
-        store(owner, "complete", "Ocio", FlowType.INCOME, account);
-        Transaction foreign = store(other, "foreign", null, FlowType.EXPENSE, null);
-        assertEquals(List.of(categoryOnly.getId(), instrumentOnly.getId(), both.getId(), transferMissing.getId()), pending(PendingReason.ALL));
+        Transaction categoryOnly = store(owner, "category", "  ", FlowType.EXPENSE);
+        store(owner, "complete-expense", "Ocio", FlowType.EXPENSE);
+        Transaction both = store(owner, "both", null, FlowType.INCOME);
+        store(owner, "transfer-complete", null, FlowType.INTERNAL_TRANSFER);
+        store(owner, "transfer-missing", null, FlowType.INTERNAL_TRANSFER);
+        store(owner, "complete", "Ocio", FlowType.INCOME);
+        Transaction foreign = store(other, "foreign", null, FlowType.EXPENSE);
+        assertEquals(List.of(categoryOnly.getId(), both.getId()), pending(PendingReason.ALL));
         assertEquals(List.of(categoryOnly.getId(), both.getId()), pending(PendingReason.CATEGORY));
-        assertEquals(List.of(instrumentOnly.getId(), both.getId(), transferMissing.getId()), pending(PendingReason.INSTRUMENT));
         service.updateClassification(categoryOnly.getId(), TransactionClassificationRequest.builder().category("Ocio").build());
         assertEquals(List.of(both.getId()), pending(PendingReason.CATEGORY));
         UserContext.setCurrentUser(other);

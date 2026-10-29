@@ -13,11 +13,11 @@ beforeEach(() => {
   vi.spyOn(api, 'getCategories').mockResolvedValue([]);
   vi.spyOn(api, 'getFinancialSummary').mockRejectedValue(new Error('synthetic unavailable'));
   vi.spyOn(api, 'getPeriodAnalytics').mockRejectedValue(new Error('synthetic unavailable'));
-  vi.spyOn(api, 'getGoogleAuthStatus').mockResolvedValue({ connected: false });
+  vi.spyOn(api, 'getGoogleAuthStatus').mockResolvedValue({ connected: false, email: null, lastSuccessfulSyncAt: null, lastSyncFailed: false });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/'); });
 
-it('replaces Pendientes navigation with Movimientos and preserves legacy review scope', async () => {
+it('replaces Pendientes navigation with Movimientos, drops Tarjetas y cuentas, and preserves legacy review scope', async () => {
   window.history.replaceState({}, '', '/?vista=pendientes');
   const list = vi.spyOn(api, 'getTransactions').mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0, first: true, last: true, empty: true });
   const nav = renderHook(() => useDashboardNavigation());
@@ -25,7 +25,11 @@ it('replaces Pendientes navigation with Movimientos and preserves legacy review 
   expect(nav.result.current[0]).toBe('movimientos');
   render(<SidebarNavigation activeView={nav.result.current[0]} onViewChange={vi.fn()} />);
   expect(screen.queryByRole('button', { name: 'Pendientes' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Tarjetas y cuentas' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Reglas' })).toBeDefined();
+  window.history.replaceState({}, '', '/?vista=tarjetas');
+  act(() => { window.dispatchEvent(new PopStateEvent('popstate')); });
+  expect(nav.result.current[0]).toBe('inicio');
   await waitFor(() => expect(list).toHaveBeenCalledWith(expect.objectContaining({ pendingReason: 'ALL', startDate: undefined, endDate: undefined })));
   act(() => finance.result.current.handleFilterChange({ search: 'CINE', pendingReason: 'CATEGORY', allHistory: true }));
   act(() => finance.result.current.handlePageChange(2));
@@ -43,8 +47,6 @@ it('selects missing category across history, clearing contradictory category and
   view.rerender(<TransactionFilters search="CINE" flowType="EXPENSE" pendingReason="CATEGORY" allHistory onFilterChange={change} onReset={vi.fn()} />);
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).disabled).toBe(true);
   expect(screen.getByText('Se muestra todo el historial, sin límite de fechas.')).toBeDefined();
-  fireEvent.change(screen.getByLabelText('Revisión'), { target: { value: 'INSTRUMENT' } });
-  expect(change).toHaveBeenLastCalledWith({ pendingReason: 'INSTRUMENT', allHistory: true, startDate: undefined, endDate: undefined });
   await waitFor(() => expect(api.getCategories).toHaveBeenCalled());
 });
 
@@ -114,11 +116,11 @@ it('returns to a valid page after completing the final movement on the last revi
   const list = vi.spyOn(api, 'getTransactions').mockImplementation(async params => ({ content: [], totalElements: 10,
     totalPages: 1, size: params?.size ?? 10, number: params?.page ?? 0, first: !params?.page, last: true, empty: true }));
   const { result } = renderHook(() => useFinance(1));
-  act(() => result.current.handleFilterChange({ pendingReason: 'INSTRUMENT', allHistory: true }));
-  await waitFor(() => expect(list).toHaveBeenCalledWith(expect.objectContaining({ pendingReason: 'INSTRUMENT', page: 0 })));
+  act(() => result.current.handleFilterChange({ pendingReason: 'CATEGORY', allHistory: true }));
+  await waitFor(() => expect(list).toHaveBeenCalledWith(expect.objectContaining({ pendingReason: 'CATEGORY', page: 0 })));
   act(() => result.current.handlePageChange(1));
   await waitFor(() => expect(result.current.filters.page).toBe(0));
-  expect(result.current.transactionFilters).toEqual(expect.objectContaining({ pendingReason: 'INSTRUMENT', allHistory: true }));
+  expect(result.current.transactionFilters).toEqual(expect.objectContaining({ pendingReason: 'CATEGORY', allHistory: true }));
 });
 
 it('sends identical review filters for listing and CSV and refuses servers that ignore them', async () => {

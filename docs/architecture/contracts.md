@@ -30,14 +30,12 @@ Paths below are relative to `/api/v1`.
 | Method and path | Purpose | Implementation |
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions` | Paginated list with dates, flow, contact/category search, product, category, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions` | Paginated list with dates, flow, contact/category search, category, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /financial-instruments`, `POST /financial-instruments`, `PUT /financial-instruments/{id}` | Product registration, editing and archive/reactivation | [FinancialInstrumentController](../../api/src/main/java/com/store/api/controller/instrument/FinancialInstrumentController.java) |
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
-| `PATCH /transactions/{id}/financial-instrument`, `GET /transactions/{id}/financial-instrument-suggestions` | Manual assignment and proposals requiring confirmation | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `PATCH /transactions/{id}/classification` | Update transaction category | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `PATCH /transactions/{id}/own-card-payment` | Explicitly repair a legacy own-card repayment as an internal transfer | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /transactions/pending` | All-history pending movements; reason `ALL` (default), `CATEGORY` or `INSTRUMENT`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/pending` | All-history pending movements; reason `ALL` (default) or `CATEGORY`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
 | `GET /analytics/summary`, `GET /analytics/period` | All-history summary or selected-period analytics | [AnalyticsController](../../api/src/main/java/com/store/api/controller/analytics/AnalyticsController.java) |
 | `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
@@ -124,13 +122,12 @@ same-user/hash retries serialize in PostgreSQL and return the existing movement;
 they do not append duplicate raw logs. CSV exports allow up to 10000 matching
 movements and return 400 above that limit; narrow the filters to export more history.
 
-The response adds `id`, `createdAt` and nullable `financialInstrument`, and returns the transaction fields without
+The response adds `id` and `createdAt`, and returns the transaction fields without
 the original text. It has no currency field. Backend DTOs currently use mutable
 Lombok classes; immutability is not an established contract requirement.
 
-Product currency is fixed to PEN and does not add currency to captured transactions.
-See [cards and accounts](../domain/financial-instruments.md) for registration fields,
-ownership checks, suggestions and schema preparation.
+The former `financial-instruments` endpoints and `financialInstrument` response field
+are retired; see [cards and accounts retirement](../domain/financial-instruments.md).
 
 ## Period analytics
 
@@ -255,8 +252,7 @@ or movement IDs return 404, inactive rules/categories or invalid payloads return
 Anonymous/device access remains 401/403. No schema or Android sync change is needed.
 
 `GET /transactions` and `/transactions/export` accept optional `pendingReason`:
-`CATEGORY` (null/blank category, excluding internal transfers), `INSTRUMENT`
-(unassigned instrument, including transfers), or `ALL` (either). It combines with
+`CATEGORY` or `ALL` (null/blank category, excluding internal transfers). It combines with
 all existing filters under the authenticated user's ownership predicate. Omission
 preserves ordinary listing/export. Unknown values return 400. Omitting dates
 searches all history; `allHistory` is dashboard state, not an API parameter.

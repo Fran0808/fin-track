@@ -4,7 +4,7 @@ Movements → `Registrar manualmente` records a completed expense or incoming
 payment omitted from automatic capture. The user supplies a positive amount in
 soles (0.01–99999999.99, up to two decimal places), local operation date/time,
 concept/contact and a generic payment method: cash, card, bank transfer, wallet
-or other. Category and card/account are optional and must be owned and active.
+or other. Category is optional and must be owned and active.
 The transfer payment method does not mean an internal transfer: the user must
 not record transfers between their own accounts as an expense or incoming money.
 This entry flow does not schedule obligations or implement general corrections.
@@ -25,7 +25,7 @@ transaction hash, operation evidence or reconciliation metadata. Android/device
 credentials and anonymous callers are rejected. Required payload fields are
 `requestId` (UUID), `amount`, `flowType` (`EXPENSE` or `INCOME`), `contactName`,
 `transactionDate` and `paymentMethod` (`CASH`, `CARD`, `BANK_TRANSFER`, `WALLET`,
-`OTHER`); `categoryId` and `financialInstrumentId` may be null.
+`OTHER`); `categoryId` may be null.
 
 The server derives `manual:<UUID>`, takes the existing per-user advisory lock
 and binds that intent to a SHA-256 fingerprint of normalized input. Concurrent

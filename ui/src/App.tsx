@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
-import { HomeView, MyMoneyView, TransactionsView, SettingsView, InstrumentsView, CategoriesView, ClassificationRulesView } from './components/views';
+import { HomeView, MyMoneyView, TransactionsView, SettingsView, CategoriesView, ClassificationRulesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
 import { CreateClassificationRuleModal } from './components/transactions/CreateClassificationRuleModal';
 import { LoginView } from './components/auth';
@@ -19,7 +19,6 @@ const VIEW_LABELS: Record<NavView, string> = {
   'mi-dinero': 'Análisis',
   movimientos: 'Movimientos',
   reglas: 'Reglas',
-  tarjetas: 'Tarjetas y cuentas',
   categorias: 'Categorías',
   configuracion: 'Configuración',
 };
@@ -72,7 +71,6 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
-  const [instrumentRevision, setInstrumentRevision] = useState(0);
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   return (
@@ -115,7 +113,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
                 Vinculación móvil
               </button>
-              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().then(() => setInstrumentRevision(value => value + 1)).catch(() => {}); }} />
+              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
               {!['configuracion', 'categorias', 'reglas'].includes(activeView) && !(activeView === 'movimientos' && (filters.allHistory || filters.startDate)) && <PeriodSelector
                 year={selectedPeriod.year}
                 month={selectedPeriod.month}
@@ -179,7 +177,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               onFilterChange={handleFilterChange}
               onPageChange={handlePageChange}
               onSelectTransaction={setSelectedTransaction}
-              onCreated={transaction => { setSelectedTransaction(transaction); setInstrumentRevision(value => value + 1); void refreshAll(); }}
+              onCreated={transaction => { setSelectedTransaction(transaction); void refreshAll(); }}
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
           )}
@@ -197,15 +195,11 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               onOpenPairing={() => setPairingOpen(true)}
             />
           )}
-          {activeView === 'tarjetas' && (
-            <InstrumentsView year={selectedPeriod.year} month={selectedPeriod.month} revision={instrumentRevision} onSelectTransaction={setSelectedTransaction} onProductsChanged={() => { void refreshAll(); }} />
-          )}
         </main>
       </div>
 
       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
         setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
-        setInstrumentRevision(value => value + 1);
         void refreshAll();
       }} />
       {ruleDraft && <CreateClassificationRuleModal draft={ruleDraft} onClose={() => setRuleDraft(null)} />}

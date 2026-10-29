@@ -15,8 +15,6 @@ import type {
   UserProfile,
   FlowType,
   DevicePairingInfo,
-  FinancialInstrument,
-  FinancialInstrumentRequest,
   Category,
   CategoryRequest,
   PendingReason,
@@ -69,7 +67,6 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export interface TransactionFilterParams {
   categoryGroup?: string;
   merchantName?: string;
-  financialInstrumentId?: number;
   page?: number;
   size?: number;
   flowType?: FlowType | '';
@@ -186,25 +183,6 @@ export const api = {
     if (!response.ok) await handleResponse<never>(response);
   },
 
-  async getFinancialInstruments(active?: boolean): Promise<FinancialInstrument[]> {
-    const query = active === undefined ? '' : `?active=${active}`;
-    return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/financial-instruments${query}`));
-  },
-
-  async saveFinancialInstrument(data: FinancialInstrumentRequest, id?: number): Promise<FinancialInstrument> {
-    return handleResponse<FinancialInstrument>(await fetchWithAuth(`${BASE_URL}/financial-instruments${id === undefined ? '' : '/' + id}`, {
-      method: id === undefined ? 'POST' : 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }));
-  },
-
-  async assignFinancialInstrument(transactionId: number, financialInstrumentId: number | null): Promise<Transaction> {
-    return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ financialInstrumentId }),
-    }));
-  },
-
   async updateTransactionClassification(transactionId: number, data: TransactionClassificationRequest): Promise<Transaction> {
     return handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/classification`, {
       method: 'PATCH',
@@ -213,9 +191,6 @@ export const api = {
     }));
   },
 
-  async getInstrumentSuggestions(transactionId: number): Promise<FinancialInstrument[]> {
-    return handleResponse<FinancialInstrument[]>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/financial-instrument-suggestions`));
-  },
   async markOwnCardPayment(transactionId: number): Promise<Transaction> {
     const transaction = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/own-card-payment`, {
       method: 'PATCH',
@@ -247,7 +222,6 @@ export const api = {
     if (params.merchantName !== undefined) query.set('merchantName', params.merchantName);
     if (params.categoryGroup !== undefined) query.set('categoryGroup', params.categoryGroup);
     if (params.pendingReason) query.set('pendingReason', params.pendingReason);
-    if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
 
     if (params.flowType) {
       query.set('flowType', params.flowType);
@@ -286,7 +260,6 @@ export const api = {
     if (params.merchantName !== undefined) query.set('merchantName', params.merchantName);
     if (params.categoryGroup !== undefined) query.set('categoryGroup', params.categoryGroup);
     if (params.pendingReason) query.set('pendingReason', params.pendingReason);
-    if (params.financialInstrumentId !== undefined) query.set('financialInstrumentId', String(params.financialInstrumentId));
     if (params.flowType) query.set('flowType', params.flowType);
     if (params.search && params.search.trim()) query.set('search', params.search.trim());
     if (params.startDate) query.set('startDate', params.startDate);
