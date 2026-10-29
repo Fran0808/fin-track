@@ -60,7 +60,7 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
   };
   const input = 'mt-1 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink';
   return <dialog ref={dialog} aria-labelledby="manual-entry-title" onCancel={event => { if (saving) event.preventDefault(); }}
-    onClose={() => { if (!saving) onClose(); }}
+    onClose={event => { if (!saving && !event.currentTarget.open) onClose(); }}
     className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40">
     <header className="flex items-start justify-between gap-4 border-b border-line p-5 sm:px-6">
       <div><p className="eyebrow">Origen manual</p><h2 id="manual-entry-title" className="font-display mt-1 text-xl font-semibold">{review ? 'Revisar registro manual' : 'Registro manual'}</h2></div>

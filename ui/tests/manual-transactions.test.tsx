@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ManualTransactionModal } from '../src/components/transactions/ManualTransactionModal';
 import { TransactionsView } from '../src/components/views/TransactionsView';
@@ -15,6 +16,22 @@ beforeEach(() => {
   vi.spyOn(api, 'createManualTransaction').mockResolvedValue(manual);
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+it('keeps the dialog open during development effect replay and still dismisses with Escape', async () => {
+  HTMLDialogElement.prototype.close = function () {
+    if (!this.open) return;
+    this.open = false;
+    setTimeout(() => this.dispatchEvent(new Event('close')), 0);
+  };
+  render(<StrictMode><TransactionsView pageData={null} loading={false} filters={{}} onFilterChange={vi.fn()} onPageChange={vi.fn()} onSelectTransaction={vi.fn()} /></StrictMode>);
+  fireEvent.click(screen.getByRole('button', { name: 'Registrar manualmente' }));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  const dialog = screen.getByRole('dialog', { name: 'Registro manual' }) as HTMLDialogElement;
+  expect(dialog.open).toBe(true);
+  dialog.close();
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Registro manual' })).toBeNull());
+  expect(api.createManualTransaction).not.toHaveBeenCalled();
+});
 
 it('opens manual entry when randomUUID is unavailable on an HTTP origin', async () => {
   const browserCrypto = globalThis.crypto;
