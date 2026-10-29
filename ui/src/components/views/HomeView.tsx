@@ -149,11 +149,6 @@ export function HomeView({
               })}
             </div>
           )}
-          {(analytics?.internalTransfersAmount ?? 0) > 0 && (
-            <p className="mt-6 border-t border-line pt-4 text-xs leading-relaxed text-muted">
-              {formatCurrency(analytics?.internalTransfersAmount ?? 0)} en transferencias propias, excluidas de gastos.
-            </p>
-          )}
         </section>
       </div>
     </div>
