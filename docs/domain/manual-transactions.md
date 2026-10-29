@@ -12,6 +12,8 @@ This entry flow does not schedule obligations or implement general corrections.
 The form shows every entered field before confirmation, preserves drafts on
 failure and reuses the same request UUID when retrying. Amount text is sent as
 a decimal string; Java uses `BigDecimal` and PostgreSQL `NUMERIC(10,2)`.
+Type, payment method and category use the dashboard's shared `CustomSelect`
+appearance and keyboard behavior.
 The server creates `captureOrigin=MANUAL`, without raw capture text or an invented
 receipt reference. Generic payment method and source are independent. Manual
 rows have a visible badge and origin; optional classification is an explicit

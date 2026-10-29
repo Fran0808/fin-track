@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
+import { CustomSelect } from '../common';
 import type { ManualTransactionRequest, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel } from '../../utils';
 
@@ -70,17 +71,17 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
       {!review ? <form onSubmit={prepare} className="space-y-4">
         <p className="text-sm leading-6 text-muted">Completa un movimiento realizado que falta en FinTrack. Los traspasos entre tus cuentas no son gastos ni entradas.</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-medium">Tipo<select className={input} value={flow} onChange={event => setFlow(event.target.value as typeof flow)}><option value="EXPENSE">Gasto</option><option value="INCOME">Entrada</option></select></label>
+          <div className="text-sm font-medium"><label htmlFor="manual-flow">Tipo</label><div className="mt-1"><CustomSelect<'EXPENSE' | 'INCOME'> id="manual-flow" value={flow} onChange={setFlow} className="py-2.5" options={[{ value: 'EXPENSE', label: 'Gasto' }, { value: 'INCOME', label: 'Entrada' }]} /></div></div>
           <label className="text-sm font-medium">Importe (S/)<input autoFocus className={input} inputMode="decimal" required value={amount} maxLength={11} onChange={event => setAmount(event.target.value)} placeholder="0.00" /></label>
         </div>
         <label className="block text-sm font-medium">Comercio o concepto<input className={input} required maxLength={150} value={contact} onChange={event => setContact(event.target.value)} /></label>
         <label className="block text-sm font-medium">Fecha y hora del movimiento<input className={input} type="datetime-local" required value={date} onChange={event => setDate(event.target.value)} /></label>
-        <label className="block text-sm font-medium">Medio de pago<select className={input} value={method} onChange={event => setMethod(event.target.value as typeof method)}>
-          <option value="CASH">Efectivo</option><option value="CARD">Tarjeta</option><option value="BANK_TRANSFER">Transferencia</option><option value="WALLET">Billetera</option><option value="OTHER">Otro</option>
-        </select></label>
-        <div><label className="block text-sm font-medium">Categoría (opcional)<select className={input} value={categoryId} disabled={categories.loading || !!categories.error} onChange={event => setCategoryId(event.target.value)}>
-          <option value="">Sin categoría</option>{categoryItems.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select></label>{categories.error && <p className="mt-2 text-sm text-negative">{categories.error} <button type="button" onClick={() => void categories.refresh()} className="underline">Reintentar categorías</button></p>}</div>
+        <div className="text-sm font-medium"><label htmlFor="manual-method">Medio de pago</label><div className="mt-1"><CustomSelect<ManualTransactionRequest['paymentMethod']> id="manual-method" value={method} onChange={setMethod} className="py-2.5" options={[
+          { value: 'CASH', label: 'Efectivo' }, { value: 'CARD', label: 'Tarjeta' }, { value: 'BANK_TRANSFER', label: 'Transferencia' }, { value: 'WALLET', label: 'Billetera' }, { value: 'OTHER', label: 'Otro' },
+        ]} /></div></div>
+        <div><label htmlFor="manual-category" className="block text-sm font-medium">Categoría (opcional)</label><div className="mt-1"><CustomSelect id="manual-category" value={categoryId} disabled={categories.loading || !!categories.error} onChange={setCategoryId} className="py-2.5" options={[
+          { value: '', label: 'Sin categoría' }, ...categoryItems.map(item => ({ value: String(item.id), label: item.name })),
+        ]} /></div>{categories.error && <p className="mt-2 text-sm text-negative">{categories.error} <button type="button" onClick={() => void categories.refresh()} className="underline">Reintentar categorías</button></p>}</div>
         <button type="submit" className="w-full rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white">Revisar movimiento</button>
       </form> : <div className="space-y-4">
         <p className="font-display text-3xl font-semibold">{review.flowType === 'INCOME' ? '+ ' : '− '}{formatCurrency(Number(review.amount))}</p>
