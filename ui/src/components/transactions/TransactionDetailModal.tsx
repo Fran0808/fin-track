@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2, Pencil, History } from 'lucide-react';
+import { Check, X, Loader2, Pencil, History, ListPlus } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
@@ -26,6 +26,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
 
   // Classification state
   const [category, setCategory] = useState<string>(transaction.category || '');
+  const [savedCategory, setSavedCategory] = useState(transaction.category || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -44,7 +45,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   }, [transaction]);
 
   const handleSaveClassification = async () => {
-    if (!transaction) return;
+    if (busy || readOnly || category === savedCategory) return;
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
@@ -52,6 +53,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
       const updated = await api.updateTransactionClassification(transaction.id, {
         category,
       });
+      setSavedCategory(updated.category || '');
       setSaveSuccess(true);
       window.setTimeout(() => setSaveSuccess(false), 2500);
       if (onUpdated) onUpdated(updated);
@@ -113,20 +115,19 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         {onUpdated && transaction.captureOrigin && ['MANUAL','EMAIL','PHONE'].includes(transaction.captureOrigin) && <ManualReconciliationPanel transaction={transaction} onUpdated={onUpdated} onBusyChange={setReconciling} onArchivedChange={setArchived} />}
         {readOnly && <p role="status" className="mt-3 text-xs text-muted">Este registro manual se conserva como antecedente y ya no suma en los totales.</p>}
 
-        <fieldset disabled={busy || readOnly} className="mt-4 rounded-xl border border-line bg-canvas/40 p-3.5">
-          <p className="eyebrow text-ink!">Clasificación</p>
-
-          <div className="mt-2.5 space-y-3">
+        <fieldset disabled={busy || readOnly} className="mt-4">
+          <div className="space-y-3">
             <div>
               <label htmlFor="modal-category" className="block text-xs font-semibold text-muted">
                 Categoría
               </label>
-              <div className="mt-1">
+              <div className="mt-1 flex items-center gap-2">
+                <div className="min-w-0 flex-1">
                 <CustomSelect
                   id="modal-category"
                   disabled={loadingCategories || !!categoryError || busy}
                   value={category}
-                  onChange={(val) => setCategory(val)}
+                  onChange={val => { setCategory(val); setSaveSuccess(false); setSaveError(null); }}
                   options={[
                     { value: '', label: 'Sin categorizar' },
                     ...(category && !categoryOptions.some((o) => o.id === category)
@@ -135,6 +136,11 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
                     ...categoryOptions.map((cat) => ({ value: cat.id, label: cat.label })),
                   ]}
                 />
+                </div>
+                {!readOnly && !isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
+                  onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
+                  aria-label="Crear regla para este comercio" title="Crear regla para este comercio"
+                  className="shrink-0 rounded-lg p-2 text-brand hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50"><ListPlus className="h-5 w-5" /></button>}
               </div>
               {categoryError && <p role="alert" className="mt-1.5 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
             </div>
@@ -145,32 +151,22 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
               </p>
             )}
 
-            <div className="flex items-center justify-between pt-0.5">
-              <span className="text-xs text-muted">
-                {saveSuccess ? (
-                  <span className="inline-flex items-center gap-1 font-semibold text-positive">
+            {(saveSuccess || category !== savedCategory) && <div className="flex flex-wrap items-center justify-end gap-3">
+                {saveSuccess && <span role="status" className="mr-auto inline-flex items-center gap-1 text-xs font-semibold text-positive">
                     <Check className="h-3.5 w-3.5" /> Cambios guardados
-                  </span>
-                ) : (
-                  'Guarda para actualizar la clasificación'
-                )}
-              </span>
-              <button
+                  </span>}
+              {category !== savedCategory && <button
                 type="button"
                 onClick={handleSaveClassification}
                 disabled={busy}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Guardar clasificación
-              </button>
-            </div>
+                Guardar cambios
+              </button>}
+            </div>}
           </div>
         </fieldset>
-
-        {!readOnly && !isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
-          onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
-          className="mt-3 text-xs font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 
       </>}
       </div>

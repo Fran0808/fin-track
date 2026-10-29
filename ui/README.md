@@ -13,6 +13,14 @@ runs on port 5173 and proxies `/api` to `localhost:8080` through
 
 ## Searching movements by date
 
+Movement detail integrates category selection directly below the evidence grid.
+`Guardar cambios` appears only for an unsaved category change; reverting the
+selection or saving hides it. The list-plus icon beside the selector opens a
+contextual rule, with `Crear regla para este comercio` as tooltip/accessibility
+label. Failed saves retain the draft for retry.
+Correction/history views use a left-arrow back button with `Volver al detalle`
+as tooltip and accessible name.
+
 Movement detail offers a pencil icon for reviewed amount/date/flow corrections
 and a history icon for before/after evidence. Both use the existing native dialog;
 see [behavior and rollout](../docs/domain/transaction-corrections.md).

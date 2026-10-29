@@ -83,7 +83,7 @@ it('edits and saves only the category', async () => {
   expect(screen.queryByLabelText('Notas personales')).toBeNull();
 
   // Save
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
   await waitFor(() => {
     expect(updateSpy).toHaveBeenCalledWith(10, {
@@ -100,7 +100,7 @@ it('sends an empty category to clear an existing classification', async () => {
   const updateSpy = vi.spyOn(api, 'updateTransactionClassification').mockResolvedValue({ ...sampleTx, category: null });
   render(<TransactionDetailModal transaction={sampleTx} onClose={vi.fn()} />);
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: '' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
   await waitFor(() => expect(updateSpy).toHaveBeenCalledWith(10, expect.objectContaining({ category: '' })));
 });
 

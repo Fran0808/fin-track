@@ -29,11 +29,45 @@ it('saves the category classification for a movement', async () => {
   }
   render(<Detail />);
   await screen.findByRole('option', { name: category.name });
+  expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
+  expect(screen.queryByText('Clasificación')).toBeNull();
   fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe(category.name);
-  fireEvent.click(screen.getByRole('button', { name: 'Guardar clasificación' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
   await waitFor(() => expect(save).toHaveBeenCalledWith(tx.id, { category: category.name }));
   await screen.findByText('Cambios guardados');
+  expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
+});
+
+it('hides save when reverting the selection and opens a rule from the accessible icon with the current draft', async () => {
+  const createRule = vi.fn();
+  render(<TransactionDetailModal transaction={tx} onClose={vi.fn()} onCreateRule={createRule} />);
+  await screen.findByRole('option', { name: category.name });
+  const select = screen.getByLabelText('Categoría');
+  fireEvent.change(select, { target: { value: category.name } });
+  expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeTruthy();
+  const ruleIcon = screen.getByRole('button', { name: 'Crear regla para este comercio' });
+  expect(ruleIcon.textContent).toBe('');
+  expect(ruleIcon.getAttribute('title')).toBe('Crear regla para este comercio');
+  fireEvent.click(ruleIcon);
+  expect(createRule).toHaveBeenCalledWith({ matchText: tx.contactName, categoryName: category.name });
+  fireEvent.change(select, { target: { value: '' } });
+  expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
+});
+
+it('retains the changed category and save action after failure so it can be retried', async () => {
+  const save = vi.spyOn(api, 'updateTransactionClassification').mockRejectedValueOnce(new Error('Synthetic unavailable'))
+    .mockResolvedValue({ ...tx, category: category.name });
+  render(<TransactionDetailModal transaction={tx} onClose={vi.fn()} />);
+  await screen.findByRole('option', { name: category.name });
+  fireEvent.change(screen.getByLabelText('Categoría'), { target: { value: category.name } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', 'Synthetic unavailable');
+  expect((screen.getByLabelText('Categoría') as HTMLSelectElement).value).toBe(category.name);
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+  await screen.findByText('Cambios guardados');
+  expect(save).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('button', { name: 'Guardar cambios' })).toBeNull();
 });
 
 it('omits the internal transfers note under Medios de pago in HomeView', () => {

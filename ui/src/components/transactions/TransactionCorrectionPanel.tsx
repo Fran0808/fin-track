@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { FlowType, Transaction, TransactionCorrectionHistory, TransactionCorrectionRequest } from '../../types';
 import { api } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils';
@@ -26,7 +27,7 @@ export function TransactionCorrectionPanel({ transactionId, mode, onBack, onSave
   }, [transactionId, page, attempt]);
   const reload = (next = page) => { setHistory(null); setError(null); setLoading(true); setPage(next); setAttempt(value => value + 1); };
   return <section className="space-y-4" aria-label={mode === 'edit' ? 'Corrección del movimiento' : 'Historial de correcciones'}>
-    <button type="button" onClick={onBack} className="text-sm font-semibold text-brand underline">Volver al detalle</button>
+    <button type="button" onClick={onBack} aria-label="Volver al detalle" title="Volver al detalle" className="rounded-lg p-2 text-brand hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"><ArrowLeft className="h-5 w-5" /></button>
     <h3 className="font-display text-lg font-semibold">{mode === 'edit' ? 'Corregir datos' : 'Historial de correcciones'}</h3>
     {loading && <p role="status" className="text-sm text-muted">Consultando datos actuales...</p>}
     {error && <p role="alert" className="text-sm text-negative">{error} <button type="button" onClick={() => reload()} className="underline">Reintentar</button></p>}
