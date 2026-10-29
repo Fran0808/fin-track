@@ -17,6 +17,32 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: reviewed movement corrections
+
+- Owner/scope: current chat; user-approved amount/date/flow correction with a
+  pencil icon, reason, explicit before/after review and paginated history icon.
+  See [behavior and contract](domain/transaction-corrections.md).
+- Status: verified for isolated end-to-end scope. Atomic audit/effective-value
+  writes, tenant-scoped locks, revision checks and UUID retry protection. Both
+  sides of reconciliation require explicit unlinking first; old reconciliation
+  previews are invalidated even after restoring the same corrected values.
+- Checks: 339 backend tests (all three disposable persistence suites), eight SQL
+  regressions, 137 UI tests, production build, lint (9 existing warnings), 18
+  script regression groups and documentation references passed. The initializer
+  was then kept atomic in one transaction and verified by the final built UI →
+  packaged API → fresh PostgreSQL scenario in Edge at 1440/390px. Review,
+  confirmation, history, cross-period totals, income/transfers, identity,
+  idempotency, stale requests, tenant/web-only access and keyboard dismissal
+  passed; six screenshots inspected. Temporary runtime processes stopped and
+  fixture removed. Hosted CI and other browser engines not run.
+- Authorized local rollout: verified `finance_db` on localhost:5432 as postgres,
+  created/validated an ignored custom-format backup, applied the additive audit
+  schema and verified COMMIT/metadata and preservation of the transaction count.
+  No existing financial row changed. Backup/result recorded privately under
+  `logs/`. Existing services were not restarted; restart the API and reload the
+  UI to use corrections. No staging, commit or push. Standard `npm run dev`
+  startup remains available; no debug code added.
+
 ## Current checkpoint: retirement of Tarjetas y cuentas and HomeView transfer note cleanup
 
 - Owner/scope: current chat; user-requested UI cleanup in `Inicio` (`HomeView`

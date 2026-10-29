@@ -2,6 +2,8 @@ import type {
   FinancialSummary,
   PeriodAnalytics,
   Transaction,
+  TransactionCorrectionRequest,
+  TransactionCorrectionHistory,
   TransactionOrigin,
   ManualTransactionRequest,
   ManualReconciliationPreview,
@@ -106,6 +108,16 @@ function validManualEvidence(item: Transaction | null | undefined): item is Tran
 }
 
 export const api = {
+  async getTransactionCorrections(id: number, page = 0): Promise<TransactionCorrectionHistory> {
+    const result = await handleResponse<TransactionCorrectionHistory>(await fetchWithAuth(`${BASE_URL}/transactions/${id}/corrections?page=${page}`, { cache: 'no-store' }));
+    if (!result || !validManualEvidence(result.transaction) || result.transaction.id !== id || !Number.isSafeInteger(result.revision) || result.revision < 0 || typeof result.editable !== 'boolean' || !Array.isArray(result.entries) || !Number.isSafeInteger(result.totalPages)) throw new Error('No se pudo verificar el historial de correcciones.');
+    return result;
+  },
+  async correctTransaction(id: number, request: TransactionCorrectionRequest): Promise<Transaction> {
+    const result = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${id}/corrections`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }));
+    if (!validManualEvidence(result) || result.id !== id) throw new Error('No se pudo verificar la corrección. Consulta el detalle antes de reintentar.');
+    return result;
+  },
   async createManualTransaction(request: ManualTransactionRequest): Promise<Transaction> {
     const result = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }));
     if (!result || !validManualEvidence(result) || result.captureOrigin !== 'MANUAL') throw new Error('No se pudo verificar el registro. Reintenta con los mismos datos antes de crear otro.');

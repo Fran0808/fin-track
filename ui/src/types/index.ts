@@ -41,6 +41,37 @@ export interface ManualTransactionRequest {
   categoryId: number | null;
 }
 
+export interface TransactionCorrectionRequest {
+  requestId: string;
+  expectedRevision: number;
+  amount: string;
+  transactionDate: string;
+  flowType: FlowType;
+  reason: string;
+}
+
+export interface TransactionCorrectionEntry {
+  id: number;
+  reason: string;
+  beforeAmount: number;
+  afterAmount: number;
+  beforeDate: string;
+  afterDate: string;
+  beforeFlow: FlowType;
+  afterFlow: FlowType;
+  beforeOperation: OperationType;
+  afterOperation: OperationType;
+  createdAt: string;
+}
+
+export interface TransactionCorrectionHistory {
+  transaction: Transaction;
+  revision: number;
+  editable: boolean;
+  entries: TransactionCorrectionEntry[];
+  totalPages: number;
+}
+
 export interface ManualReconciliationPreview {
   manual: Transaction;
   candidates: { transaction: Transaction; previewToken: string }[];

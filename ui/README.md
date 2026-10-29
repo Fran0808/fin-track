@@ -13,6 +13,10 @@ runs on port 5173 and proxies `/api` to `localhost:8080` through
 
 ## Searching movements by date
 
+Movement detail offers a pencil icon for reviewed amount/date/flow corrections
+and a history icon for before/after evidence. Both use the existing native dialog;
+see [behavior and rollout](../docs/domain/transaction-corrections.md).
+
 Movements displays `Total del filtro` for every matching transaction, independently
 of pagination, and `Esta página` for the visible rows. Expenses, income and internal
 transfers are separate; selecting a flow shows its matching amount. Empty filters

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2 } from 'lucide-react';
+import { Check, X, Loader2, Pencil, History } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
@@ -7,6 +7,7 @@ import { useCategories } from '../../hooks';
 import { CustomSelect } from '../common';
 import { TransactionOriginPanel } from './TransactionOriginPanel';
 import { ManualReconciliationPanel } from './ManualReconciliationPanel';
+import { TransactionCorrectionPanel } from './TransactionCorrectionPanel';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -29,7 +30,9 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
-  const busy = isSaving || reconciling;
+  const [correcting, setCorrecting] = useState(false);
+  const [correctionMode, setCorrectionMode] = useState<'edit' | 'history' | null>(null);
+  const busy = isSaving || reconciling || correcting;
   const [archived, setArchived] = useState(transaction.reconciledToId != null);
   const readOnly = transaction.reconciledToId != null || archived;
 
@@ -80,10 +83,15 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           <p className="eyebrow">{flowLabel}</p>
           <h2 id="transaction-dialog-title" className="font-display mt-0.5 text-lg font-semibold">Detalle del movimiento</h2>
         </div>
-        <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
+        <div className="flex items-center gap-1">
+          {onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
+          <button type="button" disabled={busy} onClick={() => setCorrectionMode('history')} aria-label="Historial de correcciones" title="Historial de correcciones" className="rounded-lg p-2 text-muted hover:bg-canvas disabled:opacity-50"><History className="h-5 w-5" /></button>
+          <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
+        </div>
       </div>
 
       <div className="px-6 py-5">
+        {correctionMode ? <fieldset disabled={busy}><TransactionCorrectionPanel key={correctionMode} transactionId={transaction.id} mode={correctionMode} onBack={() => setCorrectionMode(null)} onBusyChange={setCorrecting} onSaved={updated => { setCorrectionMode(null); onUpdated?.(updated); }} /></fieldset> : <>
         <p className={`font-display font-num text-3xl font-semibold tracking-tight ${isIncome ? 'text-positive' : isTransfer ? 'text-brand' : 'text-ink'}`}>
           {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
         </p>
@@ -164,6 +172,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
           className="mt-3 text-xs font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 
+      </>}
       </div>
     </dialog>
   );
