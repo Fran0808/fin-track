@@ -7,7 +7,7 @@ import type { PeriodAnalytics } from '../src/types';
 const analytics: PeriodAnalytics = { periodName: 'JANUARY', monthlyExpense: 100, monthlyIncome: 200,
   internalTransfersAmount: 50, previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [],
   totalMovements: 5, lastExpenseMerchant: '', lastExpenseAmount: 0, lastExpenseDate: null, topChannel: '',
-  topChannelAmount: 0, topChannelPercentage: 0, channelBreakdown: [], topMerchants: [],
+  topChannelAmount: 0, topChannelPercentage: 0, channelBreakdown: [{ channel: 'YAPE', amount: 100, percentage: 100, count: 2 }], topMerchants: [],
   categoryBreakdown: [{ category: 'Comida', amount: 80, percentage: 80, count: 2 }, { category: null, amount: 20, percentage: 20, count: 2 }] };
 afterEach(cleanup);
 
@@ -19,13 +19,16 @@ it('opens the selected merchant by its exact name without changing the supplied 
   expect(select).toHaveBeenCalledWith('Exact % Shop');
 });
 
-it('shows category amounts, shares and uncategorized expenses', () => {
+it('shows category amounts, shares and uncategorized expenses without duplicating HomeView cards', () => {
   render(<MyMoneyView analytics={analytics} loading={false} selectedYear={2026} selectedMonth={1} />);
   const section = screen.getByRole('region', { name: 'Gastos por categoría' });
   expect(within(section).getByText('Comida')).toBeDefined();
   expect(within(section).getByText('Sin categoría')).toBeDefined();
   expect(within(section).getByText('S/ 80.00')).toBeDefined();
   expect(within(section).getByText('20.0% del gasto')).toBeDefined();
+  expect(screen.queryByRole('region', { name: 'Flujo de caja del período' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: '¿Cómo pagaste?' })).toBeNull();
+  expect(screen.queryByText(/quedan fuera del total de gastos/i)).toBeNull();
 });
 
 it('opens category groups using their actual value, including null for uncategorized', () => {
