@@ -13,9 +13,10 @@ interface MyMoneyViewProps {
   selectedMonth: number;
   onSelectMerchant?: (merchantName: string) => void;
   onSelectCategory?: (category: string | null) => void;
+  onSelectDay?: (day: number) => void;
 }
 
-export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory }: MyMoneyViewProps) {
+export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory, onSelectDay }: MyMoneyViewProps) {
   const [categoryView, setCategoryView] = useState<'donut' | 'bars'>('donut');
   const period = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(selectedYear, selectedMonth - 1, 1));
 
@@ -37,7 +38,7 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
           <h2 id="expense-trend-heading" className="font-display mt-1 text-xl font-semibold">Gastos por día</h2>
           <p className="mt-1 text-sm text-muted">Consulta el gasto diario o el acumulado de {period}.</p>
         </div>
-        {loading ? <p className="py-12 text-sm text-muted" role="status">Calculando evolución...</p> : <ExpenseTrendChart points={analytics?.dailyExpenses ?? []} monthLabel={period} />}
+        {loading ? <p className="py-12 text-sm text-muted" role="status">Calculando evolución...</p> : <ExpenseTrendChart points={analytics?.dailyExpenses ?? []} monthLabel={period} onSelectDay={onSelectDay} />}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

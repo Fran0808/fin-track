@@ -46,7 +46,7 @@ See [README](../README.md), [architecture](architecture/overview.md) and
     x-axis with clean 5-day tick markers and day numbers. Added interactive
     SVG CategoryDonutChart with Anillo / Barras toggle, slice/legend hover
     synchronization, dynamic center metrics, category color coding, and accessible
-    click-through to movement drill-downs, plus proportional horizontal bars and percentage badge in ExpenseComparison.
+    click-through to movement drill-downs, plus proportional horizontal bars and percentage badge in ExpenseComparison and clickable daily expense bars/points in ExpenseTrendChart.
   - Simplified TransactionDetailModal and TransactionOriginPanel: removed the
     manual Es un pago de mi tarjeta action button, retired the unused backend
     PATCH /api/v1/transactions/{id}/own-card-payment endpoint and client helpers, removed the separate

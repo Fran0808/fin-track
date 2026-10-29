@@ -62,6 +62,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     handleFilterChange,
     showMerchantTransactions,
     showCategoryTransactions,
+    showDayTransactions,
     refreshAll,
   } = useFinance(user.id);
 
@@ -166,6 +167,11 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 showCategoryTransactions(category, periodAnalytics.periodStart!, periodAnalytics.periodEnd!);
                 setActiveView('movimientos');
               } : undefined}
+              onSelectDay={day => {
+                const dateIso = [selectedPeriod.year, String(selectedPeriod.month).padStart(2, '0'), String(day).padStart(2, '0')].join('-');
+                showDayTransactions(dateIso);
+                setActiveView('movimientos');
+              }}
             />
           )}
           {activeView === 'movimientos' && (

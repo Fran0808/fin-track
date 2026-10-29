@@ -138,6 +138,12 @@ export function useFinance(userId: number) {
       startDate, endDate, allHistory: false });
   };
 
+  const showDayTransactions = (dateIso: string) => {
+    const datePart = dateIso.slice(0, 10);
+    setFilters({ page: 0, size: 10, flowType: 'EXPENSE', search: '',
+      startDate: `${datePart}T00:00:00`, endDate: `${datePart}T23:59:59.999999`, allHistory: false });
+  };
+
   return {
     summary: summaryResource.data,
     periodAnalytics: analyticsResource.data,
@@ -159,6 +165,7 @@ export function useFinance(userId: number) {
     handleFilterChange,
     showMerchantTransactions,
     showCategoryTransactions,
+    showDayTransactions,
     triggerEmailSync,
     refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {

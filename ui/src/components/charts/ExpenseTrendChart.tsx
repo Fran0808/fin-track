@@ -5,9 +5,10 @@ import { formatCurrency } from '../../utils';
 interface ExpenseTrendChartProps {
   points: DailyExpense[];
   monthLabel: string;
+  onSelectDay?: (day: number) => void;
 }
 
-export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps) {
+export function ExpenseTrendChart({ points, monthLabel, onSelectDay }: ExpenseTrendChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [mode, setMode] = useState<'daily' | 'cumulative'>('daily');
   const total = points.at(-1)?.cumulativeAmount ?? 0;
@@ -27,6 +28,7 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
   const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(amountFor(point))}`).join(' ');
   const area = `${line} L ${x(points.length - 1)} ${bottom} L ${left} ${bottom} Z`;
   const activePoint = activeIndex === null ? null : points[activeIndex] ?? null;
+  const canOpenActiveDay = Boolean(onSelectDay && activePoint && activePoint.amount > 0);
 
   const getAxisTicks = () => {
     if (points.length <= 6) {
@@ -66,6 +68,11 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
   };
 
   const handleKeyDown = (event: KeyboardEvent<SVGSVGElement>) => {
+    if ((event.key === 'Enter' || event.key === ' ') && canOpenActiveDay && activePoint) {
+      event.preventDefault();
+      onSelectDay?.(activePoint.day);
+      return;
+    }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const direction = event.key === 'ArrowRight' ? 1 : -1;
@@ -87,7 +94,7 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
       </div>
       <div className="relative">
         <svg
-          className="h-auto w-full rounded-lg"
+          className={`h-auto w-full rounded-lg ${canOpenActiveDay ? 'cursor-pointer' : ''}`}
           viewBox="0 0 720 210"
           role="group"
           tabIndex={0}
@@ -98,13 +105,21 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
           onPointerMove={handlePointerMove}
           onPointerDown={handlePointerMove}
           onPointerLeave={() => setActiveIndex(null)}
+          onClick={() => { if (canOpenActiveDay && activePoint) onSelectDay?.(activePoint.day); }}
         >
           <line x1={left} y1={bottom} x2={right} y2={bottom} stroke="var(--color-line)" />
           <line x1={left} y1={y(maxValue / 2)} x2={right} y2={y(maxValue / 2)} stroke="var(--color-line)" strokeDasharray="3 5" />
           {mode === 'daily' ? points.map((point, index) => {
             const width = Math.min(36, (right - left) / points.length * 0.66);
             return <rect key={point.day} x={x(index) - width / 2} y={y(point.amount)} width={width} height={bottom - y(point.amount)}
-              rx="2" fill="var(--color-brand)" fillOpacity={activeIndex === index ? 1 : 0.65} />;
+              rx="2" fill="var(--color-brand)" fillOpacity={activeIndex === index ? 1 : 0.65}
+              className={onSelectDay && point.amount > 0 ? 'cursor-pointer' : undefined}
+              onClick={(event) => {
+                if (onSelectDay && point.amount > 0) {
+                  event.stopPropagation();
+                  onSelectDay(point.day);
+                }
+              }} />;
           }) : <>
             <path d={area} fill="var(--color-brand)" fillOpacity="0.08" />
             <path d={line} fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -151,6 +166,7 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
             <p className="font-semibold text-ink">{activePoint.day} de {monthLabel}</p>
             <p className="font-num mt-1 text-muted">Gasto del día: <span className="font-semibold text-ink">{formatCurrency(activePoint.amount)}</span></p>
             <p className="font-num mt-0.5 text-muted">Acumulado: <span className="font-semibold text-brand">{formatCurrency(activePoint.cumulativeAmount)}</span></p>
+            {canOpenActiveDay && <p className="mt-1.5 font-semibold text-brand">Clic para ver movimientos →</p>}
           </div>
         )}
       </div>
