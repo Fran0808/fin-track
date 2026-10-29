@@ -29,7 +29,8 @@ public class InstrumentAssignmentService {
     @Transactional
     public TransactionResponse assign(Long transactionId, Long instrumentId) {
         User user = UserContext.requireCurrentUser();
-        Transaction transaction = requireTransaction(transactionId, user);
+        Transaction transaction = transactions.findLockedByIdAndUser(transactionId, user).orElseThrow(() -> missing("Transaction not found"));
+        if (transaction.getReconciledToId() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Este registro está conciliado. Edita la captura conservada.");
         FinancialInstrument instrument = null;
         if (instrumentId != null) {
             instrument = instruments.findByIdAndUser(instrumentId, user)

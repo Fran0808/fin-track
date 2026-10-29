@@ -29,7 +29,7 @@ class ClassificationValidationTest {
     private Transaction prepare(String category) {
         UserContext.setCurrentUser(owner);
         Transaction tx = Transaction.builder().id(10L).user(owner).category(category).build();
-        when(transactions.findByIdAndUser(10L, owner)).thenReturn(Optional.of(tx));
+        when(transactions.findLockedByIdAndUser(10L, owner)).thenReturn(Optional.of(tx));
         when(transactions.save(any())).thenAnswer(call -> call.getArgument(0));
         return tx;
     }

@@ -50,6 +50,7 @@ public class RuleHistoryService {
         List<ClassificationRule> ordered = rules.findByUserAndEnabledTrueOrderByPriorityAscIdAsc(user);
         Specification<Transaction> scope = (root, query, cb) -> cb.and(
                 cb.equal(root.get("user"), user),
+                cb.isNull(root.get("reconciledToId")),
                 root.get("flowType").in(FlowType.EXPENSE, FlowType.INCOME),
                 cb.equal(cb.trim(cb.coalesce(root.get("category"), "")), ""));
         List<Transaction> matches = new ArrayList<>();
@@ -115,7 +116,7 @@ public class RuleHistoryService {
     }
 
     private boolean wins(ClassificationRule selected, List<ClassificationRule> ordered, Transaction transaction, User user) {
-        if (!user.getId().equals(transaction.getUser().getId())
+        if (transaction.getReconciledToId() != null || !user.getId().equals(transaction.getUser().getId())
                 || (transaction.getFlowType() != FlowType.INCOME && transaction.getFlowType() != FlowType.EXPENSE)) return false;
         return ordered.stream().filter(rule -> ClassificationRuleService.matches(rule, transaction, user))
                 .findFirst().map(rule -> rule.getId().equals(selected.getId())).orElse(false);

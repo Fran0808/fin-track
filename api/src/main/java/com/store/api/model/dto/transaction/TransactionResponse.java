@@ -15,6 +15,8 @@ import lombok.Data;
 @Builder
 public class TransactionResponse {
     private Long id;
+    private com.store.api.model.enums.CaptureOrigin captureOrigin;
+    private Long reconciledToId;
     private FinancialInstrumentResponse financialInstrument;
     private BigDecimal amount;
     private FlowType flowType;

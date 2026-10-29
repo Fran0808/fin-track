@@ -24,15 +24,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
     Optional<Transaction> findByIdAndUser(Long id, User user);
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Transaction t WHERE t.id = :id AND t.user = :user")
+    Optional<Transaction> findLockedByIdAndUser(@Param("id") Long id, @Param("user") User user);
+    Optional<Transaction> findByReconciledToIdAndUser(Long reconciledToId, User user);
+
+    @Query("SELECT t FROM Transaction t WHERE t.user = :user AND t.captureOrigin IN (com.store.api.model.enums.CaptureOrigin.EMAIL, com.store.api.model.enums.CaptureOrigin.PHONE) AND t.reconciledToId IS NULL AND t.amount = :amount AND t.flowType = :flow AND t.transactionDate >= :start AND t.transactionDate < :end AND NOT EXISTS (SELECT m.id FROM Transaction m WHERE m.user = :user AND m.reconciledToId = t.id)")
+    List<Transaction> findManualReconciliationCandidates(@Param("user") User user, @Param("amount") BigDecimal amount,
+            @Param("flow") FlowType flow, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end,
+            org.springframework.data.domain.Pageable pageable);
+
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Transaction t WHERE t.user = :user AND t.id IN :ids ORDER BY t.id")
     List<Transaction> lockHistorySelection(@Param("user") User user, @Param("ids") List<Long> ids);
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.user.id = :userId")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = :flowType AND t.user.id = :userId")
     BigDecimal sumAmountByFlowType(@Param("flowType") FlowType flowType, @Param("userId") Long userId);
 
-    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.flowType = :flowType AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId")
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = :flowType AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId")
     BigDecimal sumAmountByFlowTypeAndDateRange(
             @Param("flowType") FlowType flowType,
             @Param("start") LocalDateTime start,
@@ -40,38 +50,38 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.user.id = :userId ORDER BY t.transactionDate DESC LIMIT 1")
+    @Query("SELECT t FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.user.id = :userId ORDER BY t.transactionDate DESC LIMIT 1")
     Optional<Transaction> findLatestExpense(@Param("userId") Long userId);
 
-    @Query("SELECT t FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.user.id = :userId AND t.transactionDate >= :start AND t.transactionDate <= :end ORDER BY t.amount DESC, t.transactionDate ASC, t.id ASC LIMIT 1")
+    @Query("SELECT t FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.user.id = :userId AND t.transactionDate >= :start AND t.transactionDate <= :end ORDER BY t.amount DESC, t.transactionDate ASC, t.id ASC LIMIT 1")
     Optional<Transaction> findLargestExpense(@Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end, @Param("userId") Long userId);
 
-    @Query("SELECT t.channel, t.cardLast4, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.channel, t.cardLast4 ORDER BY SUM(t.amount) DESC")
+    @Query("SELECT t.channel, t.cardLast4, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.channel, t.cardLast4 ORDER BY SUM(t.amount) DESC")
     List<Object[]> findExpenseBreakdownByChannel(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT NULLIF(TRIM(t.category), ''), SUM(t.amount), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY NULLIF(TRIM(t.category), '') ORDER BY SUM(t.amount) DESC, NULLIF(TRIM(t.category), '') ASC NULLS LAST")
+    @Query("SELECT NULLIF(TRIM(t.category), ''), SUM(t.amount), COUNT(t) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY NULLIF(TRIM(t.category), '') ORDER BY SUM(t.amount) DESC, NULLIF(TRIM(t.category), '') ASC NULLS LAST")
     List<Object[]> findExpenseBreakdownByCategory(@Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end, @Param("userId") Long userId);
 
-    @Query("SELECT t.contactName, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.contactName ORDER BY SUM(t.amount) DESC, COUNT(t) DESC, t.contactName ASC LIMIT 5")
+    @Query("SELECT t.contactName, COALESCE(SUM(t.amount), 0), COUNT(t) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId GROUP BY t.contactName ORDER BY SUM(t.amount) DESC, COUNT(t) DESC, t.contactName ASC LIMIT 5")
     List<Object[]> findTopMerchants(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT t.transactionDate, t.amount FROM Transaction t WHERE t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId ORDER BY t.transactionDate")
+    @Query("SELECT t.transactionDate, t.amount FROM Transaction t WHERE t.reconciledToId IS NULL AND t.flowType = 'EXPENSE' AND t.transactionDate >= :start AND t.transactionDate <= :end AND t.user.id = :userId ORDER BY t.transactionDate")
     List<Object[]> findExpenseAmountsByDateRange(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
             @Param("userId") Long userId
     );
 
-    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.user.id = :userId")
+    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.reconciledToId IS NULL AND t.user.id = :userId")
     long countByUserId(@Param("userId") Long userId);
 }

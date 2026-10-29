@@ -31,6 +31,7 @@ class InstrumentAssignmentServiceTest {
                 .transactionDate(LocalDateTime.of(2026, 10, 1, 12, 0)).build();
         card = FinancialInstrument.builder().id(2L).user(user).type(InstrumentType.DEBIT_CARD).bank(Bank.BCP).alias("Debit").lastFour("1234").build();
         when(transactions.findByIdAndUser(1L, user)).thenReturn(Optional.of(transaction));
+        when(transactions.findLockedByIdAndUser(1L, user)).thenReturn(Optional.of(transaction));
         when(transactions.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(instruments.findByIdAndUser(2L, user)).thenReturn(Optional.of(card));
         when(instruments.findByUserOrderByAliasAscIdAsc(user)).thenReturn(List.of(card));

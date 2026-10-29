@@ -125,9 +125,10 @@ public class TransactionService {
     @Transactional
     public TransactionResponse updateClassification(Long id, TransactionClassificationRequest request) {
         User currentUser = UserContext.requireCurrentUser();
-        Transaction tx = transactionRepository.findByIdAndUser(id, currentUser)
+        Transaction tx = transactionRepository.findLockedByIdAndUser(id, currentUser)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found"));
 
+        if (tx.getReconciledToId() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Este registro está conciliado. Edita la captura conservada.");
         if (request.getCategory() != null) {
             String trimmed = request.getCategory().trim();
             if (trimmed.isEmpty()) {
@@ -150,8 +151,9 @@ public class TransactionService {
     @Transactional
     public TransactionResponse markOwnCardPayment(Long id) {
         User user = UserContext.requireCurrentUser();
-        Transaction tx = transactionRepository.findByIdAndUser(id, user)
+        Transaction tx = transactionRepository.findLockedByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movimiento no encontrado."));
+        if (tx.getReconciledToId() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Este registro está conciliado. Edita la captura conservada.");
         if (tx.getFlowType() != FlowType.EXPENSE && tx.getFlowType() != FlowType.INTERNAL_TRANSFER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Una entrada no puede marcarse como pago de tarjeta propia.");
@@ -179,7 +181,7 @@ public class TransactionService {
                 case INSTRUMENT -> missingInstrument;
                 case ALL -> cb.or(missingCategory, missingInstrument);
             };
-            return cb.and(cb.equal(root.get("user"), user), needsReview);
+            return cb.and(cb.equal(root.get("user"), user), cb.isNull(root.get("reconciledToId")), needsReview);
         };
     }
 
@@ -198,6 +200,7 @@ public class TransactionService {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("user"), currentUser));
+            predicates.add(cb.isNull(root.get("reconciledToId")));
 
             if (financialInstrumentId != null) {
                 predicates.add(cb.equal(root.get("financialInstrument").get("id"), financialInstrumentId));
@@ -378,6 +381,8 @@ public class TransactionService {
     public static TransactionResponse mapToResponse(Transaction t) {
         return TransactionResponse.builder()
                 .id(t.getId())
+                .captureOrigin(t.getCaptureOrigin())
+                .reconciledToId(t.getReconciledToId())
                 .financialInstrument(FinancialInstrumentResponse.from(t.getFinancialInstrument()))
                 .amount(t.getAmount())
                 .flowType(t.getFlowType())

@@ -108,7 +108,7 @@ class TransactionServiceTest {
                 () -> service.markOwnCardPayment(99L)).getStatusCode().value());
         Transaction tx = Transaction.builder().contactName("Unspecified operation")
                 .flowType(FlowType.INCOME).channel("EXAMPLE_WALLET").build();
-        when(transactions.findByIdAndUser(1L, user)).thenReturn(Optional.of(tx));
+        when(transactions.findLockedByIdAndUser(1L, user)).thenReturn(Optional.of(tx));
         assertEquals(400, assertThrows(ResponseStatusException.class,
                 () -> service.markOwnCardPayment(1L)).getStatusCode().value());
         verify(transactions, never()).save(any());
@@ -191,7 +191,11 @@ class TransactionServiceTest {
         CriteriaBuilder builder = mock(CriteriaBuilder.class);
         Path<Object> userPath = mock(Path.class);
         Predicate ownerPredicate = mock(Predicate.class);
+        Path<Object> reconciliationPath = mock(Path.class);
+        Predicate active = mock(Predicate.class);
         when(root.get("user")).thenReturn(userPath);
+        when(root.get("reconciledToId")).thenReturn(reconciliationPath);
+        when(builder.isNull(reconciliationPath)).thenReturn(active);
         when(builder.equal(eq(userPath), any(User.class))).thenReturn(ownerPredicate);
         when(transactions.findAll(any(Specification.class), any(Pageable.class))).thenAnswer(invocation -> {
             Specification<Transaction> specification = invocation.getArgument(0);
@@ -204,7 +208,7 @@ class TransactionServiceTest {
             UserContext.setCurrentUser(User.builder().id(id).build());
             service.getTransactions(null, null, null, null, PageRequest.of(0, 10));
         }
-        verify(builder, times(2)).and(new Predicate[] {ownerPredicate});
+        verify(builder, times(2)).and(new Predicate[] {ownerPredicate, active});
     }
 
     @Test
@@ -223,7 +227,7 @@ class TransactionServiceTest {
                 .transactionHash("hash-50")
                 .build();
 
-        when(transactions.findByIdAndUser(50L, user)).thenReturn(Optional.of(existing));
+        when(transactions.findLockedByIdAndUser(50L, user)).thenReturn(Optional.of(existing));
         when(transactions.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         com.store.api.model.dto.transaction.TransactionClassificationRequest request = com.store.api.model.dto.transaction.TransactionClassificationRequest.builder()
@@ -241,7 +245,7 @@ class TransactionServiceTest {
     void updateClassificationRejectsUnknownOrUnauthorizedTransaction() {
         User user = User.builder().id(5L).email("user@example.test").build();
         UserContext.setCurrentUser(user);
-        when(transactions.findByIdAndUser(99L, user)).thenReturn(Optional.empty());
+        when(transactions.findLockedByIdAndUser(99L, user)).thenReturn(Optional.empty());
 
         com.store.api.model.dto.transaction.TransactionClassificationRequest request = new com.store.api.model.dto.transaction.TransactionClassificationRequest();
         request.setCategory("OTROS");
@@ -323,16 +327,17 @@ class TransactionServiceTest {
         when(cb.or(category, instrument)).thenReturn(either);
         when(cb.equal(userPath, owner)).thenReturn(ownerPredicate);
         Predicate expected = switch (reason) { case CATEGORY -> category; case INSTRUMENT -> instrument; case ALL -> either; };
-        when(cb.and(ownerPredicate, expected)).thenReturn(scoped);
+        when(cb.and(ownerPredicate, null, expected)).thenReturn(scoped);
         when(transactions.findAll(any(Specification.class), any(Pageable.class))).thenAnswer(call -> {
             Specification<Transaction> specification = call.getArgument(0);
             assertSame(scoped, specification.toPredicate(root, mock(CriteriaQuery.class), cb));
             return Page.empty(PageRequest.of(0, 10));
         });
         service.getPendingTransactions(reason, PageRequest.of(0, 10));
-        verify(cb).and(ownerPredicate, expected);
+        verify(cb).and(ownerPredicate, null, expected);
         Predicate base = mock(Predicate.class), combined = mock(Predicate.class);
         when(cb.and(any(Predicate[].class))).thenReturn(base);
+        when(cb.and(ownerPredicate, null, expected)).thenReturn(scoped);
         when(cb.and(base, scoped)).thenReturn(combined);
         when(transactions.findAll(any(Specification.class), any(Pageable.class))).thenAnswer(call -> {
             Specification<Transaction> specification = call.getArgument(0);
@@ -341,7 +346,7 @@ class TransactionServiceTest {
         });
         service.getTransactions(null, null, null, null, null, null, null, null, null, reason, PageRequest.of(0, 10));
         service.exportTransactionsCsv(null, null, null, null, null, null, null, null, null, reason);
-        verify(cb, times(3)).and(ownerPredicate, expected);
+        verify(cb, times(3)).and(ownerPredicate, null, expected);
         verify(cb, times(2)).and(base, scoped);
         UserContext.clear();
         assertEquals(401, assertThrows(ResponseStatusException.class,
