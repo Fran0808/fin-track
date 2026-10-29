@@ -100,6 +100,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="block max-w-full truncate text-sm font-semibold text-ink sm:max-w-56">{transaction.contactName || 'Movimiento'}</span>
+                          {transaction.captureOrigin === 'MANUAL' && <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold text-muted">Manual</span>}
                           {categoryLabel && (
                             <span className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">
                               {categoryLabel}

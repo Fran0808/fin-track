@@ -179,6 +179,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               onFilterChange={handleFilterChange}
               onPageChange={handlePageChange}
               onSelectTransaction={setSelectedTransaction}
+              onCreated={transaction => { setSelectedTransaction(transaction); setInstrumentRevision(value => value + 1); void refreshAll(); }}
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
           )}
@@ -203,7 +204,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
       </div>
 
       <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
-        setSelectedTransaction(current => current?.id === transaction.id ? transaction : current);
+        setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
         setInstrumentRevision(value => value + 1);
         void refreshAll();
       }} />

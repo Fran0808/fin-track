@@ -2,7 +2,7 @@ export type FlowType = 'INCOME' | 'EXPENSE' | 'INTERNAL_TRANSFER';
 export type OperationType = 'UNKNOWN' | 'OWN_CARD_PAYMENT';
 
 export interface TransactionOrigin {
-  origin: 'EMAIL' | 'PHONE' | 'UNKNOWN';
+  origin: 'EMAIL' | 'PHONE' | 'MANUAL' | 'UNKNOWN';
   registeredAt: string | null;
   operationReference: string | null;
 }
@@ -17,6 +17,8 @@ export type ChannelType =
 
 export interface Transaction {
   id: number;
+  captureOrigin?: TransactionOrigin['origin'];
+  reconciledToId?: number | null;
   financialInstrument?: FinancialInstrument | null;
   amount: number;
   flowType: FlowType;
@@ -28,6 +30,32 @@ export interface Transaction {
   transactionDate: string;
   transactionHash: string;
   createdAt: string;
+}
+
+export interface ManualTransactionRequest {
+  requestId: string;
+  amount: string;
+  flowType: 'EXPENSE' | 'INCOME';
+  contactName: string;
+  transactionDate: string;
+  paymentMethod: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'WALLET' | 'OTHER';
+  categoryId: number | null;
+  financialInstrumentId: number | null;
+}
+
+export interface ManualReconciliationPreview {
+  manual: Transaction;
+  candidates: { transaction: Transaction; previewToken: string }[];
+  limit: number;
+  hasMore: boolean;
+  expiresAt: number;
+}
+
+export interface ManualReconciliationStatus {
+  revision: number;
+  manual: Transaction | null;
+  captured: Transaction | null;
+  reconciledAt: string | null;
 }
 
 export interface TransactionClassificationRequest {

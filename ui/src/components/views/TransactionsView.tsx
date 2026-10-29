@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, Plus } from 'lucide-react';
 import type { TransactionPageResponse, Transaction } from '../../types';
 import type { TransactionFilterParams } from '../../services';
 import { api } from '../../services/api';
+import { ManualTransactionModal } from '../transactions/ManualTransactionModal';
 import { TransactionTable, TransactionFilters } from '../transactions';
 
 interface TransactionsViewProps {
@@ -14,6 +15,7 @@ interface TransactionsViewProps {
   onPageChange: (newPage: number) => void;
   onSelectTransaction: (transaction: Transaction) => void;
   periodName?: string;
+  onCreated?: (transaction: Transaction) => void;
 }
 
 export function TransactionsView({
@@ -25,7 +27,10 @@ export function TransactionsView({
   onPageChange,
   onSelectTransaction,
   periodName,
+  onCreated,
 }: TransactionsViewProps) {
+  const [manualOpen, setManualOpen] = useState(false);
+  const [created, setCreated] = useState<Transaction | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -57,6 +62,8 @@ export function TransactionsView({
           <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Movimientos</h1>
           <p className="mt-2 text-sm text-muted">Consulta, filtra y clasifica las entradas, gastos y transferencias registradas.</p>
         </div>
+        <div className="flex flex-wrap gap-3">
+        <button type="button" onClick={() => setManualOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Registrar manualmente</button>
         <button
           type="button"
           onClick={handleExportCSV}
@@ -66,8 +73,11 @@ export function TransactionsView({
           {isExporting ? <Loader2 className="h-4 w-4 animate-spin text-brand" /> : <Download className="h-4 w-4" />}
           {isExporting ? 'Exportando...' : 'Exportar CSV'}
         </button>
+        </div>
       </div>
 
+      {manualOpen && <ManualTransactionModal onClose={() => setManualOpen(false)} onCreated={transaction => { setManualOpen(false); setCreated(transaction); onCreated?.(transaction); }} />}
+      {created && <p role="status" className="rounded-xl border border-positive/20 bg-positive/5 p-4 text-sm text-ink">Registro manual guardado. Si no aparece, revisa los filtros y la fecha. <button type="button" className="font-semibold text-brand underline" onClick={() => onSelectTransaction(created)}>Ver registro creado</button></p>}
       {exportError && <p role="alert" className="rounded-xl border border-negative/20 bg-negative/5 p-4 text-sm text-negative">{exportError}</p>}
       <section className="surface overflow-hidden" aria-label="Listado de movimientos">
         <div className="border-b border-line px-5 py-5 sm:px-6">

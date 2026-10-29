@@ -33,6 +33,11 @@ const FLOW_OPTIONS: { value: FlowType | ''; label: string }[] = [
 
 const CHANNEL_OPTIONS = [
   { value: '', label: 'Todos los medios' },
+  { value: 'CASH', label: 'Efectivo' },
+  { value: 'CARD', label: 'Tarjeta' },
+  { value: 'BANK_TRANSFER', label: 'Transferencia' },
+  { value: 'WALLET', label: 'Billetera' },
+  { value: 'OTHER', label: 'Otro' },
   { value: 'YAPE', label: 'Yape' },
   { value: 'PLIN', label: 'Plin' },
   { value: 'TARJETA_DEBITO_BCP', label: 'Tarjeta Débito BCP' },

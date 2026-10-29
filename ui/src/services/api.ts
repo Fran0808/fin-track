@@ -3,6 +3,9 @@ import type {
   PeriodAnalytics,
   Transaction,
   TransactionOrigin,
+  ManualTransactionRequest,
+  ManualReconciliationPreview,
+  ManualReconciliationStatus,
   TransactionClassificationRequest,
   TransactionPageResponse,
   EmailSyncResponse,
@@ -99,7 +102,39 @@ function requireCategoryFilter(response: Response, categoryGroup?: string) {
   }
 }
 
+function validManualEvidence(item: Transaction | null | undefined): item is Transaction {
+  return !!item && Number.isSafeInteger(item.id) && item.id > 0 && Number.isFinite(item.amount) && item.amount > 0
+    && ['EXPENSE','INCOME','INTERNAL_TRANSFER'].includes(item.flowType) && typeof item.contactName === 'string'
+    && typeof item.transactionDate === 'string' && !Number.isNaN(Date.parse(item.transactionDate));
+}
+
 export const api = {
+  async createManualTransaction(request: ManualTransactionRequest): Promise<Transaction> {
+    const result = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/manual`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }));
+    if (!result || !validManualEvidence(result) || result.captureOrigin !== 'MANUAL') throw new Error('No se pudo verificar el registro. Reintenta con los mismos datos antes de crear otro.');
+    return result;
+  },
+  async previewManualReconciliation(id: number): Promise<ManualReconciliationPreview> {
+    const result = await handleResponse<ManualReconciliationPreview>(await fetchWithAuth(`${BASE_URL}/transactions/manual/${id}/reconciliation-preview`, { cache: 'no-store' }));
+    if (!result || !validManualEvidence(result.manual) || result.manual.captureOrigin !== 'MANUAL' || !Array.isArray(result.candidates) || !Number.isSafeInteger(result.expiresAt) || result.candidates.length > 50 || result.candidates.some(item => !validManualEvidence(item.transaction) || !['EMAIL','PHONE'].includes(item.transaction.captureOrigin ?? '') || typeof item.previewToken !== 'string' || !/^[a-f0-9]{64}$/.test(item.previewToken))) throw new Error('No se recibió una revisión válida. Actualiza las coincidencias.');
+    return result;
+  },
+  async getManualReconciliation(id: number): Promise<ManualReconciliationStatus> {
+    const result = await handleResponse<ManualReconciliationStatus>(await fetchWithAuth(`${BASE_URL}/transactions/${id}/manual-reconciliation`, { cache: 'no-store' }));
+    if (!result || !Number.isSafeInteger(result.revision) || result.revision < 0 || !Object.prototype.hasOwnProperty.call(result, 'manual') || !Object.prototype.hasOwnProperty.call(result, 'captured') || (result.manual !== null && (!validManualEvidence(result.manual) || result.manual.captureOrigin !== 'MANUAL')) || (result.captured !== null && !validManualEvidence(result.captured))) throw new Error('No se recibió información válida de conciliación.');
+    return result;
+  },
+  async reconcileManual(id: number, capturedId: number, expiresAt: number, previewToken: string): Promise<Transaction> {
+    const result = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/manual/${id}/reconcile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ capturedId, expiresAt, previewToken }) }));
+    if (!validManualEvidence(result) || result.id !== capturedId || !['EMAIL','PHONE'].includes(result.captureOrigin ?? '')) throw new Error('No se pudo verificar la conciliación. Actualiza su estado antes de repetir la acción.');
+    return result;
+  },
+  async undoManualReconciliation(id: number, capturedId: number, revision: number): Promise<Transaction> {
+    const result = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/manual/${id}/reconciliation/${capturedId}?revision=${revision}`, { method: 'DELETE' }));
+    if (!validManualEvidence(result) || result.id !== capturedId) throw new Error('No se pudo verificar la conciliación. Actualiza su estado.');
+    return result;
+  },
+
   async getTransactionOrigin(id: number): Promise<TransactionOrigin> {
     const result = await handleResponse<TransactionOrigin>(await fetchWithAuth(`${BASE_URL}/transactions/${id}/origin`, { cache: 'no-store' }));
     if (!result || typeof result.origin !== 'string'
@@ -107,7 +142,7 @@ export const api = {
         || (result.operationReference !== null && typeof result.operationReference !== 'string')) {
       throw new Error('No se recibió información válida sobre el origen.');
     }
-    return { ...result, origin: result.origin === 'EMAIL' || result.origin === 'PHONE' ? result.origin : 'UNKNOWN' };
+    return { ...result, origin: result.origin === 'EMAIL' || result.origin === 'PHONE' || result.origin === 'MANUAL' ? result.origin : 'UNKNOWN' };
   },
 
   async previewRuleHistory(id: number): Promise<RuleHistoryPreview> {

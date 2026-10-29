@@ -7,6 +7,13 @@ import type { TransactionOrigin } from '../src/types';
 import { formatDate } from '../src/utils';
 
 const email: TransactionOrigin = { origin:'EMAIL',registeredAt:'2026-01-03T12:34:56',operationReference:'OP-123' };
+it('distinguishes manual records from automatic captures without inventing a receipt',async()=>{
+  vi.spyOn(api,'getTransactionOrigin').mockResolvedValue({...email,origin:'MANUAL',operationReference:null});
+  render(<TransactionOriginPanel transactionId={7} />);
+  expect(await screen.findByText('Manual')).toBeDefined();
+  expect(screen.getByText('Registrado manualmente en FinTrack.')).toBeDefined();
+  expect(screen.queryByText('Correo')).toBeNull();
+});
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 
 it('shows email origin, registration time and the normalized receipt reference',async()=>{

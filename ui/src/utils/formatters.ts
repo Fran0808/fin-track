@@ -45,6 +45,11 @@ export function formatRelativeDate(isoString: string): string {
 
 export function getChannelLabel(channel: string): string {
   switch (channel) {
+    case 'CASH': return 'Efectivo';
+    case 'CARD': return 'Tarjeta';
+    case 'BANK_TRANSFER': return 'Transferencia';
+    case 'WALLET': return 'Billetera';
+    case 'OTHER': return 'Otro';
     case 'TARJETA_CREDITO_BCP':
       return 'Crédito BCP';
     case 'TARJETA_DEBITO_BCP':
