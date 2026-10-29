@@ -7,6 +7,7 @@ import { useCategories } from '../../hooks';
 import { InstrumentAssignment } from '../instruments/InstrumentAssignment';
 import { CustomSelect } from '../common';
 import { TransactionOriginPanel } from './TransactionOriginPanel';
+import { ManualReconciliationPanel } from './ManualReconciliationPanel';
 
 interface TransactionDetailModalProps {
   transaction: Transaction | null;
@@ -31,7 +32,10 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [isRepairing, setIsRepairing] = useState(false);
   const [repairError, setRepairError] = useState<string | null>(null);
   const [confirmingOwnCardPayment, setConfirmingOwnCardPayment] = useState(false);
-  const busy = isSaving || isRepairing;
+  const [reconciling, setReconciling] = useState(false);
+  const busy = isSaving || isRepairing || reconciling;
+  const [archived, setArchived] = useState(transaction.reconciledToId != null);
+  const readOnly = transaction.reconciledToId != null || archived;
 
   const handleOwnCardPayment = async () => {
     setIsRepairing(true);
@@ -84,7 +88,8 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      onClick={(event) => { if (event.target === dialogRef.current) onClose(); }}
+      onCancel={event => { if (busy) event.preventDefault(); }}
+      onClick={(event) => { if (!busy && event.target === dialogRef.current) onClose(); }}
       aria-labelledby="transaction-dialog-title"
       className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
     >
@@ -93,7 +98,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           <p className="eyebrow">{flowLabel}</p>
           <h2 id="transaction-dialog-title" className="font-display mt-1 text-xl font-semibold">Detalle del movimiento</h2>
         </div>
-        <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
+        <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
       </div>
 
       <div className="px-6 py-6">
@@ -102,7 +107,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         </p>
         <p className="mt-2 text-base font-medium">{transaction.contactName || 'Movimiento'}</p>
         {ownCardPayment && isTransfer && <p role="status" className="mt-2 text-sm text-muted">No suma gastos ni entradas y no afecta el flujo neto.</p>}
-        {canConfirmOwnCardPayment(transaction) && onUpdated && (
+        {!readOnly && canConfirmOwnCardPayment(transaction) && onUpdated && (
           <div className="mt-4 border-l-2 border-brand pl-3">
             {!confirmingOwnCardPayment ? <button type="button" disabled={busy} onClick={() => setConfirmingOwnCardPayment(true)}
               className="text-sm font-semibold text-brand hover:underline disabled:opacity-50">Es un pago de mi tarjeta</button> : <>
@@ -126,8 +131,10 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         </dl>
 
         <TransactionOriginPanel transactionId={transaction.id} />
+        {onUpdated && transaction.captureOrigin && ['MANUAL','EMAIL','PHONE'].includes(transaction.captureOrigin) && <ManualReconciliationPanel transaction={transaction} onUpdated={onUpdated} onBusyChange={setReconciling} onArchivedChange={setArchived} />}
+        {readOnly && <p role="status" className="mt-4 text-sm text-muted">Este registro manual se conserva como antecedente y ya no suma en los totales.</p>}
 
-        <div className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
+        <fieldset disabled={busy || readOnly} className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
           <p className="eyebrow text-ink!">Clasificación</p>
           
           <div className="mt-3.5 space-y-4">
@@ -180,13 +187,13 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
               </button>
             </div>
           </div>
-        </div>
+        </fieldset>
 
-        {!isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
+        {!readOnly && !isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
           onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
           className="mt-4 text-sm font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 
-        {onUpdated && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
+        {onUpdated && !readOnly && !reconciling && <InstrumentAssignment key={transaction.id} transaction={transaction} onUpdated={onUpdated} />}
 
       </div>
     </dialog>

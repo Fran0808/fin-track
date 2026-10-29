@@ -17,6 +17,59 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: manual registration and explicit reconciliation
+
+- Owner/scope: current chat; evaluation finding 1 with user-approved explicit
+  reconciliation when an email/phone capture exists or arrives later. See
+  [manual behavior and rollout](domain/manual-transactions.md).
+- Implemented: owned expense/income creation with decimal input and payload-bound
+  request identity; Manual origin, generic methods and optional active owned
+  category/product. Read-only signed ten-minute review of up to 50 same-amount/
+  flow captures within three days, ordered row locks, one manual per capture,
+  preserved evidence and explicit reversible links. Both preview and undo are
+  bound to revisions; stale requests cannot redo/undo a newly reviewed link.
+- Ledger: linked manuals leave listings, filter totals, recent/pending results,
+  analytics/breakdowns/charts/comparisons, historical rule application and CSV.
+  Physical evidence, capture fields, hashes and original manual values remain.
+  No automatic email/phone/manual deduplication or currency conversion is added.
+- UI: review before saving, stable intent on uncertain-response retry, visible
+  manual badge/origin, explicit comparison and cross-month effect, retained
+  antecedent, undo warning and navigation to the retained capture. Native dialog
+  cancellation/focus restoration and read-only archived records checked.
+- Verification: 371 backend tests with four disposable persistence suites and
+  six SQL regressions passed; 136 UI tests, lint (same 9 warnings), production
+  build, 18 script regression groups and documentation checks passed. Hosted CI
+  not run. Full-tree verification does not certify each proposed intermediate commit.
+- Feature runtime before the HTTP compatibility follow-up: built UI → packaged API
+  → fresh synthetic PostgreSQL passed in
+  Edge at 1440px/390px for expense/income creation, loss of a committed response
+  and retry, preview/cancel/confirm, cross-month totals, preserved classification,
+  original evidence, undo/re-review, tenant/web-only security and filter/CSV
+  exclusion. Eight screenshots inspected; no browser errors or horizontal overflow.
+  Early automation selector waits and final capture-navigation regression corrected.
+- HTTP button follow-up: opening the modal previously crashed where
+  crypto.randomUUID is unavailable (ordinary HTTP). Reproduced with a failing
+  regression, replaced only UUID generation with cryptographic getRandomValues,
+  and verified 136 UI tests, lint/build and a real non-secure HTTP Edge origin.
+  Opening, review and submission passed against synthetic mocked API responses,
+  with UUID-v4 formatting and no browser errors or database access. Backend unchanged;
+  full PostgreSQL E2E was not repeated for this frontend-only fix.
+- Status: verified for the feature and HTTP follow-up scopes above. Temporary browser/API/HTTP/PG
+  processes stopped and disposable data removed. Existing evaluator/title/progress
+  edits preserved; no staging, commit, push, real ingestion or device installation.
+- Authorized local rollout (October 28, 2026): user delegated routine additive
+  migrations to the agent instead of executing commands manually. Confirmed
+  finance_db at localhost:5432 (loopback, postgres); created an ignored private
+  custom-format backup and validated its archive listing before applying the
+  [manual migration](../scripts/migrations/20261028_manual_transactions.sql).
+  COMMIT and all four columns, three constraints and two indexes verified by
+  metadata-only queries. No financial entries edited and no services restarted.
+  Detailed local evidence: ignored logs/manual-transactions-live-migration-result.json.
+- Preference/next: agent handles routine non-destructive migrations with verified
+  target and backup; keep SQL versioned for reproducibility and regression tests.
+  Start/restart the updated API under separate authorization, then reload Movements.
+  Five ordered atomic groups and a checkpoint-only patch are in ignored `logs/manual-transactions-commit-proposal.md`.
+
 ## Current checkpoint: source synchronization diagnostics
 
 - Owner/scope: current chat; evaluation finding 7 only. Settings separates email

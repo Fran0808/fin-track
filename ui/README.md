@@ -43,6 +43,16 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
+Movements offers `Registrar manualmente` for omitted expenses/incoming payments,
+with decimal input, optional owned category/product and a full review before
+confirmation. Manual rows carry a badge and `Manual` origin; retries reuse the
+same intent. The detail can review matching email/phone captures and explicitly
+reconcile one: the capture remains active and the original manual is retained
+as an antecedent without counting twice. Review explains cross-month effects,
+and explicit undo restores the manual to the ledger. No automatic duplicate
+matching runs. Apply the [manual migration](../scripts/migrations/20261028_manual_transactions.sql)
+before starting the updated API. See [behavior and limits](../docs/domain/manual-transactions.md).
+
 Settings separates email synchronization from phone reception. Email shows the
 last successful scan, last completed attempt and safe failure-specific recovery
 advice; a partial scan is explicitly incomplete. Phone shows the last accepted
