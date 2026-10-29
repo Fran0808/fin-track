@@ -2,8 +2,9 @@
 
 ## What the product measures
 
-The product measures captured money movements, not available balances in bank
-accounts. A receipt or push notification cannot establish a live account balance.
+The product measures recorded money movements, not available balances in bank
+accounts. Records come from authorized automatic capture or explicit manual entry.
+A receipt, notification or manual entry cannot establish a live account balance.
 
 | Flow type | Meaning | Effect on expense metrics |
 | --- | --- | --- |
@@ -42,7 +43,8 @@ Displayed percentages are rounded to one decimal and may not sum to exactly 100.
 ## Evidence and amount
 
 - A bank name or currency amount alone is insufficient evidence of a transaction.
-- Require a supported source and an identifiable confirmation of a financial operation.
+- Automatic capture requires a supported source and an identifiable confirmation of a financial operation.
+- Manual entry is an explicit authenticated assertion with `MANUAL` origin, not a fabricated provider receipt.
 - Read the operation amount, not rewards, limits, advertising figures or unrelated amounts.
 - Preserve positive amounts and represent direction with `flowType`.
 - Reject conflicting evidence rather than silently assuming an expense.
@@ -59,6 +61,14 @@ Assigning a movement to a product organizes its history without changing amounts
 flows, identity or aggregate totals.
 
 ## Identity, tenancy and deduplication
+
+[Manual movements](manual-transactions.md) use a per-user request UUID and payload
+fingerprint for retry idempotency. A manual and an email/phone capture count
+separately until an explicit signed review links them. The original manual then
+remains as evidence but leaves the active ledger and all financial aggregates.
+The capture's original date/category/product are retained; cross-month effects
+are previewed. Undo restores manual counting and invalidates earlier reviews.
+This does not provide automatic deduplication between email and phone captures.
 
 Every financial record must belong to the authenticated user. The database's
 unique `(transaction_hash, user_id)` index protects against inserting the same

@@ -13,6 +13,17 @@ public enum ChannelType {
     OTRO;
 
     public static String formatDisplayName(String channel, String cardLast4) {
+        if (channel != null) {
+            String generic = switch (channel) {
+                case "CASH" -> "Efectivo";
+                case "CARD" -> "Tarjeta";
+                case "BANK_TRANSFER" -> "Transferencia";
+                case "WALLET" -> "Billetera";
+                case "OTHER" -> "Otro";
+                default -> null;
+            };
+            if (generic != null) return generic;
+        }
         if (cardLast4 != null && !cardLast4.isBlank()) {
             if (channel != null && channel.contains("CREDITO")) {
                 return "BCP Crédito **" + cardLast4;

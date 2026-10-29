@@ -1,10 +1,15 @@
 # Transaction capture origin
 
 The movement detail displays the origin of its first successful capture as
-`Correo` or `Teléfono`, plus `Registrado en FinTrack` and an optional
+`Correo`, `Teléfono` or `Manual`, plus `Registrado en FinTrack` and an optional
 `Referencia de operación`. The registration timestamp is the transaction's
 existing `createdAt`, not the operation date, email sent time, or phone observation
 time. No phone identity or package name is inferred or displayed.
+
+Manual creation uses a separate web-only endpoint with explicit review and no
+invented receipt. See [manual entry and reconciliation](manual-transactions.md).
+Reconciliation preserves first-origin evidence and retains the manual antecedent
+while only the capture contributes to financial totals.
 
 ## Evidence and ingestion
 
@@ -20,14 +25,15 @@ Legacy `operationNumber` parsing/hash inputs remain unchanged. In particular,
 ambiguous email words and phone security codes do not become receipt references.
 The detail API exposes no raw notification/email body, sender address, security
 code, device credential or mailbox link. This feature does not determine whether
-similar transactions are duplicates and does not add a duplicate-reporting flow.
+similar transactions are duplicates and does not automatically decide that records are duplicates. Manual/capture
+reconciliation is a separate explicit review flow.
 
 Per-user hash retries return the existing transaction without rewriting first
 capture metadata, creating extra movements or appending diagnostic evidence.
 Category/product edits, own-card confirmation and historical classification keep
-origin/reference/registration time intact. Money, flow semantics, hashes and CSV
-remain unchanged. Different source hashes are still distinct transactions; no
-cross-source deduplication is introduced.
+origin/reference/registration time intact. Financial fields and existing hashes remain unchanged; CSV keeps its layout. Different source hashes are still distinct transactions; no
+automatic email/phone deduplication is introduced. Manual/capture links require
+the separate explicit reconciliation review.
 
 Historical origin is `UNKNOWN`. Existing diagnostic `source_package` contains
 channel metadata and cannot establish email versus phone. The UI says
@@ -41,8 +47,9 @@ user and `Cache-Control: no-store`. It returns only `origin` (`EMAIL`, `PHONE`,
 `UNKNOWN`), `registeredAt` (existing local ISO date-time) and nullable
 `operationReference`. Unknown/phone origins expose no reference. Missing and
 foreign movement IDs return the same 404; anonymous and device requests remain
-401 and 403. The existing transaction list and sync request/response DTOs are
-unchanged, so phone clients do not need an update.
+401 and 403. The ingestion request is unchanged. Transaction responses now add compatible
+`captureOrigin` and nullable `reconciledToId` for manual entry/reconciliation;
+existing phone clients ignore extra properties and need no update.
 
 The UI queries origin when a detail opens, independently of category/product
 editing. Loading, unavailable/retry and legacy-unknown states are separate. A

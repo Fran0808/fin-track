@@ -44,6 +44,26 @@ Paths below are relative to `/api/v1`.
 | `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
 | `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
 
+## Manual registration and reconciliation
+
+Web-only `POST /transactions/manual` accepts a UUID `requestId`, decimal `amount`,
+expense/income flow, concept, local operation date/time, generic `paymentMethod`
+and optional owned active category/product IDs. It derives source/hash on the
+server, binds an idempotent intent to its payload and returns 201 for identical
+replay; another payload with that intent returns 409. Responses add `captureOrigin`
+and nullable `reconciledToId` without changing existing ingestion request fields.
+
+The owned manual preview and explicit reconciliation endpoints return bounded
+signed candidates, preserve both records and exclude only the linked manual
+from active lists, all financial aggregates, pending/history classification and
+CSV. The capture retains its original date, category and product. Expired/altered
+reviews return 409, foreign/missing IDs return 404, and anonymous/device callers
+are rejected. Owned status and explicit undo preserve audit and invalidate old
+reviews. New endpoints use `Cache-Control: no-store`. Apply the
+[manual migration](../../scripts/migrations/20261028_manual_transactions.sql)
+before starting the updated API. Full payloads, endpoints and limitations are in
+[manual behavior and rollout](../domain/manual-transactions.md).
+
 ## Transaction ingestion payload
 
 Source diagnostics are additive: `GET /auth/google/status` adds nullable
@@ -154,7 +174,7 @@ the same filter. Deploy API and UI together.
 
 ### Capture origin detail
 
-`GET /transactions/{id}/origin` returns only `origin` (`EMAIL`, `PHONE`, `UNKNOWN`),
+`GET /transactions/{id}/origin` returns only `origin` (`EMAIL`, `PHONE`, `MANUAL`, `UNKNOWN`),
 `registeredAt` (the stored creation time) and nullable `operationReference` for the
 authenticated user's movement. It is `Cache-Control: no-store`; foreign/missing
 IDs return the same 404, anonymous access returns 401 and device credentials 403.
@@ -163,8 +183,9 @@ raw text and retries are not evidence for backfilling origin. Email references
 come from normalized explicit receipt metadata, not a security code or hash.
 Raw bodies, sender/device credentials and mailbox links are not exposed.
 
-The list and sync DTOs remain unchanged; callers cannot set these fields in the
-external ingestion request. First successful capture metadata survives retries
+List/sync responses add `captureOrigin` and nullable `reconciledToId`; prior
+fields and the external ingestion request remain compatible. Callers cannot
+choose origin or reconciliation metadata through ingestion. First successful capture metadata survives retries
 and category/product/flow corrections. Existing databases require the additive
 [capture-origin migration](../../scripts/migrations/20261025_transaction_capture_origin.sql)
 before API deployment. See [origin behavior and rollout](../domain/transaction-origin.md).
