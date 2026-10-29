@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
-import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment, canConfirmOwnCardPayment } from '../../utils';
+import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
 import { useCategories } from '../../hooks';
 import { CustomSelect } from '../common';
@@ -28,27 +28,10 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [isRepairing, setIsRepairing] = useState(false);
-  const [repairError, setRepairError] = useState<string | null>(null);
-  const [confirmingOwnCardPayment, setConfirmingOwnCardPayment] = useState(false);
   const [reconciling, setReconciling] = useState(false);
-  const busy = isSaving || isRepairing || reconciling;
+  const busy = isSaving || reconciling;
   const [archived, setArchived] = useState(transaction.reconciledToId != null);
   const readOnly = transaction.reconciledToId != null || archived;
-
-  const handleOwnCardPayment = async () => {
-    setIsRepairing(true);
-    setRepairError(null);
-    try {
-      const updated = await api.markOwnCardPayment(transaction.id);
-      onUpdated?.(updated);
-      setConfirmingOwnCardPayment(false);
-    } catch (err) {
-      setRepairError(err instanceof Error ? err.message : 'No se pudo corregir el pago de tarjeta.');
-    } finally {
-      setIsRepairing(false);
-    }
-  };
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -90,58 +73,47 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
       onCancel={event => { if (busy) event.preventDefault(); }}
       onClick={(event) => { if (!busy && event.target === dialogRef.current) onClose(); }}
       aria-labelledby="transaction-dialog-title"
-      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
+      className="m-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
     >
-      <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+      <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
         <div>
           <p className="eyebrow">{flowLabel}</p>
-          <h2 id="transaction-dialog-title" className="font-display mt-1 text-xl font-semibold">Detalle del movimiento</h2>
+          <h2 id="transaction-dialog-title" className="font-display mt-0.5 text-lg font-semibold">Detalle del movimiento</h2>
         </div>
         <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
       </div>
 
-      <div className="px-6 py-6">
-        <p className={`font-display font-num text-4xl font-semibold tracking-tight ${isIncome ? 'text-positive' : isTransfer ? 'text-brand' : 'text-ink'}`}>
+      <div className="px-6 py-5">
+        <p className={`font-display font-num text-3xl font-semibold tracking-tight ${isIncome ? 'text-positive' : isTransfer ? 'text-brand' : 'text-ink'}`}>
           {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
         </p>
-        <p className="mt-2 text-base font-medium">{transaction.contactName || 'Movimiento'}</p>
-        {ownCardPayment && isTransfer && <p role="status" className="mt-2 text-sm text-muted">No suma gastos ni entradas y no afecta el flujo neto.</p>}
-        {!readOnly && canConfirmOwnCardPayment(transaction) && onUpdated && (
-          <div className="mt-4 border-l-2 border-brand pl-3">
-            {!confirmingOwnCardPayment ? <button type="button" disabled={busy} onClick={() => setConfirmingOwnCardPayment(true)}
-              className="text-sm font-semibold text-brand hover:underline disabled:opacity-50">Es un pago de mi tarjeta</button> : <>
-            <p id="own-card-payment-confirmation" className="text-sm text-muted">Confirma que pagaste una tarjeta de crédito propia. Las compras y los pagos a tarjetas de otras personas deben mantenerse como gastos.</p>
-            <button type="button" disabled={busy} aria-describedby="own-card-payment-confirmation" onClick={() => void handleOwnCardPayment()}
-              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline disabled:opacity-50">
-              {isRepairing && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isRepairing ? 'Guardando…' : 'Confirmar pago de mi tarjeta'}
-            </button>
-            <button type="button" disabled={busy} onClick={() => { setConfirmingOwnCardPayment(false); setRepairError(null); }}
-              className="ml-4 mt-2 text-sm text-muted hover:underline disabled:opacity-50">Cancelar</button>
-            </>}
-            {repairError && <p role="alert" className="mt-2 text-sm text-negative">{repairError}</p>}
-          </div>
-        )}
+        <p className="mt-1 text-sm font-medium">{transaction.contactName || 'Movimiento'}</p>
+        {ownCardPayment && isTransfer && <p role="status" className="mt-1.5 text-xs text-muted">No suma gastos ni entradas y no afecta el flujo neto.</p>}
 
-        <dl className="mt-7 divide-y divide-line border-y border-line text-sm">
-          <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Tipo</dt><dd className="text-right font-medium">{flowLabel}</dd></div>
-          <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Medio</dt><dd className="text-right font-medium">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd></div>
-          <div className="flex justify-between gap-4 py-3.5"><dt className="text-muted">Fecha y hora</dt><dd className="text-right font-medium">{formatDate(transaction.transactionDate)}</dd></div>
+        <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-y border-line py-3.5 text-sm">
+          <div>
+            <dt className="text-xs text-muted">Medio</dt>
+            <dd className="mt-0.5 font-medium">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted">Fecha y hora</dt>
+            <dd className="mt-0.5 font-medium">{formatDate(transaction.transactionDate)}</dd>
+          </div>
+          <TransactionOriginPanel transactionId={transaction.id} />
         </dl>
 
-        <TransactionOriginPanel transactionId={transaction.id} />
         {onUpdated && transaction.captureOrigin && ['MANUAL','EMAIL','PHONE'].includes(transaction.captureOrigin) && <ManualReconciliationPanel transaction={transaction} onUpdated={onUpdated} onBusyChange={setReconciling} onArchivedChange={setArchived} />}
-        {readOnly && <p role="status" className="mt-4 text-sm text-muted">Este registro manual se conserva como antecedente y ya no suma en los totales.</p>}
+        {readOnly && <p role="status" className="mt-3 text-xs text-muted">Este registro manual se conserva como antecedente y ya no suma en los totales.</p>}
 
-        <fieldset disabled={busy || readOnly} className="mt-6 rounded-2xl border border-line bg-canvas/40 p-4">
+        <fieldset disabled={busy || readOnly} className="mt-4 rounded-xl border border-line bg-canvas/40 p-3.5">
           <p className="eyebrow text-ink!">Clasificación</p>
-          
-          <div className="mt-3.5 space-y-4">
+
+          <div className="mt-2.5 space-y-3">
             <div>
               <label htmlFor="modal-category" className="block text-xs font-semibold text-muted">
                 Categoría
               </label>
-              <div className="mt-1.5">
+              <div className="mt-1">
                 <CustomSelect
                   id="modal-category"
                   disabled={loadingCategories || !!categoryError || busy}
@@ -156,7 +128,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
                   ]}
                 />
               </div>
-              {categoryError && <p role="alert" className="mt-2 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
+              {categoryError && <p role="alert" className="mt-1.5 text-xs text-negative">{categoryError} <button type="button" onClick={() => void refreshCategories()} className="underline">Reintentar categorías</button></p>}
             </div>
 
             {saveError && (
@@ -165,7 +137,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
               </p>
             )}
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-0.5">
               <span className="text-xs text-muted">
                 {saveSuccess ? (
                   <span className="inline-flex items-center gap-1 font-semibold text-positive">
@@ -190,7 +162,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
 
         {!readOnly && !isTransfer && transaction.contactName?.trim() && onCreateRule && <button type="button" disabled={busy}
           onClick={() => onCreateRule({ matchText: transaction.contactName.trim(), categoryName: category })}
-          className="mt-4 text-sm font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
+          className="mt-3 text-xs font-semibold text-brand hover:underline disabled:opacity-50">Crear regla para este comercio</button>}
 
       </div>
     </dialog>

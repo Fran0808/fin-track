@@ -1,21 +1,67 @@
 # Project progress
 
-Updated: October 25, 2026. This is the entry point for current work, not a release
+Updated: October 28, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
 ## Product baseline
 
 FinTrack captures authorized Android notifications and user-scoped bank email,
-then provides transaction classification, cards/accounts and cashflow analysis.
+then provides transaction classification and cashflow analysis.
 See [README](../README.md), [architecture](architecture/overview.md) and
 [development](development/local.md) for behavior, boundaries and execution.
 
 | Area | Current evidence | Remaining acceptance |
 | --- | --- | --- |
-| Android capture | FinTrack 1.3.7 (20): release HTTPS, redirect protection and credential-backup exclusions implemented; 81 JVM tests per debug/captureTest/release variant passed and packaged policies checked. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
-| Backend/dashboard | Ingestion provenance and all four persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
+| Android capture | FinTrack 1.3.9 (22): unused template/resource/config files removed; release HTTPS, redirect protection and credential-backup exclusions retained; 82 JVM tests per debug/captureTest/release variant passed and APK metadata verified. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
+| Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
+
+## Current checkpoint: retirement of Tarjetas y cuentas and HomeView transfer note cleanup
+
+- Owner/scope: current chat; user-requested UI cleanup in `Inicio` (`HomeView`
+  payment methods card) and complete removal of the `Tarjetas y cuentas`
+  (`FinancialInstrument`) feature across UI, backend API, database schema and
+  local `finance_db`. See [cards and accounts retirement](domain/financial-instruments.md).
+- Implemented:
+  - Removed the `... en transferencias propias, excluidas de gastos.` footer note
+    from the `Medios de pago` card in `HomeView`.
+  - Removed all `FinancialInstrument` UI views/components (`InstrumentsView`,
+    `InstrumentForm`, `InstrumentAssignment`), navigation entries (`tarjetas`),
+    manual-entry/reconciliation product fields, `INSTRUMENT` review filter, API
+    client methods and shared TypeScript types. Automatic payment channel and
+    card-suffix detection (`channel`, `cardLast4`) remains intact.
+  - Removed all backend `FinancialInstrument` entities, repositories, services,
+    controllers, DTOs, enums (`Bank`, `InstrumentType`), `PendingReason.INSTRUMENT`,
+    and `Transaction.financialInstrument` / `ManualTransactionRequest.financialInstrumentId`.
+  - Updated `20261014_empty_database.sql` and added repeatable migration
+    `20261028_remove_financial_instruments.sql` plus disposable regression
+    `test_remove_financial_instruments.sql` in `test-persistence.ps1` and CI.
+  - Reorganized `Análisis` (`MyMoneyView`, `ExpenseComparison`, `ExpenseHighlights`, `ExpenseTrendChart`):
+    removed duplicated `Salidas / Entradas / Flujo neto`, `¿Cómo pagaste?` and
+    internal-transfer footer text (already shown in `Inicio`); placed
+    `Comparación de gastos registrados` and `Datos destacados` in matching
+    side-by-side `surface` cards above `Gastos por día`, and `Gastos por categoría`
+    beside `¿Dónde gastaste más?` below the chart; improved the daily chart's
+    x-axis with clean 5-day tick markers and day numbers. Added interactive
+    SVG CategoryDonutChart with Anillo / Barras toggle, slice/legend hover
+    synchronization, dynamic center metrics, category color coding, and accessible
+    click-through to movement drill-downs.
+  - Simplified TransactionDetailModal and TransactionOriginPanel: removed the
+    manual Es un pago de mi tarjeta action button, removed the separate
+    Origen del movimiento card and redundant Tipo row, and consolidated
+    Medio, Fecha y hora, Origen and Referencia/Registro into a compact 2-column
+    grid so the movement detail modal fits without vertical scrolling.
+- Authorized local rollout (October 28, 2026): after explicit user confirmation for
+  irreversible schema removal, backed up `finance_db` (`localhost:5432`, `postgres`)
+  to ignored `logs/finance_db_pre_20261028_remove_financial_instruments.dump`
+  (verified with `pg_restore --list`), applied `20261028_remove_financial_instruments.sql`
+  and verified that `financial_instruments` and `transactions.financial_instrument_id`
+  were dropped while all 54 stored transactions remained intact.
+- Verification: 330 backend tests with all three disposable persistence suites
+  and seven SQL migration regressions (`test-persistence.ps1`) passed; 126 UI
+  tests, lint (9 warnings, 0 errors), production build, 18 script regression
+  groups (`test-scripts.ps1`) and documentation checks (`test-docs.ps1`) passed.
 
 ## Current checkpoint: manual registration and explicit reconciliation
 
@@ -177,6 +223,27 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   Existing checks cover the final working tree; intermediate commit revisions
   were not separately executed. No staging or commits performed by the agent.
 
+## Current checkpoint: Android unused-file cleanup
+
+- Owner/scope: Android cleanup chat; remove unused template tests, resources,
+  keep-rules, redundant module `.gitignore` files, unused catalog version entry,
+  commented template code and untracked build logs/IDE caches under `android/`.
+- Changed paths: `android/.gitignore`, `android/app/.gitignore` (deleted),
+  `android/emitter/.gitignore` (deleted), `android/gradle/libs.versions.toml`,
+  `android/app/build.gradle.kts`, `android/app/src/main/java/com/financemanager/listener/ui/theme/Type.kt`,
+  `android/app/src/main/keepRules/rules.keep` (deleted),
+  `android/app/src/main/res/values/colors.xml` (deleted),
+  `android/app/src/test/java/com/financemanager/listener/ExampleUnitTest.kt` (deleted),
+  `android/app/src/androidTest/java/com/financemanager/listener/ExampleInstrumentedTest.kt` (deleted),
+  [capture progress](android/capture-progress.md) and this checkpoint.
+- Verification: 82 JVM unit tests per `debug`, `captureTest` and `release` variant
+  passed (zero failures/errors/skips); `assembleDebug`, `assembleRelease`,
+  `assembleCaptureTest` and `assembleCaptureTestAndroidTest` succeeded;
+  `scripts/android/build-apk.ps1` verified `FinTrack 1.3.9 (22)` (`SHA-256: B65DA7BD8962654F997711359A57F7C617820B6EE21D35935F9EF7DB9150C067`).
+  Documentation links and `git diff --check` passed.
+- Status: verified for stated scope. No device installation, emulator execution,
+  backend/UI modification, commit or push performed. Concurrent UI/API/docs changes
+  preserved. Next: user reviews and commits the Android cleanup group.
 ## Current checkpoint: movement filter totals
 
 - Owner/scope: current chat; resolve finding 4 of the end-user evaluation only.
@@ -207,7 +274,58 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   title edit and concurrent Android changes preserved. Next: user deploys/restarts
   API and reloads UI to see this additive change. No next feature started.
 
-## Current checkpoint: own-card repayments
+## Checkpoint: end-user usefulness evaluation
+
+- Owner/scope: end-user evaluation chat; read-only exploration of the user's
+  authenticated local web session. See [findings and limits](ui/end-user-evaluation-2026-10-25.md).
+- Status: verified for the observed UI/session only. Monthly expense pages and
+  entries reconciled with summaries; category/merchant drill-down, historical
+  month selection, all-history search and keyboard chart exploration checked.
+- Findings: no visible manual-entry/general-correction path, historical
+  classification effort, page-only summaries, unexplained comparison drivers,
+  missing detail provenance and incomplete source diagnostics. No application
+  fixes, financial writes, manual ingestion, service restart, commit or push.
+- Changed paths: evaluation report, dashboard guide link and this checkpoint.
+  No identifiable financial records copied. Concurrent application changes were
+  preserved; the review does not certify their revision or deployment.
+- Limits/next: no saved-edit, capture, bank-statement, CSV or mobile acceptance.
+  Select one improvement, then verify it end to end before the next. Repeat
+  affected scenarios after concurrent UI changes. Documentation checks apply.
+
+## Current checkpoint: provider-independent operations
+
+- Owner/scope: current chat; normalize own-card operation meaning independently
+  of bank/wallet/contact text, plus the user's explicit provider scalability rule.
+- Implemented: optional ingestion and stored/response `operationType` (`UNKNOWN`
+  or `OWN_CARD_PAYMENT`); own-card payments require neutral flow. Provider parsers
+  produce shared evidence; email ingestion forwards it. Existing payloads/retries
+  remain valid, hashes are unchanged and confirmations survive stale category
+  edits. Generic authenticated confirmation preserves the owned movement's data.
+- UI: action eligibility/labels use operation metadata, with confirm/cancel before
+  mutation for unknown expenses/transfers. Existing neutral records stay neutral
+  without guessing meaning from names. Old APIs without the field hide the action.
+- Schema: additive [operation migration](../scripts/migrations/20261025_transaction_operation_type.sql)
+  defaults historical rows to unknown and enforces neutral own payments; no live
+  data migration was run. The empty-database schema and isolated runner are updated.
+- Verification: 281 backend tests with all four disposable PostgreSQL suites and
+  three SQL regressions passed; 89 UI tests, lint (same 9 warnings), production
+  build, 83 Android debug JVM tests and debug assembly passed. Android 1.3.8 (21)
+  metadata checked; older Android requests remain compatible, no install performed.
+  18 script regression groups and documentation/diff checks passed.
+- Runtime: final built UI → packaged API → fresh PostgreSQL passed in headless
+  Edge at 1440px/390px. Verified generic bank/wallet fixture confirmation/cancel,
+  neutral totals, history/hash preservation, idempotency, legacy request replay,
+  normalized ingestion and rejection of foreign IDs/income/invalid type/flow.
+  Screenshots inspected; no overflow. Temporary processes/data stopped/removed.
+- Instructions: one root scalability constraint, architecture-owned detail and
+  dated source/review entry. Existing user exit checklist preserved.
+- Status: verified for isolated scope. Next: back up/confirm intended database,
+  apply incremental migration before deploying/restarting API, then reload web.
+  No existing-service restart, live financial access, agent staging/commit/push.
+  Unrelated ui/index.html and concurrent docs/ui evaluation changes are preserved;
+  an isolated progress staging patch excludes the other chat's checkpoint.
+
+## Checkpoint: own-card repayments
 
 - Owner/scope: current chat; exclude confirmed BCP own-card repayments from
   expenses/income/net flow while preserving movement history and legacy hashes.

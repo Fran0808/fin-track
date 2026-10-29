@@ -11,18 +11,18 @@ it('distinguishes manual records from automatic captures without inventing a rec
   vi.spyOn(api,'getTransactionOrigin').mockResolvedValue({...email,origin:'MANUAL',operationReference:null});
   render(<TransactionOriginPanel transactionId={7} />);
   expect(await screen.findByText('Manual')).toBeDefined();
-  expect(screen.getByText('Registrado manualmente en FinTrack.')).toBeDefined();
+  expect(screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g,' '))).toBeDefined();
   expect(screen.queryByText('Correo')).toBeNull();
+  expect(screen.queryByText('Referencia')).toBeNull();
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 
-it('shows email origin, registration time and the normalized receipt reference',async()=>{
+it('shows email origin and the normalized receipt reference',async()=>{
   vi.spyOn(api,'getTransactionOrigin').mockResolvedValue(email);
   render(<TransactionOriginPanel transactionId={7} />);
   expect(await screen.findByText('Correo')).toBeDefined();
-  expect(screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g,' '))).toBeDefined();
+  expect(screen.getByText('Referencia')).toBeDefined();
   expect(screen.getByText('OP-123')).toBeDefined();
-  expect(screen.getByText('Primera captura registrada en FinTrack.')).toBeDefined();
   expect(api.getTransactionOrigin).toHaveBeenCalledWith(7);
 });
 
@@ -30,14 +30,14 @@ it('labels phone captures as Teléfono and never displays phone security text as
   vi.spyOn(api,'getTransactionOrigin').mockResolvedValue({...email,origin:'PHONE',operationReference:'SHOULD-NOT-BE-DISPLAYED'});
   render(<TransactionOriginPanel transactionId={7} />);
   expect(await screen.findByText('Teléfono')).toBeDefined();expect(screen.queryByText(/Android/)).toBeNull();
-  expect(screen.queryByText('SHOULD-NOT-BE-DISPLAYED')).toBeNull();expect(screen.getByText('No registrada')).toBeDefined();
+  expect(screen.queryByText('SHOULD-NOT-BE-DISPLAYED')).toBeNull();
+  expect(screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g,' '))).toBeDefined();
 });
 
 it('does not invent the origin of historical captures while retaining their registration time',async()=>{
   vi.spyOn(api,'getTransactionOrigin').mockResolvedValue({...email,origin:'UNKNOWN',operationReference:null});
   render(<TransactionOriginPanel transactionId={7} />);
   expect(await screen.findByText('Origen no disponible')).toBeDefined();
-  expect(screen.getByText(/no conserva información/)).toBeDefined();
   expect(screen.queryByText('Correo')).toBeNull();expect(screen.queryByText('Teléfono')).toBeNull();
   expect(screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g,' '))).toBeDefined();
 });
