@@ -84,6 +84,13 @@ public class AnalyticsService {
                         previousPeriodEnd,
                         userId
                 );
+        BigDecimal previousPeriodIncome = isFutureMonth ? null
+                : transactionRepository.sumAmountByFlowTypeAndDateRange(
+                        FlowType.INCOME,
+                        previousPeriodStart,
+                        previousPeriodEnd,
+                        userId
+                );
 
         BigDecimal monthlyExpense = transactionRepository.sumAmountByFlowTypeAndDateRange(FlowType.EXPENSE, startOfMonth, visibleEnd, userId);
         BigDecimal monthlyIncome = transactionRepository.sumAmountByFlowTypeAndDateRange(FlowType.INCOME, startOfMonth, visibleEnd, userId);
@@ -200,6 +207,7 @@ public class AnalyticsService {
                 .monthlyIncome(monthlyIncome)
                 .internalTransfersAmount(internalTransfers)
                 .previousPeriodExpense(previousPeriodExpense)
+                .previousPeriodIncome(previousPeriodIncome)
                 .previousPeriodStart(previousPeriodStart)
                 .previousPeriodEnd(previousPeriodEnd)
                 .expenseDifference(previousPeriodExpense == null ? null : monthlyExpense.subtract(previousPeriodExpense))

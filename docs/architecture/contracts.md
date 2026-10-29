@@ -145,9 +145,11 @@ drill-down uses these bounds and expense flow instead of inferring dates in the 
 `previousPeriodStart`/`previousPeriodEnd` expose the actual previous-month interval;
 current months stop at the matching day available in that month, while closed
 months compare complete months. February/short-month bounds are clamped to their
-last day and are displayed explicitly. `expenseDifference` is decimal current
-expense minus previous expense, with no division or percentage. Future periods
-return null comparison fields; a previous expense of zero remains a valid value.
+last day and are displayed explicitly. `previousPeriodIncome` and
+`previousPeriodExpense` expose the decimal income and expense sums for that
+interval; `expenseDifference` is decimal current expense minus previous expense.
+Future periods return null comparison fields; a previous amount of zero remains
+a valid value.
 
 `largestExpense` contains the largest positive individual expense's `merchantName`,
 decimal `amount` and local `transactionDate` for the authenticated user/interval.

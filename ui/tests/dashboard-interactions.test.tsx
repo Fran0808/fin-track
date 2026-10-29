@@ -50,6 +50,27 @@ it('omits the internal transfers note under Medios de pago in HomeView', () => {
   expect(screen.queryByText(/en transferencias propias, excluidas de gastos/i)).toBeNull();
 });
 
+it('displays Gastos del mes first and Entradas del mes second with previous-month variations and relevant context in HomeView', () => {
+  const analytics: PeriodAnalytics = {
+    periodName: 'Octubre 2026', monthlyExpense: 2850, monthlyIncome: 4500, internalTransfersAmount: 0,
+    previousPeriodExpense: 2544.64, previousPeriodIncome: 4166.67, comparisonThroughDay: null,
+    dailyExpenses: [{ day: 1, amount: 1425, cumulativeAmount: 1425 }, { day: 2, amount: 1425, cumulativeAmount: 2850 }],
+    totalMovements: 5,
+    lastExpenseMerchant: 'Synthetic', lastExpenseAmount: 10, lastExpenseDate: '2026-10-01T12:00:00',
+    topChannel: 'YAPE', topChannelAmount: 2850, topChannelPercentage: 100,
+    channelBreakdown: [], topMerchants: [],
+    categoryBreakdown: [{ category: 'Comida y bebidas', amount: 1200, percentage: 42.1, count: 3 }],
+  };
+  render(<HomeView analytics={analytics} recentTransactions={[tx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />);
+  const headings = screen.getAllByText(/Gastos del mes|Entradas del mes/).map((el) => el.textContent);
+  expect(headings).toEqual(['Gastos del mes', 'Entradas del mes']);
+  expect(screen.getByText('+12.0% respecto al mes anterior')).toBeTruthy();
+  expect(screen.getByText('+8.0% respecto al mes anterior')).toBeTruthy();
+  expect(screen.getByText('Comida y bebidas (42%)')).toBeTruthy();
+  expect(screen.queryByText('Balance del mes')).toBeNull();
+  expect(screen.queryByText('Tasa de ahorro')).toBeNull();
+});
+
 it('reloads categories on each detail opening and resets the draft for a different movement', async () => {
   const view = render(<TransactionDetailModal transaction={tx} onClose={() => {}} />);
   await screen.findByRole('option', { name: category.name });

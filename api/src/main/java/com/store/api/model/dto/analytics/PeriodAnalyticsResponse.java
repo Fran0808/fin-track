@@ -18,6 +18,7 @@ public class PeriodAnalyticsResponse {
     private BigDecimal monthlyIncome;
     private BigDecimal internalTransfersAmount;
     private BigDecimal previousPeriodExpense;
+    private BigDecimal previousPeriodIncome;
     private LocalDateTime previousPeriodStart;
     private LocalDateTime previousPeriodEnd;
     private BigDecimal expenseDifference;

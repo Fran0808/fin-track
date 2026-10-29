@@ -164,6 +164,7 @@ export interface PeriodAnalytics {
   monthlyIncome: number;
   internalTransfersAmount: number;
   previousPeriodExpense: number | null;
+  previousPeriodIncome?: number | null;
   comparisonThroughDay: number | null;
   dailyExpenses: DailyExpense[];
   totalMovements: number;

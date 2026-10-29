@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Smartphone } from 'lucide-react';
 import type { PeriodAnalytics, Transaction } from '../../types';
 import { formatCurrency, formatRelativeDate, getChannelLabel } from '../../utils';
+import { getCategoryLabel } from '../../utils/categoryColors';
 
 interface HomeViewProps {
   analytics: PeriodAnalytics | null;
@@ -19,6 +20,14 @@ const MONTHS = [
   'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
+function formatVariationSubtitle(current: number, previous: number | null | undefined, fallback: string): string {
+  if (previous == null || previous <= 0) return fallback;
+  const diff = current - previous;
+  if (diff === 0) return 'Sin variación respecto al mes anterior';
+  const pct = (diff / previous) * 100;
+  return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% respecto al mes anterior`;
+}
+
 export function HomeView({
   analytics,
   recentTransactions,
@@ -32,8 +41,15 @@ export function HomeView({
 }: HomeViewProps) {
   const expense = analytics?.monthlyExpense ?? 0;
   const income = analytics?.monthlyIncome ?? 0;
-  const netCashflow = income - expense;
   const period = `${MONTHS[selectedMonth - 1]} de ${selectedYear}`;
+
+  const expenseSubtitle = formatVariationSubtitle(expense, analytics?.previousPeriodExpense, 'Salidas registradas en el período');
+  const incomeSubtitle = formatVariationSubtitle(income, analytics?.previousPeriodIncome, 'Entradas registradas en el período');
+
+  const daysElapsed = analytics?.dailyExpenses?.length ?? 0;
+  const dailyAverage = daysElapsed > 0 ? expense / daysElapsed : 0;
+  const topCategory = analytics?.categoryBreakdown?.[0] ?? null;
+  const totalMovements = analytics?.totalMovements ?? 0;
 
   return (
     <div className="space-y-8">
@@ -49,24 +65,47 @@ export function HomeView({
           if (event.target === event.currentTarget) onIntroComplete();
         }}
       >
-        <div className="grid lg:grid-cols-[1.15fr_1fr]">
-          <div className="border-b border-line p-6 sm:p-8 lg:border-b-0 lg:border-r lg:p-10">
-            <p className="eyebrow">Gastos del mes</p>
-            <p className="font-display font-num mt-4 text-[clamp(2.8rem,6vw,5rem)] font-semibold leading-none tracking-tight text-ink">
+        <div className="grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+          <div className="p-6 sm:p-7">
+            <div className="flex items-center gap-2 text-ink">
+              <ArrowUpRight className="h-4 w-4 text-negative" />
+              <p className="eyebrow">Gastos del mes</p>
+            </div>
+            <p className="font-display font-num mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {loading ? 'S/ …' : formatCurrency(expense)}
             </p>
+            <p className="font-num mt-1.5 text-xs text-muted">{loading ? 'Calculando…' : expenseSubtitle}</p>
+            {!loading && (
+              <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
+                {daysElapsed > 0 && (
+                  <span>Promedio diario: <strong className="font-semibold text-ink">{formatCurrency(dailyAverage)}</strong></span>
+                )}
+                {topCategory ? (
+                  <span>Mayor rubro: <strong className="font-semibold text-ink">{getCategoryLabel(topCategory.category)} ({topCategory.percentage.toFixed(0)}%)</strong></span>
+                ) : analytics?.previousPeriodExpense != null ? (
+                  <span>Mes anterior: <strong className="font-semibold text-ink">{formatCurrency(analytics.previousPeriodExpense)}</strong></span>
+                ) : null}
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 divide-x divide-line lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
-            <div className="p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-positive"><ArrowDownLeft className="h-4 w-4" /><span className="eyebrow !text-positive">Entradas</span></div>
-              <p className="font-display font-num mt-3 text-xl font-semibold tracking-tight sm:text-2xl">{loading ? 'S/ …' : formatCurrency(income)}</p>
+
+          <div className="p-6 sm:p-7">
+            <div className="flex items-center gap-2 text-positive">
+              <ArrowDownLeft className="h-4 w-4" />
+              <p className="eyebrow !text-positive">Entradas del mes</p>
             </div>
-            <div className="p-5 sm:p-7">
-              <div className="flex items-center gap-2 text-brand"><ArrowLeftRight className="h-4 w-4" /><span className="eyebrow !text-brand">Flujo neto</span></div>
-              <p className={`font-display font-num mt-3 text-xl font-semibold tracking-tight sm:text-2xl ${netCashflow < 0 ? 'text-negative' : 'text-ink'}`}>
-                {loading ? 'S/ …' : formatCurrency(netCashflow)}
-              </p>
-            </div>
+            <p className="font-display font-num mt-3 text-2xl font-semibold tracking-tight text-positive sm:text-3xl">
+              {loading ? 'S/ …' : formatCurrency(income)}
+            </p>
+            <p className="font-num mt-1.5 text-xs text-muted">{loading ? 'Calculando…' : incomeSubtitle}</p>
+            {!loading && (
+              <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
+                {analytics?.previousPeriodIncome != null && (
+                  <span>Mes anterior: <strong className="font-semibold text-ink">{formatCurrency(analytics.previousPeriodIncome)}</strong></span>
+                )}
+                <span><strong className="font-semibold text-ink">{totalMovements}</strong> {totalMovements === 1 ? 'movimiento en el mes' : 'movimientos en el mes'}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="h-1.5 w-full bg-brand" aria-hidden="true" />

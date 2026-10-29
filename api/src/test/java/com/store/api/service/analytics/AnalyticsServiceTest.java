@@ -107,6 +107,7 @@ class AnalyticsServiceTest {
 
         PeriodAnalyticsResponse result = analyticsService.getPeriodAnalytics(today.getYear(), today.getMonthValue());
 
+        assertEquals(new BigDecimal("12.00"), result.getPreviousPeriodIncome());
         assertEquals(new BigDecimal("7.00"), result.getPreviousPeriodExpense());
         assertEquals(comparisonDay, result.getComparisonThroughDay());
         assertEquals(today.getDayOfMonth(), result.getDailyExpenses().size());
@@ -130,6 +131,7 @@ class AnalyticsServiceTest {
 
         PeriodAnalyticsResponse result = analyticsService.getPeriodAnalytics(future.getYear(), future.getMonthValue());
 
+        assertNull(result.getPreviousPeriodIncome());
         assertNull(result.getPreviousPeriodExpense());
         assertNull(result.getPreviousPeriodStart());assertNull(result.getPreviousPeriodEnd());assertNull(result.getExpenseDifference());
         assertNull(result.getLargestExpense());assertNull(result.getPeakExpenseDay());

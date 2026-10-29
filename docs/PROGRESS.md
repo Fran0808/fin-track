@@ -25,7 +25,11 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   local `finance_db`. See [cards and accounts retirement](domain/financial-instruments.md).
 - Implemented:
   - Removed the `... en transferencias propias, excluidas de gastos.` footer note
-    from the `Medios de pago` card in `HomeView`.
+    from the `Medios de pago` card in `HomeView`, and focused the monthly
+    financial summary in `HomeView` on `Gastos del mes` (first) and
+    `Entradas del mes` (second) with `% respecto al mes anterior` comparisons,
+    daily spend average, top expense category, previous-month reference and
+    movement count.
   - Removed all `FinancialInstrument` UI views/components (`InstrumentsView`,
     `InstrumentForm`, `InstrumentAssignment`), navigation entries (`tarjetas`),
     manual-entry/reconciliation product fields, `INSTRUMENT` review filter, API
