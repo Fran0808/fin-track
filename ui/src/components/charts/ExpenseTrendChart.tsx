@@ -26,8 +26,36 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
   const y = (amount: number) => bottom - (amount / maxValue) * (bottom - top);
   const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(amountFor(point))}`).join(' ');
   const area = `${line} L ${x(points.length - 1)} ${bottom} L ${left} ${bottom} Z`;
-  const middle = Math.floor((points.length - 1) / 2);
   const activePoint = activeIndex === null ? null : points[activeIndex] ?? null;
+
+  const getAxisTicks = () => {
+    if (points.length <= 6) {
+      return points.map((p, idx) => ({ index: idx, day: p.day }));
+    }
+    const ticks: { index: number; day: number }[] = [];
+    ticks.push({ index: 0, day: points[0].day });
+
+    for (let i = 1; i < points.length - 1; i++) {
+      const p = points[i];
+      if (p.day % 5 === 0) {
+        ticks.push({ index: i, day: p.day });
+      }
+    }
+
+    const lastIdx = points.length - 1;
+    const lastPoint = points[lastIdx];
+    const prevTick = ticks[ticks.length - 1];
+
+    if (prevTick && lastPoint.day - prevTick.day < 2) {
+      ticks[ticks.length - 1] = { index: lastIdx, day: lastPoint.day };
+    } else {
+      ticks.push({ index: lastIdx, day: lastPoint.day });
+    }
+
+    return ticks;
+  };
+
+  const axisTicks = getAxisTicks();
 
   const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const svg = event.currentTarget;
@@ -90,9 +118,21 @@ export function ExpenseTrendChart({ points, monthLabel }: ExpenseTrendChartProps
           )}
           <g fill="var(--color-muted)" fontSize="11" fontFamily="inherit" pointerEvents="none">
             <text x={left} y="10">{formatCurrency(maxValue)}</text>
-            <text x={left} y="202">Día 1</text>
-            {points.length > 2 && <text x={x(middle)} y="202" textAnchor="middle">Día {points[middle].day}</text>}
-            <text x={right} y="202" textAnchor="end">Día {points.at(-1)?.day}</text>
+            {axisTicks.map((tick) => {
+              const posX = x(tick.index);
+              return (
+                <g key={tick.day}>
+                  <line x1={posX} y1={bottom} x2={posX} y2={bottom + 4} stroke="var(--color-line)" strokeWidth="1.5" />
+                  <text
+                    x={posX}
+                    y={bottom + 18}
+                    textAnchor={tick.index === 0 ? 'start' : tick.index === points.length - 1 ? 'end' : 'middle'}
+                  >
+                    {tick.day}
+                  </text>
+                </g>
+              );
+            })}
           </g>
         </svg>
         {activePoint && activeIndex !== null && (
