@@ -1,173 +1,189 @@
-import React, { useState } from 'react';
-import { PieChart } from 'lucide-react';
-import { formatCurrency } from '../../utils';
+import { useState, type KeyboardEvent } from 'react';
+import type { CategoryBreakdown } from '../../types';
+import { formatCurrency, getCategoryColor, getCategoryLabel } from '../../utils';
 
-export interface CategoryItem {
-  id: string;
-  label: string;
-  amount: number;
-  percentage: number;
-  color: string;
-  strokeColor: string;
-  icon: React.ComponentType<{ className?: string }>;
-  merchants: string;
-}
-
-interface CategoryDonutChartProps {
-  categories: CategoryItem[];
+export interface CategoryDonutChartProps {
+  categories: CategoryBreakdown[];
   totalAmount: number;
   loading?: boolean;
+  onSelectCategory?: (category: string | null) => void;
 }
 
-export const CategoryDonutChart: React.FC<CategoryDonutChartProps> = ({
+export function CategoryDonutChart({
   categories,
   totalAmount,
   loading = false,
-}) => {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  onSelectCategory,
+}: CategoryDonutChartProps) {
+  const [hoveredCategory, setHoveredCategory] = useState<string | null | undefined>(undefined);
 
-  const activeCategory = hoveredId
-    ? categories.find((c) => c.id === hoveredId)
-    : null;
-
-  // SVG Donut geometry
-  const size = 180;
-  const strokeWidth = 22;
+  const size = 190;
+  const strokeWidth = 24;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  let cumulativePercent = 0;
+  const total = totalAmount > 0 ? totalAmount : categories.reduce((sum, c) => sum + c.amount, 0);
+
+  // Calcular offsets y detalles de forma inmutable mediante reduce
+  const itemsWithDetails = categories.reduce<
+    Array<
+      CategoryBreakdown & {
+        label: string;
+        color: string;
+        dashLength: number;
+        offset: number;
+      }
+    >
+  >((acc, cat, idx) => {
+    const share = total > 0 ? cat.amount / total : cat.percentage / 100;
+    const dashLength = share * circumference;
+    const prevItem = acc[acc.length - 1];
+    const offset = prevItem ? prevItem.offset + prevItem.dashLength : 0;
+    acc.push({
+      ...cat,
+      label: getCategoryLabel(cat.category),
+      color: getCategoryColor(cat.category, idx),
+      dashLength,
+      offset,
+    });
+    return acc;
+  }, []);
+
+  const activeItem = hoveredCategory !== undefined
+    ? itemsWithDetails.find((c) => c.category === hoveredCategory)
+    : null;
+
+  if (loading) {
+    return <p role="status" className="py-10 text-sm text-muted">Calculando distribución...</p>;
+  }
+
+  if (categories.length === 0) {
+    return <p className="py-10 text-sm text-muted">No hay gastos registrados en este período.</p>;
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<SVGCircleElement>, category: string | null) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onSelectCategory?.(category);
+    }
+  };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-6 flex flex-col justify-between">
-      {/* 1. Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-50 text-blue-700">
-            <PieChart className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">Distribución por Categorías</h3>
-            <p className="text-[11px] text-slate-500 font-medium">Desglose porcentual de salidas en el mes</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col items-center gap-6 pt-2 sm:flex-row sm:items-start">
+      {/* 1. Gráfico SVG Donut */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        <svg
+          width={size}
+          height={size}
+          className="overflow-visible"
+          role="group"
+          aria-label="Distribución por categorías"
+        >
+          {/* Pista de fondo */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="var(--color-canvas)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
 
-      {loading ? (
-        <div className="py-12 text-center text-xs text-slate-400 animate-pulse">
-          Calculando distribución...
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="py-12 text-center text-xs text-slate-400">
-          Sin gastos categorizados en este período.
-        </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* 2. SVG Donut Chart */}
-          <div className="relative shrink-0 flex items-center justify-center">
-            <svg width={size} height={size} className="transform -rotate-90">
-              {/* Background Track */}
+          {/* Segmentos de categorías */}
+          {itemsWithDetails.map((item) => {
+            const isHovered = hoveredCategory !== undefined && hoveredCategory === item.category;
+            const isDimmed = hoveredCategory !== undefined && hoveredCategory !== item.category;
+            const gap = categories.length > 1 ? 2 : 0;
+            const arcLength = Math.max(0, item.dashLength - gap);
+
+            return (
               <circle
+                key={JSON.stringify(item.category)}
                 cx={size / 2}
                 cy={size / 2}
                 r={radius}
-                className="stroke-slate-100"
-                strokeWidth={strokeWidth}
                 fill="none"
+                stroke={item.color}
+                strokeWidth={isHovered ? strokeWidth + 4 : strokeWidth}
+                strokeDasharray={`${arcLength} ${circumference}`}
+                strokeDashoffset={-item.offset}
+                transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                className={`transition-all duration-200 cursor-pointer ${isDimmed ? 'opacity-40' : 'opacity-100'}`}
+                tabIndex={0}
+                role="button"
+                aria-label={`Ver movimientos de la categoría ${item.label}: ${formatCurrency(item.amount)} (${item.percentage.toFixed(1)}%)`}
+                onMouseEnter={() => setHoveredCategory(item.category)}
+                onMouseLeave={() => setHoveredCategory(undefined)}
+                onFocus={() => setHoveredCategory(item.category)}
+                onBlur={() => setHoveredCategory(undefined)}
+                onClick={() => onSelectCategory?.(item.category)}
+                onKeyDown={(e) => handleKeyDown(e, item.category)}
               />
+            );
+          })}
+        </svg>
 
-              {/* Segment Arcs */}
-              {categories.map((cat) => {
-                const strokeDasharray = `${(cat.percentage / 100) * circumference} ${circumference}`;
-                const strokeDashoffset = -((cumulativePercent / 100) * circumference);
-                cumulativePercent += cat.percentage;
+        {/* Centro interactivo del anillo */}
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+          <span className="max-w-[110px] truncate text-[11px] font-semibold uppercase tracking-wider text-muted">
+            {activeItem ? activeItem.label : 'Total'}
+          </span>
+          <span className="font-display font-num mt-0.5 text-base font-bold text-ink sm:text-lg">
+            {activeItem ? formatCurrency(activeItem.amount) : formatCurrency(total)}
+          </span>
+          <span
+            className="font-num mt-0.5 text-xs font-bold"
+            style={{ color: activeItem ? activeItem.color : 'var(--color-brand)' }}
+          >
+            {activeItem ? `${activeItem.percentage.toFixed(1)}%` : `${categories.length} ${categories.length === 1 ? 'categoría' : 'categorías'}`}
+          </span>
+        </div>
+      </div>
 
-                const isHovered = hoveredId === cat.id;
+      {/* 2. Lista interactiva de categorías */}
+      <div className="w-full flex-1 space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+        {itemsWithDetails.map((item) => {
+          const isHovered = hoveredCategory !== undefined && hoveredCategory === item.category;
 
-                return (
-                  <circle
-                    key={cat.id}
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    stroke={cat.strokeColor}
-                    strokeWidth={isHovered ? strokeWidth + 3 : strokeWidth}
-                    strokeDasharray={strokeDasharray}
-                    strokeDashoffset={strokeDashoffset}
-                    fill="none"
-                    strokeLinecap="round"
-                    className="transition-all duration-300"
-                    onMouseEnter={() => setHoveredId(cat.id)}
-                    onMouseLeave={() => setHoveredId(null)}
-                  />
-                );
-              })}
-            </svg>
-
-            {/* Donut Center Display */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate max-w-[100px]">
-                {activeCategory ? activeCategory.label : 'Total Gastado'}
-              </span>
-              <span className="text-base font-extrabold font-num text-slate-900 tabular-nums">
-                {activeCategory
-                  ? formatCurrency(activeCategory.amount)
-                  : formatCurrency(totalAmount)}
-              </span>
-              <span className="text-[10px] font-bold text-blue-600">
-                {activeCategory ? `${activeCategory.percentage.toFixed(1)}%` : '100%'}
-              </span>
-            </div>
-          </div>
-
-          {/* 3. Interactive Category Legend */}
-          <div className="flex-1 w-full space-y-2.5">
-            {categories.map((cat) => {
-              const Icon = cat.icon;
-              const isHovered = hoveredId === cat.id;
-
-              return (
-                <div
-                  key={cat.id}
-                  onMouseEnter={() => setHoveredId(cat.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className={`p-2.5 rounded-xl border transition-all ${
-                    isHovered
-                      ? 'bg-slate-50 border-slate-300 shadow-xs'
-                      : 'bg-white border-slate-100 hover:bg-slate-50/60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: cat.strokeColor }}
-                      />
-                      <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      <span className="text-xs font-bold text-slate-800 truncate">
-                        {cat.label}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-extrabold font-num text-slate-900">
-                        {formatCurrency(cat.amount)}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                        {cat.percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 mt-1 truncate pl-4.5">
-                    {cat.merchants}
+          return (
+            <button
+              type="button"
+              key={JSON.stringify(item.category)}
+              disabled={!onSelectCategory}
+              onClick={() => onSelectCategory?.(item.category)}
+              onMouseEnter={() => setHoveredCategory(item.category)}
+              onMouseLeave={() => setHoveredCategory(undefined)}
+              onFocus={() => setHoveredCategory(item.category)}
+              onBlur={() => setHoveredCategory(undefined)}
+              aria-label={`Ver movimientos de la categoría ${item.label}`}
+              className={`group flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default ${
+                isHovered ? 'bg-canvas shadow-2xs' : 'hover:bg-canvas/60'
+              }`}
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-ink group-hover:text-brand">
+                    {item.label}
+                  </p>
+                  <p className="font-num text-[11px] text-muted">
+                    <span>{item.count} {item.count === 1 ? 'gasto' : 'gastos'}</span>
+                    <span> · </span>
+                    <span>{item.percentage.toFixed(1)}% del gasto</span>
                   </p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+              </div>
+              <span className="font-num shrink-0 text-xs font-semibold text-ink">
+                {formatCurrency(item.amount)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
-};
+}

@@ -40,6 +40,36 @@ it('opens category groups using their actual value, including null for uncategor
   expect(select).toHaveBeenLastCalledWith(null);
 });
 
+it('allows toggling between donut (anillo) and bars (barras) views', () => {
+  const select = vi.fn();
+  render(<MyMoneyView analytics={analytics} loading={false} selectedYear={2026} selectedMonth={1} onSelectCategory={select} />);
+  const section = screen.getByRole('region', { name: 'Gastos por categoría' });
+  const barsBtn = within(section).getByRole('button', { name: 'Barras' });
+  const donutBtn = within(section).getByRole('button', { name: 'Anillo' });
+
+  expect(donutBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(barsBtn.getAttribute('aria-pressed')).toBe('false');
+
+  fireEvent.click(barsBtn);
+  expect(barsBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(donutBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Verify selecting a category still works in bars view
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de la categoría Comida' }));
+  expect(select).toHaveBeenCalledWith('Comida');
+
+  fireEvent.click(donutBtn);
+  expect(donutBtn.getAttribute('aria-pressed')).toBe('true');
+});
+
+it('supports clicking on donut ring segments to filter category', () => {
+  const select = vi.fn();
+  render(<MyMoneyView analytics={analytics} loading={false} selectedYear={2026} selectedMonth={1} onSelectCategory={select} />);
+  const segment = screen.getByRole('button', { name: /Ver movimientos de la categoría Comida: S.*80\.00 \(80\.0%\)/ });
+  fireEvent.click(segment);
+  expect(select).toHaveBeenCalledWith('Comida');
+});
+
 it('distinguishes loading, empty data and an older API', () => {
   const view = render(<MyMoneyView analytics={null} loading selectedYear={2026} selectedMonth={1} />);
   expect(screen.getByText('Calculando categorías...')).toBeDefined();

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import type { PeriodAnalytics } from '../../types';
-import { STANDARD_CATEGORIES } from '../../types';
-import { formatCurrency } from '../../utils';
+import { formatCurrency, getCategoryColor, getCategoryLabel } from '../../utils';
 import { ExpenseTrendChart } from '../charts/ExpenseTrendChart';
+import { CategoryDonutChart } from '../charts/CategoryDonutChart';
 import { ExpenseComparison } from '../analytics/ExpenseComparison';
 import { ExpenseHighlights } from '../analytics/ExpenseHighlights';
 
@@ -15,6 +16,7 @@ interface MyMoneyViewProps {
 }
 
 export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory }: MyMoneyViewProps) {
+  const [categoryView, setCategoryView] = useState<'donut' | 'bars'>('donut');
   const period = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(selectedYear, selectedMonth - 1, 1));
 
   return (
@@ -40,28 +42,86 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="surface p-6 sm:p-7" aria-labelledby="category-analysis-heading">
-          <div className="border-b border-line pb-5">
-            <p className="eyebrow">Distribución</p>
-            <h2 id="category-analysis-heading" className="font-display mt-1 text-xl font-semibold">Gastos por categoría</h2>
-            <p className="mt-1 text-sm text-muted">Parte del gasto que corresponde a cada categoría.</p>
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-line pb-4">
+            <div>
+              <p className="eyebrow">Distribución</p>
+              <h2 id="category-analysis-heading" className="font-display mt-1 text-xl font-semibold">Gastos por categoría</h2>
+              <p className="mt-1 text-sm text-muted">Parte del gasto que corresponde a cada categoría.</p>
+            </div>
+            {analytics?.categoryBreakdown && analytics.categoryBreakdown.length > 0 && (
+              <div role="group" aria-label="Vista de categorías" className="inline-flex rounded-xl border border-line bg-canvas p-1">
+                {([['donut', 'Anillo'], ['bars', 'Barras']] as const).map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    aria-pressed={categoryView === value}
+                    onClick={() => setCategoryView(value)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${categoryView === value ? 'bg-white text-brand shadow-xs' : 'text-muted hover:text-ink'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {loading ? <p role="status" className="py-10 text-sm text-muted">Calculando categorías...</p>
-            : !analytics?.categoryBreakdown ? <p role="alert" className="py-10 text-sm text-muted">El desglose por categoría requiere la API actualizada.</p>
-            : !analytics.categoryBreakdown.length ? <p className="py-10 text-sm text-muted">No hay gastos registrados en este período.</p>
-            : <ol className="divide-y divide-line">
-              {analytics.categoryBreakdown.map(item => <li key={JSON.stringify(item.category)}>
-                <button type="button" disabled={loading || !onSelectCategory} onClick={() => onSelectCategory?.(item.category)}
-                  aria-label={`Ver movimientos de la categoría ${item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}`}
-                  className="group block w-full rounded-lg py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-default">
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="min-w-0 break-words font-semibold text-brand group-hover:underline">{item.category ? STANDARD_CATEGORIES.find(category => category.id === item.category)?.label ?? item.category : 'Sin categoría'}</span>
-                  <span className="font-num shrink-0 font-semibold">{formatCurrency(item.amount)}</span>
-                </div>
-                <div className="mt-2.5 h-1.5 rounded-full bg-canvas" aria-hidden="true"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.min(100, Math.max(0, item.percentage))}%` }} /></div>
-                <div className="font-num mt-2 flex justify-between text-xs text-muted"><span>{item.count} {item.count === 1 ? 'gasto' : 'gastos'}</span><span>{item.percentage.toFixed(1)}% del gasto</span></div>
-                </button>
-              </li>)}
-            </ol>}
+          {loading ? (
+            <p role="status" className="py-10 text-sm text-muted">Calculando categorías...</p>
+          ) : !analytics?.categoryBreakdown ? (
+            <p role="alert" className="py-10 text-sm text-muted">El desglose por categoría requiere la API actualizada.</p>
+          ) : !analytics.categoryBreakdown.length ? (
+            <p className="py-10 text-sm text-muted">No hay gastos registrados en este período.</p>
+          ) : categoryView === 'donut' ? (
+            <CategoryDonutChart
+              categories={analytics.categoryBreakdown}
+              totalAmount={analytics.categoryBreakdown.reduce((sum, item) => sum + item.amount, 0)}
+              onSelectCategory={onSelectCategory}
+            />
+          ) : (
+            <ol className="divide-y divide-line">
+              {analytics.categoryBreakdown.map((item, idx) => {
+                const label = getCategoryLabel(item.category);
+                const color = getCategoryColor(item.category, idx);
+                return (
+                  <li key={JSON.stringify(item.category)}>
+                    <button
+                      type="button"
+                      disabled={loading || !onSelectCategory}
+                      onClick={() => onSelectCategory?.(item.category)}
+                      aria-label={`Ver movimientos de la categoría ${label}`}
+                      className="group block w-full rounded-lg py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-default"
+                    >
+                      <div className="flex items-center justify-between gap-4 text-sm">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: color }}
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-0 break-words font-semibold text-brand group-hover:underline">
+                            {label}
+                          </span>
+                        </div>
+                        <span className="font-num shrink-0 font-semibold">{formatCurrency(item.amount)}</span>
+                      </div>
+                      <div className="mt-2.5 h-1.5 rounded-full bg-canvas" aria-hidden="true">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, item.percentage))}%`,
+                            backgroundColor: color,
+                          }}
+                        />
+                      </div>
+                      <div className="font-num mt-2 flex justify-between text-xs text-muted">
+                        <span>{item.count} {item.count === 1 ? 'gasto' : 'gastos'}</span>
+                        <span>{item.percentage.toFixed(1)}% del gasto</span>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
         </section>
 
         <section className="surface p-6 sm:p-7" aria-labelledby="merchants-heading">
