@@ -93,26 +93,11 @@ class TransactionServiceTest {
         assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.processBatch(List.of())).getStatusCode().value());
         assertEquals(401, assertThrows(ResponseStatusException.class,
-                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
-        assertEquals(401, assertThrows(ResponseStatusException.class,
                 () -> service.getTransactions(null, null, null, null, PageRequest.of(0, 10)))
                 .getStatusCode().value());
         verifyNoInteractions(transactions, rawNotifications);
     }
 
-    @Test
-    void cardPaymentConfirmationRequiresOwnershipAndRejectsIncomeIndependentlyOfProvider() {
-        User user = User.builder().id(10L).build();
-        UserContext.setCurrentUser(user);
-        assertEquals(404, assertThrows(ResponseStatusException.class,
-                () -> service.markOwnCardPayment(99L)).getStatusCode().value());
-        Transaction tx = Transaction.builder().contactName("Unspecified operation")
-                .flowType(FlowType.INCOME).channel("EXAMPLE_WALLET").build();
-        when(transactions.findLockedByIdAndUser(1L, user)).thenReturn(Optional.of(tx));
-        assertEquals(400, assertThrows(ResponseStatusException.class,
-                () -> service.markOwnCardPayment(1L)).getStatusCode().value());
-        verify(transactions, never()).save(any());
-    }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.EnumSource(value = FlowType.class, names = {"EXPENSE", "INCOME"})

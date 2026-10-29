@@ -43,10 +43,3 @@ it('displays automatically detected own-card payments as neutral in the modal an
 it('does not infer meaning from bank text for unspecified neutral transfers', () => {
   expect(getTransactionFlowLabel({ ...payment, flowType: 'INTERNAL_TRANSFER', contactName: 'Pago Tarjeta Crédito BCP' })).toBe('Transferencia propia');
 });
-
-it('requires normalized operation evidence from the PATCH response', async () => {
-  const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ ...payment, flowType: 'INTERNAL_TRANSFER' }), { status: 200 }));
-  await expect(api.markOwnCardPayment(payment.id)).rejects.toThrow('La API no confirmó el tipo de operación');
-  fetch.mockResolvedValueOnce(new Response(JSON.stringify({ ...payment, flowType: 'INTERNAL_TRANSFER', operationType: 'OWN_CARD_PAYMENT' }), { status: 200 }));
-  await expect(api.markOwnCardPayment(payment.id)).resolves.toMatchObject({ operationType: 'OWN_CARD_PAYMENT' });
-});

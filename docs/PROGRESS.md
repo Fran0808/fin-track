@@ -48,7 +48,8 @@ See [README](../README.md), [architecture](architecture/overview.md) and
     synchronization, dynamic center metrics, category color coding, and accessible
     click-through to movement drill-downs.
   - Simplified TransactionDetailModal and TransactionOriginPanel: removed the
-    manual Es un pago de mi tarjeta action button, removed the separate
+    manual Es un pago de mi tarjeta action button, retired the unused backend
+    PATCH /api/v1/transactions/{id}/own-card-payment endpoint and client helpers, removed the separate
     Origen del movimiento card and redundant Tipo row, and consolidated
     Medio, Fecha y hora, Origen and Referencia/Registro into a compact 2-column
     grid so the movement detail modal fits without vertical scrolling.

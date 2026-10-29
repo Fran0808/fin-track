@@ -45,17 +45,6 @@ class TransactionReviewControllerTest {
                 .andExpect(jsonPath("$.summary.internalTransfersAmount").value(42.10));
     }
 
-    @Test void ownCardPaymentRepairReturnsTheUpdatedMovement() throws Exception {
-        when(service.markOwnCardPayment(7L)).thenReturn(TransactionResponse.builder()
-                .id(7L).flowType(FlowType.INTERNAL_TRANSFER)
-                .operationType(com.store.api.model.enums.OperationType.OWN_CARD_PAYMENT).amount(new BigDecimal("81.25")).build());
-        mvc.perform(patch("/api/v1/transactions/7/own-card-payment"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(7))
-                .andExpect(jsonPath("$.flowType").value("INTERNAL_TRANSFER"))
-                .andExpect(jsonPath("$.operationType").value("OWN_CARD_PAYMENT"))
-                .andExpect(jsonPath("$.amount").value(81.25));
-        verify(service).markOwnCardPayment(7L);
-    }
 
     @ParameterizedTest @EnumSource(PendingReason.class)
     void listingAndExportForwardTheSameCombinedFilters(PendingReason reason) throws Exception {

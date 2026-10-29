@@ -68,7 +68,6 @@ class ClassificationPersistenceTest {
         assertEquals(email.getCreatedAt(),origin.getRegisteredAt());
         assertEquals(email.getId(),service.processAndSave(request).getId());
         assertEquals(email.getId(),service.processBatch(List.of(request)).getFirst().getId());
-        service.markOwnCardPayment(email.getId());
         assertEquals("OP-123",origins.getOrigin(email.getId()).getOperationReference());
         assertEquals(origin.getRegisteredAt(),origins.getOrigin(email.getId()).getRegisteredAt());
         assertEquals(1,transactions.count());
@@ -224,63 +223,6 @@ class ClassificationPersistenceTest {
         }
     }
 
-    @Test void ownCardPaymentRepairPreservesIdentityAndExcludesRepaymentsFromEveryExpenseMetric() {
-        var parser = new com.store.api.service.email.parser.BcpEmailParser();
-        var parsed = parser.parse("Constancia de pago de tarjeta de crédito propia",
-                "Realizaste un pago a tu tarjeta de S/ 81.25. Monto pagado: S/ 81.25",
-                LocalDateTime.of(2026, 1, 2, 12, 0));
-        assertNotNull(parsed);
-        assertEquals(FlowType.INTERNAL_TRANSFER, parsed.getFlowType());
-        TransactionSyncRequest replay = new TransactionSyncRequest();
-        replay.setAmount(parsed.getAmount()); replay.setFlowType(parsed.getFlowType());
-        replay.setOperationType(parsed.getOperationType());
-        replay.setContactName(parsed.getMerchantName()); replay.setChannel(parsed.getChannel());
-        replay.setTransactionDate(parsed.getTransactionDate()); replay.setTransactionHash(parsed.getTransactionHash());
-
-        Transaction legacy = store(owner, parsed.getTransactionHash(), target.getName(), FlowType.EXPENSE);
-        legacy.setContactName(parsed.getMerchantName()); legacy.setChannel(parsed.getChannel());
-        legacy.setAmount(parsed.getAmount()); legacy.setTransactionDate(parsed.getTransactionDate());
-        legacy.setCardLast4("1111");
-        Transaction foreign = store(other, parsed.getTransactionHash(), null, FlowType.EXPENSE);
-        foreign.setContactName(parsed.getMerchantName()); foreign.setChannel(parsed.getChannel());
-        Transaction purchase = store(owner, "card-purchase", target.getName(), FlowType.EXPENSE);
-        purchase.setContactName("School example"); purchase.setAmount(new BigDecimal("45.50"));
-        purchase.setChannel("TARJETA_CREDITO_BCP");
-        transactions.saveAllAndFlush(List.of(legacy, foreign, purchase));
-        assertEquals(legacy.getId(), service.processAndSave(replay).getId());
-        assertEquals(new BigDecimal("126.75"), analytics.getPeriodAnalytics(2026, 1).getMonthlyExpense());
-        assertEquals(404, assertThrows(org.springframework.web.server.ResponseStatusException.class,
-                () -> service.markOwnCardPayment(foreign.getId())).getStatusCode().value());
-        var repaired = service.markOwnCardPayment(legacy.getId());
-        assertEquals(FlowType.INTERNAL_TRANSFER, repaired.getFlowType());
-        assertEquals(OperationType.OWN_CARD_PAYMENT, repaired.getOperationType());
-        assertEquals(parsed.getTransactionHash(), repaired.getTransactionHash());
-        assertEquals(parsed.getAmount(), repaired.getAmount());
-        assertEquals(parsed.getTransactionDate(), repaired.getTransactionDate());
-        assertEquals("1111", repaired.getCardLast4());
-        assertEquals(target.getName(), repaired.getCategory());
-        assertEquals(repaired.getId(), service.markOwnCardPayment(legacy.getId()).getId());
-        assertEquals(FlowType.INTERNAL_TRANSFER, service.processAndSave(replay).getFlowType());
-        assertEquals(FlowType.EXPENSE, transactions.findById(foreign.getId()).orElseThrow().getFlowType());
-        assertEquals(3, transactions.count());
-        var result = analytics.getPeriodAnalytics(2026, 1);
-        assertEquals(new BigDecimal("45.50"), result.getMonthlyExpense());
-        assertEquals(0, result.getMonthlyIncome().signum());
-        assertEquals(new BigDecimal("81.25"), result.getInternalTransfersAmount());
-        assertEquals(1, result.getTopMerchants().size());
-        assertEquals("School example", result.getTopMerchants().getFirst().getMerchantName());
-        assertEquals(new BigDecimal("45.50"), result.getCategoryBreakdown().getFirst().getAmount());
-        assertEquals(new BigDecimal("45.50"), result.getDailyExpenses().getFirst().getCumulativeAmount());
-        assertEquals(new BigDecimal("45.50"), result.getLargestExpense().getAmount());
-        assertEquals(new BigDecimal("45.50"), result.getPeakExpenseDay().getAmount());
-        var summary = analytics.getSummary();
-        assertEquals(new BigDecimal("45.50"), summary.getTotalExpense());
-        assertEquals(new BigDecimal("-45.50"), summary.getNetBalance());
-        var csv = new String(service.exportTransactionsCsv(null, null, FlowType.EXPENSE, null,
-                null, null, null, null), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(csv.contains("School example"));
-        assertFalse(csv.contains("Pago Tarjeta"));
-    }
 
     @Test void newOwnCardPaymentIsStoredOnceAsATransferAndNeverBecomesAnExpense() {
         var parsed = new com.store.api.service.email.parser.BcpEmailParser().parse(
@@ -301,24 +243,6 @@ class ClassificationPersistenceTest {
         assertTrue(analytics.getPeriodAnalytics(2026, 1).getTopMerchants().isEmpty());
     }
 
-    @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"EXAMPLE_BANK", "EXAMPLE_WALLET", "UNKNOWN"})
-    void explicitOwnCardConfirmationDoesNotDependOnProviderOrContactText(String channel) {
-        var tx = store(owner, "provider-independent", target.getName(), FlowType.EXPENSE);
-        tx.setChannel(channel); tx.setContactName("Reference only");
-        transactions.saveAndFlush(tx);
-        assertEquals(OperationType.UNKNOWN, tx.getOperationType());
-        var confirmed = service.markOwnCardPayment(tx.getId());
-        assertEquals(OperationType.OWN_CARD_PAYMENT, confirmed.getOperationType());
-        assertEquals(FlowType.INTERNAL_TRANSFER, confirmed.getFlowType());
-        assertEquals(channel, confirmed.getChannel());
-        assertEquals("Reference only", confirmed.getContactName());
-        assertEquals(new BigDecimal("10.25"), confirmed.getAmount());
-        assertEquals(tx.getTransactionHash(), confirmed.getTransactionHash());
-        assertEquals(confirmed.getId(), service.markOwnCardPayment(tx.getId()).getId());
-        assertEquals(0, analytics.getSummary().getNetBalance().signum());
-        assertEquals(0, analytics.getSummary().getTotalExpense().signum());
-    }
 
     @Test void expenseHighlightsUseOwnedPeriodExpensesAndDistinguishSingleExpenseFromDailyTotal() {
         Transaction first = store(owner, "highlight-first", null, FlowType.EXPENSE);

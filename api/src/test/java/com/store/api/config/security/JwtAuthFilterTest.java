@@ -173,7 +173,7 @@ class JwtAuthFilterTest {
             "GET,/api/v1/user/phone-status", "GET,/api/v1/user/pairing-info", "POST,/api/v1/user/pairing-info/regenerate",
             "GET,/api/v1/transactions/sync", "GET,/api/v1/transactions/sync/batch",
             "POST,/api/v1/transactions/sync/extra", "POST,/api/v1/app/update",
-            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
+            "PATCH,/api/v1/transactions/1/classification", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
             "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })
@@ -196,7 +196,7 @@ class JwtAuthFilterTest {
             "POST,/api/v1/transactions/manual", "GET,/api/v1/transactions/manual/1/reconciliation-preview", "POST,/api/v1/transactions/manual/1/reconcile", "DELETE,/api/v1/transactions/manual/1/reconciliation/2", "GET,/api/v1/transactions/1/manual-reconciliation", "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
             "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/phone-status", "GET,/api/v1/user/pairing-info",
             "POST,/api/v1/user/pairing-info/regenerate",
-            "PATCH,/api/v1/transactions/1/classification", "PATCH,/api/v1/transactions/1/own-card-payment", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
+            "PATCH,/api/v1/transactions/1/classification", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",
             "GET,/api/v1/classification-rules", "POST,/api/v1/classification-rules",
             "PUT,/api/v1/classification-rules/1", "DELETE,/api/v1/classification-rules/1", "GET,/api/v1/classification-rules/1/history-preview", "POST,/api/v1/classification-rules/1/history-apply"
     })

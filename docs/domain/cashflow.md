@@ -24,9 +24,7 @@ expenses/net flow. This is not a live card balance or debt calculation. Card
 purchases and payments of third-party cards remain expenses. Recognition in each
 provider adapter requires explicit own-card operation evidence, not just a bank,
 contact name or the word "card". `UNKNOWN` operation metadata preserves existing
-flow and does not mean that a movement is excluded from expenses. Historical
-rows default to `UNKNOWN`; an authenticated user can explicitly confirm ownership
-for their own expense/transfer without changing other users' records.
+flow and does not mean that a movement is excluded from expenses. Historical rows default to `UNKNOWN`.
 Own-card BCP email hashes retain their legacy pre-fix flow input so reprocessing
 cannot create a second movement.
 

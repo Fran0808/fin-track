@@ -147,21 +147,6 @@ public class TransactionService {
         return mapToResponse(saved);
     }
 
-    @Transactional
-    public TransactionResponse markOwnCardPayment(Long id) {
-        User user = UserContext.requireCurrentUser();
-        Transaction tx = transactionRepository.findLockedByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Movimiento no encontrado."));
-        if (tx.getReconciledToId() != null) throw new ResponseStatusException(HttpStatus.CONFLICT, "Este registro está conciliado. Edita la captura conservada.");
-        if (tx.getFlowType() != FlowType.EXPENSE && tx.getFlowType() != FlowType.INTERNAL_TRANSFER) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Una entrada no puede marcarse como pago de tarjeta propia.");
-        }
-        tx.setOperationType(OperationType.OWN_CARD_PAYMENT);
-        tx.setFlowType(FlowType.INTERNAL_TRANSFER);
-        // Preserve the stored hash, amount, date and category.
-        return mapToResponse(transactionRepository.save(tx));
-    }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getPendingTransactions(PendingReason reason, Pageable pageable) {

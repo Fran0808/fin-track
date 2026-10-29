@@ -55,10 +55,6 @@ public class TransactionController {
         return transactionService.updateClassification(id, request);
     }
 
-    @PatchMapping("/{id}/own-card-payment")
-    public TransactionResponse markOwnCardPayment(@PathVariable Long id) {
-        return transactionService.markOwnCardPayment(id);
-    }
 
     // Single transaction ingestion from mobile device
     @PostMapping("/sync")

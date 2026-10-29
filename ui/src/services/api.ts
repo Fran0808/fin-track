@@ -191,15 +191,6 @@ export const api = {
     }));
   },
 
-  async markOwnCardPayment(transactionId: number): Promise<Transaction> {
-    const transaction = await handleResponse<Transaction>(await fetchWithAuth(`${BASE_URL}/transactions/${transactionId}/own-card-payment`, {
-      method: 'PATCH',
-    }));
-    if (transaction.operationType !== 'OWN_CARD_PAYMENT' || transaction.flowType !== 'INTERNAL_TRANSFER') {
-      throw new Error('La API no confirmó el tipo de operación. Actualiza el backend y vuelve a cargar los movimientos.');
-    }
-    return transaction;
-  },
   async getFinancialSummary(): Promise<FinancialSummary> {
     const response = await fetchWithAuth(`${BASE_URL}/analytics/summary`);
     return handleResponse<FinancialSummary>(response);
