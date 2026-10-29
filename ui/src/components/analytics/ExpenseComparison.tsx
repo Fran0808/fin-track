@@ -19,7 +19,7 @@ export function ExpenseComparison({ analytics, loading }: { analytics: PeriodAna
     : null;
 
   return (
-    <section className="surface flex flex-col justify-between p-6 sm:p-7" aria-labelledby="expense-comparison-heading">
+    <section className="surface flex flex-col p-6 sm:p-7" aria-labelledby="expense-comparison-heading">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
         <div>
           <p className="eyebrow">Ritmo de gasto</p>
@@ -40,7 +40,7 @@ export function ExpenseComparison({ analytics, loading }: { analytics: PeriodAna
       ) : !comparable ? (
         <p className="pt-5 text-sm text-muted">Comparación no disponible para este período.</p>
       ) : (
-        <div className="pt-5">
+        <div className="flex flex-1 flex-col justify-between pt-5">
           <div className="space-y-3.5">
             <div>
               <div className="flex items-baseline justify-between gap-3">
