@@ -46,10 +46,77 @@ class DeploymentPersistenceTest {
     @Autowired com.store.api.service.auth.GoogleOAuthService google;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Autowired ManualTransactionService manual;
+    @Autowired TransactionCorrectionService correction;
     @Autowired com.store.api.service.analytics.AnalyticsService analytics;
     @Autowired com.store.api.repository.CategoryRepository categories;
     @Autowired com.store.api.repository.ClassificationRuleRepository rules;
     @Autowired com.store.api.service.category.RuleHistoryService ruleHistory;
+
+    @Test void correctionsPreserveOriginalEvidenceAndUpdateAllLedgerReadsAcrossPeriods() {
+        User owner=user(), other=user(); UserContext.setCurrentUser(owner);
+        try {
+            var entry=service.processEmailAndSave(request("correction-capture"),"SYN-REF");
+            var req=TransactionCorrectionServiceTest.request(); req.setAmount(new BigDecimal("0.10"));
+            var result=correction.correct(entry.getId(),req);
+            assertEquals(entry.getId(),result.getId()); assertEquals(entry.getTransactionHash(),result.getTransactionHash());
+            assertEquals("SYN-REF",transactions.findById(entry.getId()).orElseThrow().getOperationReference());
+            assertEquals(1,transactions.countByUserId(owner.getId()));
+            assertEquals(new BigDecimal("0.10"),analytics.getSummary().getTotalIncome());
+            assertEquals(BigDecimal.ZERO,analytics.getSummary().getTotalExpense());
+            assertEquals(new BigDecimal("0.10"),analytics.getPeriodAnalytics(2026,9).getMonthlyIncome());
+            assertEquals(BigDecimal.ZERO,analytics.getPeriodAnalytics(2026,10).getMonthlyExpense());
+            assertEquals(0,service.getTransactions(null,null,FlowType.EXPENSE,null,org.springframework.data.domain.PageRequest.of(0,10)).getTotalElements());
+            String csv=new String(service.exportTransactionsCsv(null,null,null,null,null,null,null,null),java.nio.charset.StandardCharsets.UTF_8);
+            assertTrue(csv.contains("0.10"));
+            var history=correction.history(entry.getId(),0); assertEquals(1,history.getEntries().size());
+            assertEquals(entry.getAmount(),history.getEntries().getFirst().getBeforeAmount());
+            correction.correct(entry.getId(),req); assertEquals(1,correction.history(entry.getId(),0).getEntries().size());
+            var stale=TransactionCorrectionServiceTest.request();
+            assertEquals(409,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->correction.correct(entry.getId(),stale)).getStatusCode().value());
+            req.setRequestId(UUID.randomUUID().toString()); req.setExpectedRevision(history.getRevision()); req.setFlowType(FlowType.INTERNAL_TRANSFER);
+            correction.correct(entry.getId(),req);
+            assertEquals(BigDecimal.ZERO,analytics.getSummary().getTotalIncome()); assertEquals(BigDecimal.ZERO,analytics.getSummary().getTotalExpense());
+            assertEquals(2,correction.history(entry.getId(),0).getEntries().size());
+            UserContext.setCurrentUser(other);
+            assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->correction.history(entry.getId(),0)).getStatusCode().value());
+            assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->correction.correct(entry.getId(),req)).getStatusCode().value());
+        } finally { UserContext.clear(); }
+    }
+
+    @Test void competingCorrectionsSerializeAndOnlyOneReviewedRevisionWins() throws Exception {
+        User owner=user(); UserContext.setCurrentUser(owner);
+        var entry=manual.create(manualRequest()); UserContext.clear();
+        var pool=Executors.newFixedThreadPool(2); var start=new CountDownLatch(1);
+        try {
+            var task=(java.util.concurrent.Callable<Integer>)()->{
+                UserContext.setCurrentUser(owner);
+                try { start.await(); correction.correct(entry.getId(),TransactionCorrectionServiceTest.request()); return 200; }
+                catch(org.springframework.web.server.ResponseStatusException failure) { return failure.getStatusCode().value(); }
+                finally { UserContext.clear(); }
+            };
+            var first=pool.submit(task); var second=pool.submit(task); start.countDown();
+            assertEquals(List.of(200,409),java.util.stream.Stream.of(first.get(20,TimeUnit.SECONDS),second.get(20,TimeUnit.SECONDS)).sorted().toList());
+            UserContext.setCurrentUser(owner); assertEquals(1,correction.history(entry.getId(),0).getEntries().size());
+        } finally { UserContext.clear(); pool.shutdownNow(); }
+    }
+
+    @Test void correctionsInvalidateOldReconciliationReviewsEvenIfFinancialValuesAreRestored() {
+        User owner=user(); UserContext.setCurrentUser(owner);
+        try {
+            var entry=manual.create(manualRequest()); var capture=service.processEmailAndSave(request("correction-review"),"SYN-REF");
+            var old=reviewed(manual.preview(entry.getId()),0);
+            var req=TransactionCorrectionServiceTest.request(); correction.correct(capture.getId(),req);
+            req.setExpectedRevision(correction.history(capture.getId(),0).getRevision()); req.setRequestId(UUID.randomUUID().toString());
+            req.setAmount(capture.getAmount()); req.setFlowType(capture.getFlowType()); req.setTransactionDate(capture.getTransactionDate());
+            correction.correct(capture.getId(),req);
+            assertEquals(409,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->manual.reconcile(entry.getId(),old)).getStatusCode().value());
+            manual.reconcile(entry.getId(),reviewed(manual.preview(entry.getId()),0));
+            assertFalse(correction.history(capture.getId(),0).isEditable());
+            req.setExpectedRevision(correction.history(capture.getId(),0).getRevision()); req.setRequestId(UUID.randomUUID().toString()); req.setAmount(new BigDecimal("1.00"));
+            assertEquals(409,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->correction.correct(capture.getId(),req)).getStatusCode().value());
+            assertEquals(409,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->correction.correct(entry.getId(),TransactionCorrectionServiceTest.request())).getStatusCode().value());
+        } finally { UserContext.clear(); }
+    }
 
     private com.store.api.model.dto.transaction.ManualTransactionRequest manualRequest() {
         var req = ManualTransactionServiceTest.request(); req.setRequestId(UUID.randomUUID().toString());

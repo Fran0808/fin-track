@@ -6,6 +6,9 @@ generated OpenAPI specification.
 
 ## Authentication boundaries
 
+Reviewed financial corrections and their paginated audit history are web-only;
+see [correction contract and concurrency](../domain/transaction-corrections.md).
+
 - Web requests use `Authorization: Bearer <jwt>`.
 - Android ingestion uses `X-Device-Token: <device-token>`; the server resolves the owning user.
 - Device credentials are limited to transaction sync and the app-update path allowed by `JwtAuthFilter`. They cannot access web analytics, email sync or transaction lists. Disallowed device access returns 403; invalid tokens return 401.

@@ -179,6 +179,7 @@ public class ManualTransactionService {
         return digest(data -> {
             data.writeUTF("fintrack-manual-reconciliation-v1"); data.writeLong(user.getId()); data.writeLong(expiresAt); data.writeInt(manual.getReconciliationRevision());
             for (Transaction item : List.of(manual, captured)) {
+                data.writeInt(item.getReconciliationRevision());
                 data.writeLong(item.getId()); data.writeUTF(item.getAmount().stripTrailingZeros().toPlainString());
                 data.writeUTF(item.getFlowType().name()); data.writeUTF(item.getTransactionDate().toString());
                 data.writeUTF(item.getContactName()); data.writeUTF(item.getChannel()); data.writeUTF(item.getCaptureOrigin().name());
