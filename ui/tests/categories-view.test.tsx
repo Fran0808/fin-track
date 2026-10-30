@@ -47,17 +47,6 @@ const mockCategories: Category[] = [
     color: '#3B82F6',
     system: false,
     active: true,
-    subcategories: [
-      {
-        id: 11,
-        name: 'Diseño Web',
-        icon: 'laptop',
-        color: '#3B82F6',
-        system: false,
-        active: true,
-        parentId: 10,
-      },
-    ],
   },
 ];
 
@@ -189,7 +178,7 @@ describe('CategoriesView', () => {
   });
 
   it('displays error inside the delete dialog when deletion is rejected by the server', async () => {
-    vi.mocked(api.deleteCategory).mockRejectedValue(new Error('Cannot delete category with existing subcategories'));
+    vi.mocked(api.deleteCategory).mockRejectedValue(new Error('Elimina o cambia las reglas que usan esta categoría antes de eliminarla.'));
 
     render(<CategoriesView />);
 
@@ -205,7 +194,7 @@ describe('CategoriesView', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeDefined();
-      expect(screen.getAllByText('Cannot delete category with existing subcategories').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Elimina o cambia las reglas que usan esta categoría antes de eliminarla.').length).toBeGreaterThanOrEqual(1);
     });
   });
 });

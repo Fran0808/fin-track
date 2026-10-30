@@ -22,7 +22,7 @@ export function ClassificationRulesView({ onHistoryApplied }: { onHistoryApplied
   const loading = resource?.revision !== revision;
   const rules = loading ? [] : resource?.rules || [];
   const categories = loading ? [] : resource?.categories || [];
-  const activeCategories = categories.flatMap(category => [category, ...(category.subcategories || [])]).filter(category => category.active);
+  const activeCategories = categories.filter(category => category.active);
   const loadError = loading ? null : resource?.error;
 
   useEffect(() => {

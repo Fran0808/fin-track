@@ -9,7 +9,7 @@ const fieldClass = 'mt-1.5 w-full rounded-xl border border-line bg-white px-3 py
 export function CreateClassificationRuleModal({ draft, onClose }: { draft: ClassificationRuleDraft; onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { categories, loading, error, refresh } = useCategories(true);
-  const activeCategories = categories.flatMap(category => [category, ...(category.subcategories || [])]).filter(category => category.active);
+  const activeCategories = categories.filter(category => category.active);
   const suggestedId = activeCategories.find(category => category.name.toLocaleLowerCase() === draft.categoryName.toLocaleLowerCase())?.id;
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const selectedId = categoryId ?? (suggestedId === undefined ? '' : String(suggestedId));

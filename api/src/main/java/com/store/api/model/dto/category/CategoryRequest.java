@@ -16,7 +16,5 @@ public class CategoryRequest {
     @Size(max = 20)
     private String color;
 
-    private Long parentId;
-
     private Boolean active;
 }

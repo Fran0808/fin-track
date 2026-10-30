@@ -12,6 +12,5 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByUserAndActiveOrderByNameAsc(User user, boolean active);
     Optional<Category> findByIdAndUser(Long id, User user);
     boolean existsByUser(User user);
-    boolean existsByUserAndParent(User user, Category parent);
     boolean existsByUserAndActiveTrueAndNameIgnoreCase(User user, String name);
 }

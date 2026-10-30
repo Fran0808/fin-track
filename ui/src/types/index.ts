@@ -134,15 +134,12 @@ export interface Category {
   color?: string;
   system: boolean;
   active: boolean;
-  parentId?: number | null;
-  subcategories?: Category[];
 }
 
 export interface CategoryRequest {
   name: string;
   icon?: string;
   color?: string;
-  parentId?: number | null;
   active?: boolean;
 }
 

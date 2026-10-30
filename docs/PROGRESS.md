@@ -17,7 +17,23 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: simpler Movements hierarchy
+## Current checkpoint: flat category architecture and UI modernization
+
+- Subcategory retirement: removed the unused `parent_id` / `subcategories` hierarchy
+  across backend and frontend in favor of a clean, flat category model.
+  - Backend (`api`): removed `@ManyToOne parent` relation and `idx_category_parent` from `Category`,
+    dropped `parentId` from `CategoryRequest`, `CategoryResponse` and `CategoryRepository`,
+    simplified `CategoryService.list()` into direct unnested queries, and updated `CategoryServiceTest`
+    (8 unit tests passing).
+  - Schema (`scripts/migrations`): removed `parent_id` column and index from `categories` definition.
+  - Frontend (`ui`): removed `parentId` and `subcategories` from `Category` / `CategoryRequest` interfaces,
+    removed parent-category selectors from `CategoryModal`, streamlined `CategoriesView` into a direct
+    grid without tree/accordion overhead, and removed redundant `flatMap` calls in `CreateClassificationRuleModal`,
+    `ManualTransactionModal`, `ClassificationRulesView`, and `useCategories`.
+  - Checks: 147 UI tests passing, TypeScript production build passed (636ms), backend unit & controller
+    suites passed with 0 errors.
+
+## Earlier checkpoint: simpler Movements hierarchy
 
 - Sidebar follow-up: user-requested click-any-cell detail in Movements now uses
   a right-hand native nonmodal dialog at desktop widths (1280px+) with reserved

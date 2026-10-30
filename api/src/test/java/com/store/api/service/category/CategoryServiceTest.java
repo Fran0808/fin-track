@@ -95,21 +95,6 @@ class CategoryServiceTest {
     }
 
     @Test
-    void createSubcategorySetsParentCorrectly() {
-        when(repository.existsByUser(user)).thenReturn(true);
-        Category parent = Category.builder().id(5L).user(user).name("Comida y bebidas").build();
-        when(repository.findByIdAndUser(5L, user)).thenReturn(Optional.of(parent));
-
-        CategoryRequest req = new CategoryRequest();
-        req.setName("Restaurantes");
-        req.setParentId(5L);
-
-        CategoryResponse res = service.create(req);
-        assertEquals(5L, res.getParentId());
-        verify(repository).save(argThat(cat -> cat.getParent() != null && cat.getParent().getId().equals(5L)));
-    }
-
-    @Test
     void toggleActiveInvertsState() {
         Category cat = Category.builder().id(8L).user(user).name("Delivery").system(true).active(true).build();
         when(repository.findByIdAndUser(8L, user)).thenReturn(Optional.of(cat));
@@ -131,18 +116,6 @@ class CategoryServiceTest {
     }
 
     @Test
-    void cannotDeleteCategoryWithSubcategories() {
-        Category customCat = Category.builder().id(15L).user(user).name("Hobbies").system(false).active(true).build();
-        when(repository.findByIdAndUser(15L, user)).thenReturn(Optional.of(customCat));
-        when(repository.existsByUserAndParent(user, customCat)).thenReturn(true);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.delete(15L));
-        assertEquals(400, ex.getStatusCode().value());
-        assertTrue(ex.getReason().contains("subcategories"));
-        verify(repository, never()).delete(any());
-    }
-
-    @Test
     void cannotDeleteCategoryReferencedByRule() {
         Category category = Category.builder().id(15L).user(user).name("Hobbies").build();
         when(repository.findByIdAndUser(15L, user)).thenReturn(Optional.of(category));
@@ -152,10 +125,9 @@ class CategoryServiceTest {
     }
 
     @Test
-    void canDeleteCustomCategoryWithoutSubcategories() {
+    void canDeleteCustomCategory() {
         Category customCat = Category.builder().id(15L).user(user).name("Hobbies").system(false).active(true).build();
         when(repository.findByIdAndUser(15L, user)).thenReturn(Optional.of(customCat));
-        when(repository.existsByUserAndParent(user, customCat)).thenReturn(false);
 
         assertDoesNotThrow(() -> service.delete(15L));
         verify(repository).delete(customCat);

@@ -6,8 +6,7 @@ import lombok.*;
 @Entity
 @Table(name = "categories", indexes = {
         @Index(name = "idx_category_user_active", columnList = "user_id,active"),
-        @Index(name = "idx_category_user_system", columnList = "user_id,is_system"),
-        @Index(name = "idx_category_parent", columnList = "parent_id")
+        @Index(name = "idx_category_user_system", columnList = "user_id,is_system")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Category {
@@ -34,8 +33,4 @@ public class Category {
     @Builder.Default
     @Column(nullable = false)
     private boolean active = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    private Category parent;
 }

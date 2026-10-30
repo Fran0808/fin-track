@@ -26,7 +26,7 @@ export function ManualTransactionModal({ onClose, onCreated }: { onClose: () => 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const categories = useCategories(true);
-  const categoryItems = categories.categories.flatMap(parent => [parent, ...(parent.subcategories ?? []).filter(item => item.active)]);
+  const categoryItems = categories.categories.filter(item => item.active);
   useEffect(() => {
     const element = dialog.current;
     element?.showModal();

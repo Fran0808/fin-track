@@ -3,15 +3,12 @@ import {
   Tags,
   Search,
   Plus,
-  FolderPlus,
   Loader2,
   Trash2,
   Edit2,
   AlertCircle,
   CheckCircle2,
   X,
-  ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
 import type { Category, CategoryRequest } from '../../types';
 import { api } from '../../services/api';
@@ -32,16 +29,12 @@ export function CategoriesView() {
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [defaultParentId, setDefaultParentId] = useState<number | null>(null);
 
   // Deletion confirm modal
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
-
-  // Expanded subcategories in UI
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
     setNotification({ message, type });
@@ -101,43 +94,19 @@ export function CategoriesView() {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return userCategories;
 
-    return userCategories.filter((cat) => {
-      const matchesName = cat.name.toLowerCase().includes(q);
-      const matchesSub = cat.subcategories?.some((s) => s.name.toLowerCase().includes(q));
-      return matchesName || matchesSub;
-    });
+    return userCategories.filter((cat) => cat.name.toLowerCase().includes(q));
   }, [userCategories, searchQuery]);
 
   const activeSystemCount = useMemo(() => {
     return systemCategories.filter((c) => c.active).length;
   }, [systemCategories]);
 
-  const toggleExpand = (id: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
   // Toggle active state
   const handleToggle = async (cat: Category) => {
     const previousState = cat.active;
     // Optimistic update
     setCategories((prev) =>
-      prev.map((item) => {
-        if (item.id === cat.id) return { ...item, active: !previousState };
-        if (item.subcategories) {
-          return {
-            ...item,
-            subcategories: item.subcategories.map((sub) =>
-              sub.id === cat.id ? { ...sub, active: !previousState } : sub
-            ),
-          };
-        }
-        return item;
-      })
+      prev.map((item) => (item.id === cat.id ? { ...item, active: !previousState } : item))
     );
 
     try {
@@ -148,18 +117,7 @@ export function CategoriesView() {
     } catch (err: unknown) {
       // Rollback
       setCategories((prev) =>
-        prev.map((item) => {
-          if (item.id === cat.id) return { ...item, active: previousState };
-          if (item.subcategories) {
-            return {
-              ...item,
-              subcategories: item.subcategories.map((sub) =>
-                sub.id === cat.id ? { ...sub, active: previousState } : sub
-              ),
-            };
-          }
-          return item;
-        })
+        prev.map((item) => (item.id === cat.id ? { ...item, active: previousState } : item))
       );
       showNotification(
         err instanceof Error ? err.message : 'Error al cambiar estado de la categoría',
@@ -206,15 +164,13 @@ export function CategoriesView() {
     }
   };
 
-  const openCreateModal = (parentId: number | null = null) => {
+  const openCreateModal = () => {
     setEditingCategory(null);
-    setDefaultParentId(parentId);
     setModalOpen(true);
   };
 
   const openEditModal = (cat: Category) => {
     setEditingCategory(cat);
-    setDefaultParentId(null);
     setModalOpen(true);
   };
 
@@ -285,20 +241,11 @@ export function CategoriesView() {
 
             <button
               type="button"
-              onClick={() => openCreateModal(null)}
+              onClick={openCreateModal}
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <Plus className="h-4 w-4" />
               <span>Nueva categoría</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openCreateModal(userCategories.length > 0 ? userCategories[0].id : null)}
-              className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-xs transition hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <FolderPlus className="h-4 w-4 text-brand" />
-              <span>Subcategoría</span>
             </button>
           </div>
         </div>
@@ -335,7 +282,7 @@ export function CategoriesView() {
             {filteredUserCategories.length === 0 ? (
               <div className="surface border-2 border-dashed border-line bg-canvas/40 p-8 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-muted shadow-xs">
-                  <FolderPlus className="h-6 w-6 text-brand" />
+                  <Tags className="h-6 w-6 text-brand" />
                 </div>
                 <h3 className="mt-3.5 text-sm font-bold text-ink">
                   {searchQuery ? 'Sin resultados para la búsqueda' : 'Aún no tienes categorías propias'}
@@ -348,7 +295,7 @@ export function CategoriesView() {
                 {!searchQuery && (
                   <button
                     type="button"
-                    onClick={() => openCreateModal(null)}
+                    onClick={openCreateModal}
                     className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white border border-line px-3.5 py-2 text-xs font-semibold text-ink shadow-xs hover:bg-canvas"
                   >
                     <Plus className="h-3.5 w-3.5 text-brand" />
@@ -359,8 +306,6 @@ export function CategoriesView() {
             ) : (
               <div className="space-y-3">
                 {filteredUserCategories.map((cat) => {
-                  const hasSub = cat.subcategories && cat.subcategories.length > 0;
-                  const isExpanded = expandedIds.has(cat.id);
                   const resolvedColor = cat.color || getCategoryColor(cat.name);
 
                   return (
@@ -378,20 +323,9 @@ export function CategoriesView() {
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-ink">{cat.name}</p>
-                            {hasSub && (
-                              <button
-                                type="button"
-                                onClick={() => toggleExpand(cat.id)}
-                                className="flex items-center gap-1 text-[11px] font-medium text-brand hover:underline"
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronRight className="h-3 w-3" />
-                                )}
-                                <span>{cat.subcategories?.length} subcategorías</span>
-                              </button>
-                            )}
+                            <p className="text-[11px] text-muted">
+                              {cat.active ? 'Activa' : 'Desactivada'}
+                            </p>
                           </div>
                         </div>
 
@@ -435,44 +369,6 @@ export function CategoriesView() {
                           </button>
                         </div>
                       </div>
-
-                      {/* Subcategories Tree */}
-                      {hasSub && isExpanded && (
-                        <div className="mt-3.5 border-t border-line/60 pt-3 pl-6 space-y-2">
-                          {cat.subcategories?.map((sub) => (
-                            <div
-                              key={sub.id}
-                              className="flex items-center justify-between text-xs py-1"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className="h-2 w-2 rounded-full"
-                                  style={{ backgroundColor: resolvedColor }}
-                                />
-                                <span className="font-medium text-ink">{sub.name}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => openEditModal(sub)}
-                                  aria-label={`Editar subcategoría ${sub.name}`}
-                                  className="rounded p-1 text-muted hover:text-ink"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setCategoryToDelete(sub)}
-                                  aria-label={`Eliminar subcategoría ${sub.name}`}
-                                  className="rounded p-1 text-muted hover:text-negative"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -602,8 +498,6 @@ export function CategoriesView() {
         <CategoryModal
           isOpen={modalOpen}
           initialCategory={editingCategory}
-          defaultParentId={defaultParentId}
-          parentOptions={userCategories}
           onClose={() => setModalOpen(false)}
           onSave={handleSaveCategory}
         />

@@ -54,32 +54,13 @@ public class CategoryService {
         User user = UserContext.requireCurrentUser();
         ensureDefaultCategories(user);
 
-        List<Category> all = repository.findByUserOrderByNameAsc(user);
-        Map<Long, CategoryResponse> responseMap = new LinkedHashMap<>();
-        List<Category> children = new ArrayList<>();
+        List<Category> categories = active != null
+                ? repository.findByUserAndActiveOrderByNameAsc(user, active)
+                : repository.findByUserOrderByNameAsc(user);
 
-        for (Category cat : all) {
-            if (active != null && cat.isActive() != active) {
-                continue;
-            }
-            if (cat.getParent() == null) {
-                responseMap.put(cat.getId(), CategoryResponse.from(cat));
-            } else {
-                children.add(cat);
-            }
-        }
-
-        for (Category child : children) {
-            CategoryResponse parentDto = responseMap.get(child.getParent().getId());
-            if (parentDto != null) {
-                parentDto.getSubcategories().add(CategoryResponse.from(child));
-            } else {
-                // If parent is filtered out or missing, present child as standalone
-                responseMap.put(child.getId(), CategoryResponse.from(child));
-            }
-        }
-
-        return new ArrayList<>(responseMap.values());
+        return categories.stream()
+                .map(CategoryResponse::from)
+                .toList();
     }
 
     @Transactional
@@ -92,11 +73,6 @@ public class CategoryService {
             throw badRequest("Category name cannot be blank");
         }
 
-        Category parent = null;
-        if (request.getParentId() != null) {
-            parent = requireOwned(request.getParentId(), user);
-        }
-
         Category category = Category.builder()
                 .user(user)
                 .name(trimmedName)
@@ -104,7 +80,6 @@ public class CategoryService {
                 .color(request.getColor() != null && !request.getColor().isBlank() ? request.getColor().trim() : "#10B981")
                 .system(false)
                 .active(request.getActive() == null || request.getActive())
-                .parent(parent)
                 .build();
 
         return CategoryResponse.from(repository.save(category));
@@ -131,16 +106,6 @@ public class CategoryService {
             item.setActive(request.getActive());
         }
 
-        if (request.getParentId() != null) {
-            if (request.getParentId().equals(item.getId())) {
-                throw badRequest("Category cannot be its own parent");
-            }
-            Category parent = requireOwned(request.getParentId(), user);
-            item.setParent(parent);
-        } else if (item.getParent() != null && !item.isSystem()) {
-            item.setParent(null);
-        }
-
         return CategoryResponse.from(repository.save(item));
     }
 
@@ -159,9 +124,6 @@ public class CategoryService {
 
         if (item.isSystem()) {
             throw badRequest("System categories cannot be deleted; you can deactivate them instead");
-        }
-        if (repository.existsByUserAndParent(user, item)) {
-            throw badRequest("Cannot delete category with existing subcategories; delete or reassign them first");
         }
 
         if (classificationRules.existsByUserAndCategory(user, item)) {

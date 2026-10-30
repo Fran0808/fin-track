@@ -13,14 +13,8 @@ export function useCategories(activeOnly: boolean = true) {
   const { data, loading, error, refresh } = useQueryResource<Category[]>(query, 'No se pudieron cargar las categorías.');
   const categories = data ?? [];
 
-  // Flattened active options for dropdowns
-  const options: CategoryOption[] = categories.flatMap((cat) => {
-    const items: CategoryOption[] = [{ id: cat.name, label: cat.name }];
-    for (const sub of cat.subcategories ?? []) {
-      if (!activeOnly || sub.active) items.push({ id: sub.name, label: `${cat.name} > ${sub.name}` });
-    }
-    return items;
-  });
+  // Active options for dropdowns
+  const options: CategoryOption[] = categories.map((cat) => ({ id: cat.name, label: cat.name }));
 
   return {
     categories,
