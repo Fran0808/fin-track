@@ -9,6 +9,7 @@ interface HomeViewProps {
   loading: boolean;
   onNavigateToTransactions: () => void;
   onSelectTransaction: (transaction: Transaction) => void;
+  onSelectChannel?: (channel: string) => void;
   selectedYear: number;
   selectedMonth: number;
   animateIntro: boolean;
@@ -20,12 +21,17 @@ const MONTHS = [
   'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
-function formatVariationSubtitle(current: number, previous: number | null | undefined, fallback: string): string {
-  if (previous == null || previous <= 0) return fallback;
+interface VariationData {
+  pct: number;
+  label: string;
+}
+
+function getVariation(current: number, previous: number | null | undefined): VariationData | null {
+  if (previous == null || previous <= 0) return null;
   const diff = current - previous;
-  if (diff === 0) return 'Sin variación respecto al mes anterior';
+  if (diff === 0) return { pct: 0, label: '0.0% vs. mes ant.' };
   const pct = (diff / previous) * 100;
-  return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% respecto al mes anterior`;
+  return { pct, label: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% vs. mes ant.` };
 }
 
 export function HomeView({
@@ -34,6 +40,7 @@ export function HomeView({
   loading,
   onNavigateToTransactions,
   onSelectTransaction,
+  onSelectChannel,
   selectedYear,
   selectedMonth,
   animateIntro,
@@ -43,8 +50,8 @@ export function HomeView({
   const income = analytics?.monthlyIncome ?? 0;
   const period = `${MONTHS[selectedMonth - 1]} de ${selectedYear}`;
 
-  const expenseSubtitle = formatVariationSubtitle(expense, analytics?.previousPeriodExpense, 'Salidas registradas en el período');
-  const incomeSubtitle = formatVariationSubtitle(income, analytics?.previousPeriodIncome, 'Entradas registradas en el período');
+  const expenseVar = getVariation(expense, analytics?.previousPeriodExpense);
+  const incomeVar = getVariation(income, analytics?.previousPeriodIncome);
 
   const daysElapsed = analytics?.dailyExpenses?.length ?? 0;
   const dailyAverage = daysElapsed > 0 ? expense / daysElapsed : 0;
@@ -67,42 +74,79 @@ export function HomeView({
       >
         <div className="grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <div className="p-6 sm:p-7">
-            <div className="flex items-center gap-2 text-ink">
-              <ArrowUpRight className="h-4 w-4 text-negative" />
-              <p className="eyebrow">Gastos del mes</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-ink">
+                <ArrowUpRight className="h-4 w-4 text-negative" />
+                <p className="eyebrow">Gastos del mes</p>
+              </div>
+              {!loading && expenseVar && (
+                <span
+                  className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    expenseVar.pct > 0
+                      ? 'bg-negative/10 text-negative'
+                      : expenseVar.pct < 0
+                      ? 'bg-positive/10 text-positive'
+                      : 'bg-canvas text-muted'
+                  }`}
+                >
+                  {expenseVar.label}
+                </span>
+              )}
             </div>
             <p className="font-display font-num mt-3 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
               {loading ? 'S/ …' : formatCurrency(expense)}
             </p>
-            <p className="font-num mt-1.5 text-xs text-muted">{loading ? 'Calculando…' : expenseSubtitle}</p>
+            <p className="font-num mt-1.5 text-xs text-muted">
+              {loading
+                ? 'Calculando…'
+                : analytics?.previousPeriodExpense != null
+                ? `Mes anterior: ${formatCurrency(analytics.previousPeriodExpense)}`
+                : 'Salidas registradas en el período'}
+            </p>
             {!loading && (
               <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
                 {daysElapsed > 0 && (
                   <span>Promedio diario: <strong className="font-semibold text-ink">{formatCurrency(dailyAverage)}</strong></span>
                 )}
-                {topCategory ? (
+                {topCategory && (
                   <span>Mayor rubro: <strong className="font-semibold text-ink">{getCategoryLabel(topCategory.category)} ({topCategory.percentage.toFixed(0)}%)</strong></span>
-                ) : analytics?.previousPeriodExpense != null ? (
-                  <span>Mes anterior: <strong className="font-semibold text-ink">{formatCurrency(analytics.previousPeriodExpense)}</strong></span>
-                ) : null}
+                )}
               </div>
             )}
           </div>
 
           <div className="p-6 sm:p-7">
-            <div className="flex items-center gap-2 text-positive">
-              <ArrowDownLeft className="h-4 w-4" />
-              <p className="eyebrow !text-positive">Entradas del mes</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-positive">
+                <ArrowDownLeft className="h-4 w-4" />
+                <p className="eyebrow !text-positive">Entradas del mes</p>
+              </div>
+              {!loading && incomeVar && (
+                <span
+                  className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    incomeVar.pct > 0
+                      ? 'bg-positive/10 text-positive'
+                      : incomeVar.pct < 0
+                      ? 'bg-negative/10 text-negative'
+                      : 'bg-canvas text-muted'
+                  }`}
+                >
+                  {incomeVar.label}
+                </span>
+              )}
             </div>
             <p className="font-display font-num mt-3 text-2xl font-semibold tracking-tight text-positive sm:text-3xl">
               {loading ? 'S/ …' : formatCurrency(income)}
             </p>
-            <p className="font-num mt-1.5 text-xs text-muted">{loading ? 'Calculando…' : incomeSubtitle}</p>
+            <p className="font-num mt-1.5 text-xs text-muted">
+              {loading
+                ? 'Calculando…'
+                : analytics?.previousPeriodIncome != null
+                ? `Mes anterior: ${formatCurrency(analytics.previousPeriodIncome)}`
+                : 'Entradas registradas en el período'}
+            </p>
             {!loading && (
               <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
-                {analytics?.previousPeriodIncome != null && (
-                  <span>Mes anterior: <strong className="font-semibold text-ink">{formatCurrency(analytics.previousPeriodIncome)}</strong></span>
-                )}
                 <span><strong className="font-semibold text-ink">{totalMovements}</strong> {totalMovements === 1 ? 'movimiento en el mes' : 'movimientos en el mes'}</span>
               </div>
             )}
@@ -117,7 +161,7 @@ export function HomeView({
             <div>
               <h2 id="recent-heading" className="font-display text-lg font-semibold">Movimientos recientes</h2>
             </div>
-            <button type="button" onClick={onNavigateToTransactions} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline">
+            <button type="button" onClick={onNavigateToTransactions} className="inline-flex items-center gap-1.5 text-sm font-semibold">
               Ver todos <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -182,24 +226,31 @@ export function HomeView({
           ) : !analytics?.channelBreakdown.length ? (
             <p className="py-10 text-sm text-muted">Aún no hay gastos por medio de pago.</p>
           ) : (
-            <div className="mt-5 space-y-6">
+            <div className="mt-5 space-y-4">
               {analytics.channelBreakdown.slice(0, 5).map((channel, index) => {
                 const isWallet = channel.channel.includes('YAPE') || channel.channel.includes('PLIN');
                 const Icon = isWallet ? Smartphone : CreditCard;
                 return (
-                  <div key={`${channel.channel}-${channel.cardLast4 || index}`}>
+                  <button
+                    key={`${channel.channel}-${channel.cardLast4 || index}`}
+                    type="button"
+                    disabled={loading || !onSelectChannel}
+                    onClick={() => onSelectChannel?.(channel.channel)}
+                    aria-label={`Ver movimientos de ${channel.displayName?.replace(/\*\*/g, '··') || getChannelLabel(channel.channel)}`}
+                    className="group block w-full rounded-xl p-2 text-left transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
+                  >
                     <div className="flex items-start justify-between gap-3">
-                      <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium">
+                      <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-ink group-hover:text-brand">
                         <Icon className={`h-4 w-4 shrink-0 ${isWallet ? 'text-yape' : 'text-brand'}`} />
                         <span className="truncate">{channel.displayName?.replace(/\*\*/g, '··') || getChannelLabel(channel.channel)}</span>
                       </span>
                       <span className="font-num shrink-0 text-sm font-semibold">{formatCurrency(channel.amount)}</span>
                     </div>
-                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas">
+                    <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas group-hover:bg-line/60">
                       <div className={`h-full rounded-full ${isWallet ? 'bg-yape' : 'bg-brand'}`} style={{ width: `${Math.min(100, Math.max(0, channel.percentage))}%` }} />
                     </div>
-                    <p className="font-num mt-1.5 text-right text-xs text-muted">{channel.percentage.toFixed(1)}%</p>
-                  </div>
+                    <p className="font-num mt-1 text-right text-xs text-muted">{channel.percentage.toFixed(1)}%</p>
+                  </button>
                 );
               })}
             </div>

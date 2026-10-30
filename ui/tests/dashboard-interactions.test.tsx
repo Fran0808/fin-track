@@ -98,8 +98,8 @@ it('displays Gastos del mes first and Entradas del mes second with previous-mont
   render(<HomeView analytics={analytics} recentTransactions={[tx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />);
   const headings = screen.getAllByText(/Gastos del mes|Entradas del mes/).map((el) => el.textContent);
   expect(headings).toEqual(['Gastos del mes', 'Entradas del mes']);
-  expect(screen.getByText('+12.0% respecto al mes anterior')).toBeTruthy();
-  expect(screen.getByText('+8.0% respecto al mes anterior')).toBeTruthy();
+  expect(screen.getByText('+12.0% vs. mes ant.')).toBeTruthy();
+  expect(screen.getByText('+8.0% vs. mes ant.')).toBeTruthy();
   expect(screen.getByText('Comida y bebidas (42%)')).toBeTruthy();
   expect(screen.queryByText('Balance del mes')).toBeNull();
   expect(screen.queryByText('Tasa de ahorro')).toBeNull();
@@ -164,4 +164,19 @@ it('renders semantic category color chips in HomeView recent movements and Trans
   );
   expect(screen.getAllByText('Alimentación y bebidas').length).toBeGreaterThanOrEqual(2);
   expect(screen.getAllByText('Sin categoría').length).toBeGreaterThanOrEqual(1);
+});
+
+it('navigates to movements when clicking a payment channel in HomeView', () => {
+  const onSelectChannel = vi.fn();
+  const analytics: PeriodAnalytics = {
+    periodName: 'Octubre 2026', monthlyExpense: 100, monthlyIncome: 0, internalTransfersAmount: 0,
+    previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 1,
+    lastExpenseMerchant: 'Synthetic', lastExpenseAmount: 10, lastExpenseDate: '2026-10-01T12:00:00',
+    topChannel: 'YAPE', topChannelAmount: 100, topChannelPercentage: 100,
+    channelBreakdown: [{ channel: 'YAPE', amount: 100, percentage: 100, count: 1 }],
+    topMerchants: [], categoryBreakdown: [],
+  };
+  render(<HomeView analytics={analytics} recentTransactions={[]} loading={false} onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} onSelectChannel={onSelectChannel} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de Yape' }));
+  expect(onSelectChannel).toHaveBeenCalledWith('YAPE');
 });

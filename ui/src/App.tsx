@@ -63,6 +63,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     showMerchantTransactions,
     showCategoryTransactions,
     showDayTransactions,
+    showChannelTransactions,
     refreshAll,
   } = useFinance(user.id);
 
@@ -154,6 +155,10 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               loading={loadingSummary || loadingRecent}
               onNavigateToTransactions={() => setActiveView('movimientos')}
               onSelectTransaction={setSelectedTransaction}
+              onSelectChannel={(channel) => {
+                showChannelTransactions(channel);
+                setActiveView('movimientos');
+              }}
               selectedYear={selectedPeriod.year}
               selectedMonth={selectedPeriod.month}
               animateIntro={introCompletedFor !== user.id}

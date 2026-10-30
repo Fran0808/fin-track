@@ -138,6 +138,10 @@ export function useFinance(userId: number) {
       startDate, endDate, allHistory: false });
   };
 
+  const showChannelTransactions = (channel: string) => {
+    setFilters({ page: 0, size: 10, flowType: 'EXPENSE', search: '', channel, allHistory: false });
+  };
+
   const showDayTransactions = (dateIso: string) => {
     const datePart = dateIso.slice(0, 10);
     setFilters({ page: 0, size: 10, flowType: 'EXPENSE', search: '',
@@ -166,6 +170,7 @@ export function useFinance(userId: number) {
     showMerchantTransactions,
     showCategoryTransactions,
     showDayTransactions,
+    showChannelTransactions,
     triggerEmailSync,
     refreshSyncStatus: loadSyncStatus,
     refreshAll: async () => {

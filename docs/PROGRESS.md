@@ -136,7 +136,7 @@ See [README](../README.md), [architecture](architecture/overview.md) and
     subtle layered elevation to .surface cards, and added quick previous/next
     month steppers to PeriodSelector. Unified semantic category color chips
     across TransactionTable and HomeView recent movements, with distinct dashed
-    styling for uncategorized expenses.
+    styling for uncategorized expenses. Added semantic variation badges (+% vs. mes ant.) in HomeView summary cards and made payment channels clickable to filter movements.
   - Removed all `FinancialInstrument` UI views/components (`InstrumentsView`,
     `InstrumentForm`, `InstrumentAssignment`), navigation entries (`tarjetas`),
     manual-entry/reconciliation product fields, `INSTRUMENT` review filter, API
