@@ -16,18 +16,20 @@ beforeEach(() => {
   HTMLDialogElement.prototype.close = vi.fn(function () { this.open = false; setTimeout(() => this.dispatchEvent(new Event('close')), 0); });
   vi.spyOn(api, 'getCategories').mockResolvedValue([]);
   vi.spyOn(api, 'getTransactionOrigin').mockResolvedValue({ origin: 'UNKNOWN', registeredAt: null, operationReference: null });
+  vi.spyOn(api, 'getTransactionCorrections').mockResolvedValue({ transaction: tx, revision: 0, editable: true, entries: [], totalPages: 0 });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it('opens a nonmodal docked sidebar on desktop and dismisses it with Escape, not a content click', async () => {
   const close = vi.fn();
-  render(<TransactionDetailModal transaction={tx} presentation="sidebar" onClose={close} />);
-  const panel = screen.getByRole('dialog', { name: 'Detalle del movimiento' });
+  render(<TransactionDetailModal transaction={tx} presentation="sidebar" startEditing onClose={close} />);
+  const panel = screen.getByRole('dialog', { name: 'Editar movimiento' });
   expect(panel.getAttribute('aria-modal')).toBe('false');
   expect(HTMLDialogElement.prototype.show).toHaveBeenCalledOnce();
   expect(HTMLDialogElement.prototype.showModal).not.toHaveBeenCalled();
+  expect(await screen.findByLabelText('Importe (S/)')).toHaveProperty('value', '12.34');
   fireEvent.click(panel); expect(close).not.toHaveBeenCalled();
-  const select = screen.getByLabelText('Categoría');
+  const select = screen.getByLabelText('Tipo');
   vi.stubGlobal('CSS', { supports: () => true });
   vi.spyOn(select, 'matches').mockImplementation(selector => selector === ':open');
   fireEvent.keyDown(select.querySelector('option')!, { key: 'Escape' });
@@ -42,6 +44,7 @@ it('keeps the centered modal as the default for Home', () => {
   const dialog = screen.getByRole('dialog', { name: 'Detalle del movimiento' });
   expect(dialog.getAttribute('aria-modal')).toBe('true');
   expect(dialog.className).toContain('m-auto');
+  expect(screen.queryByLabelText('Importe (S/)')).toBeNull();
   expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledOnce();
 });
 

@@ -68,6 +68,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
 
   const [activeView, setActiveView] = useDashboardNavigation();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [editingSelection, setEditingSelection] = useState(false);
   const [detailBusy, setDetailBusy] = useState(false);
   const [ruleDraft, setRuleDraft] = useState<ClassificationRuleDraft | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -190,8 +191,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               exportFilters={transactionFilters}
               onFilterChange={handleFilterChange}
               onPageChange={handlePageChange}
-              onSelectTransaction={setSelectedTransaction}
-              onCreated={transaction => { setSelectedTransaction(transaction); void refreshAll(); }}
+              onSelectTransaction={transaction => { setEditingSelection(true); setSelectedTransaction(transaction); }}
+              onCreated={transaction => { setEditingSelection(false); setSelectedTransaction(transaction); void refreshAll(); }}
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
           )}
@@ -212,7 +213,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} onBusyChange={setDetailBusy} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
+      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} startEditing={editingSelection} onBusyChange={setDetailBusy} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
+        setEditingSelection(false);
         setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
         void refreshAll();
       }} />

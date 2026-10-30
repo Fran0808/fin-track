@@ -22,7 +22,9 @@ Correction/history views use a left-arrow back button with `Volver al detalle`
 as tooltip and accessible name.
 
 Clicking a movement row opens its detail in a right sidebar, highlighting the
-selected row. The chevron button remains available to keyboard users. At desktop
+selected row and opening amount/date/flow editing directly with current values.
+The review/reason step still precedes every financial correction. The back arrow
+returns to source/category details. The chevron button remains available to keyboard users. At desktop
 widths the sidebar leaves the list interactive; narrow screens use a full-height
 drawer. Inicio retains its centered modal. Columns adapt to the table's actual
 available width. Selection is blocked during a save; close/Escape restore focus.

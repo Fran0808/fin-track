@@ -11,6 +11,7 @@ import { TransactionCorrectionPanel } from './TransactionCorrectionPanel';
 
 interface TransactionDetailModalProps {
   presentation?: 'modal' | 'sidebar';
+  startEditing?: boolean;
   onBusyChange?: (busy: boolean) => void;
   transaction: Transaction | null;
   onClose: () => void;
@@ -22,7 +23,7 @@ export function TransactionDetailModal(props: TransactionDetailModalProps) {
   return props.transaction ? <TransactionDetailContent key={props.transaction.id} {...props} transaction={props.transaction} /> : null;
 }
 
-function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule, presentation = 'modal', onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
+function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule, presentation = 'modal', startEditing = false, onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openedAs = useRef<'modal' | 'sidebar' | null>(null);
   const [wideScreen, setWideScreen] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches);
@@ -36,7 +37,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
   const [correcting, setCorrecting] = useState(false);
-  const [correctionMode, setCorrectionMode] = useState<'edit' | 'history' | null>(null);
+  const [correctionMode, setCorrectionMode] = useState<'edit' | 'history' | null>(() => startEditing && presentation === 'sidebar' && transaction.reconciledToId == null ? 'edit' : null);
   const busy = isSaving || reconciling || correcting;
   const [archived, setArchived] = useState(transaction.reconciledToId != null);
   const readOnly = transaction.reconciledToId != null || archived;
@@ -119,7 +120,8 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
       <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
         <div>
           <p className="eyebrow">{flowLabel}</p>
-          <h2 id="transaction-dialog-title" className="font-display mt-0.5 text-lg font-semibold">Detalle del movimiento</h2>
+          <h2 id="transaction-dialog-title" className="font-display mt-0.5 text-lg font-semibold">{correctionMode === 'edit' ? 'Editar movimiento' : 'Detalle del movimiento'}</h2>
+          {correctionMode && <p className="mt-1 text-xs text-muted">{transaction.contactName}</p>}
         </div>
         <div className="flex items-center gap-1">
           {onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
