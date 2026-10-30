@@ -1,6 +1,8 @@
 # FinTrack dashboard
 
 The dashboard displays personal cashflow, transactions and Android pairing.
+The mobile pairing dialog uses provider-independent FinTrack copy, with QR
+connection steps and a manual pairing code as an alternative.
 It uses React, TypeScript, Vite and Tailwind; exact versions live in
 [package.json](package.json) and its lockfile.
 

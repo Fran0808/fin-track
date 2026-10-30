@@ -17,6 +17,20 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: provider-independent mobile pairing copy
+
+- October 30, owner/scope: current chat; requested mobile pairing modal wording.
+  Removed the legacy listener/provider name; title, description, steps, manual
+  code and regeneration confirmation now focus on linking FinTrack to the user
+  account. Instructions reference QR connection instead of the obsolete Android
+  button label. QR payload, credential handling and endpoints are unchanged.
+- Verified for automated UI scope: 149 tests passed with two workers and a
+  workspace temporary directory; build, lint (existing warnings, no errors),
+  documentation links and diff checks passed. Browser/visual acceptance and
+  real phone pairing were not performed. Reload the modal for visual acceptance;
+  `npm run dev` remains available from `ui`. No financial operations, credential
+  rotation, service restarts, staging, commit or commit proposal.
+
 ## Current checkpoint: readable header email status
 
 - October 30, owner/scope: current chat; user-reported clipped header text.

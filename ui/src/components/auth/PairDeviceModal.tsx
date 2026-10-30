@@ -67,7 +67,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
   };
 
   const handleRegenerate = async () => {
-    if (!window.confirm('¿Seguro que deseas regenerar el código? Esto desvinculará cualquier teléfono emparejado anteriormente.')) {
+    if (!window.confirm('¿Deseas generar un nuevo código de vinculación? Los teléfonos vinculados con el código anterior deberán conectarse de nuevo.')) {
       return;
     }
 
@@ -112,10 +112,10 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
             </div>
             <div>
               <h2 id={titleId} className="text-base font-bold text-slate-900 tracking-tight">
-                Vincular App Móvil (Yape Listener)
+                Vincular teléfono
               </h2>
               <p className="text-xs text-slate-500">
-                Conecta tu celular para sincronizar tus finanzas automáticamente
+                Conecta la app FinTrack con tu cuenta.
               </p>
             </div>
           </div>
@@ -166,12 +166,12 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
               {/* Instructions Guide */}
               <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 space-y-2">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Pasos de vinculación
+                  Cómo vincular tu teléfono
                 </h4>
                 <ol className="text-xs text-slate-600 space-y-1.5 list-decimal list-inside font-medium">
                   <li>Abre la aplicación <strong>FinTrack</strong> en tu teléfono Android.</li>
-                  <li>Toca el botón <strong>"Vincular Cuenta"</strong> en la pantalla principal.</li>
-                  <li>Escanea este código QR con la cámara de la app (o ingresa el token manual).</li>
+                  <li>Abre la opción de conexión con QR.</li>
+                  <li>Escanea este código desde la app para vincular tu cuenta.</li>
                 </ol>
               </div>
 
@@ -179,7 +179,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
               <div className="space-y-1.5">
                 <label htmlFor={serverUrlId} className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Dirección del Servidor (IP local / Host)</span>
+                  <span>Dirección del servidor</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -192,16 +192,16 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
                   />
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Si usas una IP local, conecta el celular y la computadora a la misma red WiFi.
-                  Usa la dirección del backend accesible desde el celular; localhost apunta al propio teléfono.
+                  Usa una dirección accesible desde el teléfono. Si es una IP local, ambos equipos deben estar en la misma red Wi-Fi. No uses localhost: apunta al propio teléfono.
                 </p>
               </div>
 
               {/* Manual Token Copy Field */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700">
-                  Token de Emparejamiento Manual
+                  Código de vinculación manual
                 </label>
+                <p className="text-[11px] text-slate-400">Si no puedes escanear el QR, ingresa este código y la dirección del servidor en la app.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -213,7 +213,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
                     type="button"
                     onClick={handleCopyToken}
                     className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs transition-all active:scale-[0.98]"
-                    title="Copiar token"
+                    title="Copiar código de vinculación"
                   >
                     {copiedToken ? (
                       <>
@@ -243,7 +243,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
             title="Revocar el código actual y generar uno nuevo"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} />
-            <span>Regenerar Código</span>
+            <span>Regenerar código</span>
           </button>
           <button
             type="button"
