@@ -35,8 +35,14 @@ listing predicates; page subtotals never substitute for them. Older APIs without
 `summary` display an explicit unavailable state. Deploy the API and UI together;
 this addition requires no database migration or Android update.
 
-The compact date row replaces the separate date card and permanent helper text.
-In Movements, use the visible date filter to choose the selected month, a specific
+Movements uses the available content width, with search and actions in the page
+header and visible flow types beside the `Fechas` and `Filtros` controls.
+`Fechas` always shows the applied period; its native disclosure closes after
+applying a date choice, on Escape (returning focus) or an outside click.
+Desktop rows have a separate category column and date above time; narrower
+layouts retain category under the merchant, with operation date also visible on
+mobile. Financial signs, source badges and totals remain unchanged.
+In Movements, open `Fechas` to choose the selected month, a specific
 day, or an inclusive date range. Choose the dates and press `Buscar por fecha`.
 Ranges can span multiple months. The final date includes the entire day.
 The date filter combines with text, movement type and advanced filters; pagination

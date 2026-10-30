@@ -43,6 +43,15 @@ export function formatRelativeDate(isoString: string): string {
   }
 }
 
+export function formatTransactionDateParts(isoString: string): { date: string; time: string } {
+  const value = new Date(isoString);
+  if (!isoString || Number.isNaN(value.getTime())) return { date: isoString || 'Fecha no disponible', time: '' };
+  return {
+    date: new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short', year: 'numeric' }).format(value),
+    time: new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true }).format(value),
+  };
+}
+
 export function getChannelLabel(channel: string): string {
   switch (channel) {
     case 'CASH': return 'Efectivo';
