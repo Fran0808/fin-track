@@ -3,7 +3,8 @@
 The pencil icon in movement detail edits amount, local operation date/time and
 financial flow (`EXPENSE`, `INCOME` or `INTERNAL_TRANSFER`). Its accessible name
 and tooltip are `Corregir movimiento`. The history icon opens the audit trail.
-These are views inside the existing native detail dialog.
+These are views inside the shared native detail container: a sidebar in Movements
+and a centered modal in Inicio.
 
 The form reads current owned values before editing, requires a reason (up to 300
 characters), accepts positive soles up to 99999999.99 with two decimal places,

@@ -7,6 +7,8 @@ import { ManualTransactionModal } from '../transactions/ManualTransactionModal';
 import { TransactionTable, TransactionFilters } from '../transactions';
 
 interface TransactionsViewProps {
+  selectedTransactionId?: number;
+  selectionDisabled?: boolean;
   pageData: TransactionPageResponse | null;
   loading: boolean;
   filters: TransactionFilterParams;
@@ -28,6 +30,8 @@ export function TransactionsView({
   onSelectTransaction,
   periodName,
   onCreated,
+  selectedTransactionId,
+  selectionDisabled,
 }: TransactionsViewProps) {
   const [manualOpen, setManualOpen] = useState(false);
   const [created, setCreated] = useState<Transaction | null>(null);
@@ -122,6 +126,8 @@ export function TransactionsView({
           />
       <section className="surface overflow-hidden" aria-label="Listado de movimientos">
         <TransactionTable
+          selectedTransactionId={selectedTransactionId}
+          selectionDisabled={selectionDisabled}
           pageData={pageData}
           flowType={filters.flowType}
           loading={loading}

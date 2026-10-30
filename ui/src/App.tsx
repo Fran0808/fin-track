@@ -68,26 +68,32 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
 
   const [activeView, setActiveView] = useDashboardNavigation();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [detailBusy, setDetailBusy] = useState(false);
   const [ruleDraft, setRuleDraft] = useState<ClassificationRuleDraft | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+  const navigateView = (view: NavView) => {
+    if (detailBusy) return;
+    setSelectedTransaction(null);
+    setActiveView(view);
+  };
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
-      <MobileNavigation open={mobileMenuOpen} onClose={closeMobileMenu} activeView={activeView} onViewChange={setActiveView} />
+      <MobileNavigation open={mobileMenuOpen} onClose={closeMobileMenu} activeView={activeView} onViewChange={navigateView} />
       <div className="sticky top-0 hidden h-dvh shrink-0 lg:flex">
         <SidebarNavigation
           activeView={activeView}
           onViewChange={(view) => {
-            setActiveView(view);
+            navigateView(view);
             setMobileMenuOpen(false);
           }}
         />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={`flex min-w-0 flex-1 flex-col ${activeView === 'movimientos' && selectedTransaction ? 'xl:pr-[420px]' : ''}`}>
         <header className="border-b border-line bg-white">
           <div className={`mx-auto flex min-h-20 flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 ${activeView === 'movimientos' ? 'max-w-none lg:px-8' : 'max-w-[1440px] lg:px-10'}`}>
             <div className="flex items-center gap-3">
@@ -176,6 +182,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           )}
           {activeView === 'movimientos' && (
             <TransactionsView
+              selectedTransactionId={selectedTransaction?.id}
+              selectionDisabled={detailBusy}
               pageData={transactionsPage}
               loading={loadingTransactions}
               filters={filters}
@@ -204,7 +212,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
+      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} onBusyChange={setDetailBusy} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
         setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
         void refreshAll();
       }} />

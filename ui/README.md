@@ -21,8 +21,13 @@ label. Failed saves retain the draft for retry.
 Correction/history views use a left-arrow back button with `Volver al detalle`
 as tooltip and accessible name.
 
+Clicking a movement row opens its detail in a right sidebar, highlighting the
+selected row. The chevron button remains available to keyboard users. At desktop
+widths the sidebar leaves the list interactive; narrow screens use a full-height
+drawer. Inicio retains its centered modal. Columns adapt to the table's actual
+available width. Selection is blocked during a save; close/Escape restore focus.
 Movement detail offers a pencil icon for reviewed amount/date/flow corrections
-and a history icon for before/after evidence. Both use the existing native dialog;
+and a history icon for before/after evidence. Both use the shared detail container;
 see [behavior and rollout](../docs/domain/transaction-corrections.md).
 
 Movements shows a single results strip with the matching count, applied period

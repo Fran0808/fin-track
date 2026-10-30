@@ -10,6 +10,8 @@ import { ManualReconciliationPanel } from './ManualReconciliationPanel';
 import { TransactionCorrectionPanel } from './TransactionCorrectionPanel';
 
 interface TransactionDetailModalProps {
+  presentation?: 'modal' | 'sidebar';
+  onBusyChange?: (busy: boolean) => void;
   transaction: Transaction | null;
   onClose: () => void;
   onUpdated?: (transaction: Transaction) => void;
@@ -20,8 +22,10 @@ export function TransactionDetailModal(props: TransactionDetailModalProps) {
   return props.transaction ? <TransactionDetailContent key={props.transaction.id} {...props} transaction={props.transaction} /> : null;
 }
 
-function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule }: TransactionDetailModalProps & { transaction: Transaction }) {
+function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule, presentation = 'modal', onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const openedAs = useRef<'modal' | 'sidebar' | null>(null);
+  const [wideScreen, setWideScreen] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches);
   const { options: categoryOptions, loading: loadingCategories, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
   // Classification state
@@ -36,13 +40,31 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const busy = isSaving || reconciling || correcting;
   const [archived, setArchived] = useState(transaction.reconciledToId != null);
   const readOnly = transaction.reconciledToId != null || archived;
+  const docked = presentation === 'sidebar' && wideScreen;
+
+  useEffect(() => {
+    if (presentation !== 'sidebar' || typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(min-width: 1280px)');
+    const change = () => setWideScreen(media.matches);
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, [presentation]);
+
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (transaction && !dialog.open) dialog.showModal();
-    if (!transaction && dialog.open) dialog.close();
-  }, [transaction]);
+    const mode = docked ? 'sidebar' : 'modal';
+    if (dialog.open && openedAs.current !== mode) dialog.close();
+    if (!dialog.open) {
+      if (docked) dialog.show(); else dialog.showModal();
+      openedAs.current = mode;
+    }
+  }, [docked]);
 
   const handleSaveClassification = async () => {
     if (busy || readOnly || category === savedCategory) return;
@@ -74,11 +96,25 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   return (
     <dialog
       ref={dialogRef}
-      onClose={onClose}
+      id="transaction-detail-panel"
+      aria-modal={!docked}
+      onClose={event => { if (!event.currentTarget.open) onClose(); }}
       onCancel={event => { if (busy) event.preventDefault(); }}
-      onClick={(event) => { if (!busy && event.target === dialogRef.current) onClose(); }}
+      onKeyDown={event => {
+        if (!docked || event.key !== 'Escape' || busy || event.defaultPrevented) return;
+        const field = event.target instanceof Element ? event.target.closest('select, input') : null;
+        if (field && (!CSS.supports('selector(:open)') || field.matches(':open'))) return;
+        event.preventDefault(); dialogRef.current?.close();
+      }}
+      onClick={event => {
+        if (docked || busy || event.target !== dialogRef.current) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) event.currentTarget.close();
+      }}
       aria-labelledby="transaction-dialog-title"
-      className="m-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40"
+      className={presentation === 'sidebar'
+        ? 'fixed inset-y-0 right-0 left-auto z-40 m-0 h-dvh max-h-none w-[min(100%,420px)] max-w-none overflow-y-auto border-0 border-l border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/30'
+        : 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40'}
     >
       <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
         <div>
@@ -88,7 +124,7 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
         <div className="flex items-center gap-1">
           {onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
           <button type="button" disabled={busy} onClick={() => setCorrectionMode('history')} aria-label="Historial de correcciones" title="Historial de correcciones" className="rounded-lg p-2 text-muted hover:bg-canvas disabled:opacity-50"><History className="h-5 w-5" /></button>
-          <button type="button" onClick={onClose} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={() => dialogRef.current?.close()} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
         </div>
       </div>
 
