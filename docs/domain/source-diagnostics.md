@@ -29,6 +29,9 @@ is shown as incomplete with the saved count, rather than complete. Failure to
 read status hides stale success/failure advice and permits refreshing status
 without starting a scan. The header label explicitly refers to email only.
 This feature does not count pending messages or alter hashes/parsing semantics.
+The header shows email status and last successful synchronization on separate
+lines without truncation. Unavailable status and active synchronization hide the
+historical timestamp to avoid presenting stale success as current status.
 
 ## Phone
 
@@ -47,9 +50,18 @@ phone payloads and responses remain compatible; no APK update is needed.
 This is per-account receipt evidence across devices, not a heartbeat, a named
 device inventory or knowledge of the phone's local queue. Pairing verification
 and code rotation do not record reception. A timestamp remains historical after
-rotation. Missing history is displayed as no receptions *recorded since tracking
-was enabled*, with steps to check pairing, notification access and connectivity.
+rotation. Missing history means no receptions recorded since tracking was enabled,
+with steps to check pairing, notification access and connectivity.
 The panel has independent loading/failure/retry and manual status refresh.
+Settings keeps the phone card concise: `Última recepción`, its timestamp or
+`Sin movimientos recibidos`, `Actualizar estado` and `Vincular teléfono`.
+The empty label refers only to tracked reception history. Troubleshooting steps
+remain visible as plain text. The refresh action uses an accessible icon button
+beside the reception heading. Email and phone cards stack at every screen size
+and retain their own content-driven heights in a centered responsive column capped at
+42rem (672px).
+The regeneration confirmation retains the warning about unlinking earlier phones;
+the card does not display a pairing badge or imply current connectivity.
 
 ## Schema rollout
 

@@ -126,7 +126,7 @@ export function SettingsView({
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-2xl gap-6">
         <section className="surface flex flex-col overflow-hidden" aria-labelledby="email-source-title">
           <div className="border-b border-line px-5 py-5 sm:px-6">
             <div className="flex items-start justify-between gap-4">
@@ -234,19 +234,14 @@ export function SettingsView({
                   <h2 id="mobile-source-title" className="font-display mt-1 text-xl font-semibold">Teléfono</h2>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-yape/10 px-3 py-1 text-xs font-semibold text-yape">
-                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                Vinculación
-              </span>
             </div>
           </div>
 
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <p className="text-sm leading-6 text-muted">
-              Vincula tu teléfono para recibir movimientos desde las notificaciones autorizadas.
+              Recibe movimientos desde las notificaciones autorizadas.
             </p>
             <PhoneReceptionPanel />
-            <p className="mt-4 text-xs leading-5 text-muted">Regenerar el código de vinculación desvincula los dispositivos anteriores. La fecha de recepción corresponde a la cuenta y no identifica un dispositivo específico.</p>
             <div className="mt-auto pt-6">
               <button
                 type="button"
@@ -254,7 +249,7 @@ export function SettingsView({
                 className="inline-flex items-center gap-2 rounded-xl bg-yape px-4 py-2.5 text-sm font-semibold text-white hover:bg-yape/90"
               >
                 <Smartphone className="h-4 w-4" aria-hidden="true" />
-                Abrir vinculación móvil
+                Vincular teléfono
               </button>
             </div>
           </div>

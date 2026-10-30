@@ -17,7 +17,49 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: readable header email status
+
+- October 30, owner/scope: current chat; user-reported clipped header text.
+  Email status no longer uses ellipsis; the last successful synchronization is
+  shown on a separate line. Longer status messages can wrap. Unavailable status
+  and active synchronization hide the historical timestamp.
+- Verified for automated UI scope: 149 tests, production build, lint (existing
+  warnings, no errors), documentation links and scoped diff checks passed.
+  Browser/visual acceptance remains pending; no dashboard tab was available in
+  the browser inventory. Reload the UI for visual acceptance; `npm run dev`
+  remains available from `ui`. Existing unrelated changes preserved.
+  No financial operations, service restarts, staging, commit or commit proposal.
+
+## Current checkpoint: concise phone settings card
+
+- October 30, owner/scope: current chat; user-requested phone card copy cleanup.
+  Removed the pairing badge and permanent technical explanations, shortened the
+  reception labels and pairing action. Follow-up: troubleshooting stays visible
+  as plain text, reception refresh uses an accessible icon beside the heading,
+  and both source cards stack at every width with independent natural heights.
+  Their shared column is horizontally centered, capped at 42rem (672px) and
+  shrinks on narrow screens.
+  The existing regeneration confirmation retains its warning.
+  Behavior documented in [source diagnostics](domain/source-diagnostics.md).
+- Verified for automated UI scope: all 148 tests passed with two workers and a
+  workspace temporary directory; production build, lint (warnings in other
+  components, no errors), documentation links and scoped diff checks passed.
+  Browser/visual acceptance was not performed.
+- Next: reload Settings for visual acceptance. Standard `npm run dev` remains
+  available from `ui`. Existing CSS changes preserved; no debug code added,
+  service restart, financial operations, staging, commit or commit proposal.
+
 ## Current checkpoint: flat category architecture and UI animations
+
+- Smooth PeriodSelector transition between Seguimiento and Gestión:
+  - Added functional 200ms ease-out horizontal collapse/expansion animation (`max-w-64 opacity-100 scale-100` vs `max-w-0 opacity-0 scale-95 pointer-events-none invisible -mr-3 sm:-mr-5`) for `PeriodSelector` in `App.tsx`.
+  - Replaced abrupt unmount/mount with a smooth glide when navigating between Seguimiento (where the date selector is active) and Gestión (where it is hidden), smoothly translating the separator and user profile without jarring jumps.
+  - Checks: 149 UI Vitest tests passing, production build passed (592ms).
+
+- Unified application shell layout and header alignment:
+  - Harmonized `<header>` and `<main>` inner containers in `App.tsx` to use consistent `max-w-[1440px] mx-auto lg:px-10` across all views (including Movements).
+  - Eliminated horizontal header jumping/shifting when switching between Movements and other views (Home, Analysis, Categories, etc.).
+  - Checks: 149 UI Vitest tests passing, production build passed (563ms).
 
 - Home monthly net balance summary card:
   - Added dedicated 3rd metric card in `HomeView` displaying exact "Balance neto" (`income - expense`) with decimal precision.

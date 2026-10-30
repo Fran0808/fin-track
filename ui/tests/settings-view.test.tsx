@@ -45,7 +45,7 @@ it('shows the real Gmail state and opens mobile pairing', () => {
   const props = renderSettings();
   expect(screen.getByText('finanzas@example.test')).toBeTruthy();
   expect(screen.getByText('Conectado')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Abrir vinculación móvil' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Vincular teléfono' }));
   expect(props.onOpenPairing).toHaveBeenCalledOnce();
 });
 

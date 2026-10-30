@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { SettingsView } from '../src/components/views/SettingsView';
 import { PhoneReceptionPanel } from '../src/components/settings/PhoneReceptionPanel';
+import { SyncStatus } from '../src/components/layout/SyncStatus';
 import { api } from '../src/services/api';
 import type { GoogleAuthStatus } from '../src/types';
 
@@ -15,6 +16,18 @@ function settings(status = base, unavailable = false, sync = vi.fn()) {
   render(<SettingsView googleStatus={status} statusUnavailable={unavailable} syncing={false} onSync={sync} onStatusRefresh={refresh} onOpenPairing={vi.fn()} />);
   return refresh;
 }
+
+it('shows the email status and last success separately, hiding stale success when status is unavailable', () => {
+  const onSync = vi.fn();
+  const view = render(<SyncStatus status={{ ...base, lastSyncFailed: false }} unavailable={false} syncing={false} onSync={onSync} />);
+  expect(screen.getByText('Correo sincronizado')).toBeTruthy();
+  expect(screen.getByText(/Última correcta:/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Sincronizar correos ahora' }));
+  expect(onSync).toHaveBeenCalledOnce();
+  view.rerender(<SyncStatus status={base} unavailable syncing={false} onSync={onSync} />);
+  expect(screen.getByText('Estado de sincronización no disponible')).toBeTruthy();
+  expect(screen.queryByText(/Última correcta:/)).toBeNull();
+});
 
 it.each([
   ['AUTH_REQUIRED', 'Google requiere una nueva autorización.'],
@@ -35,7 +48,8 @@ it('hides stale advice when email status is unavailable but keeps phone receptio
   vi.mocked(api.getPhoneReceptionStatus).mockResolvedValue({ lastReceivedAt: '2026-10-27T12:00:00Z' });
   const refresh = settings({ ...base, lastSyncFailureCode: 'AUTH_REQUIRED' }, true);
   expect(screen.queryByText(/Google requiere una nueva autorización/)).toBeNull();
-  expect(await screen.findByText(/Una recepción confirma/)).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'Actualizar estado' })).toBeTruthy();
+  expect(screen.queryByText('Sin movimientos recibidos')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Actualizar estado de correo' }));
   expect(refresh).toHaveBeenCalledOnce();
   expect(screen.queryByText('Android · Yape')).toBeNull();
@@ -53,8 +67,8 @@ it('distinguishes missing reception from lookup failure and retries independentl
   render(<PhoneReceptionPanel />);
   expect(screen.getByText('Consultando recepción...')).toBeTruthy();
   fireEvent.click(await screen.findByRole('button', { name: 'Reintentar recepción' }));
-  expect(await screen.findByText(/Sin recepciones registradas/)).toBeTruthy();
+  expect(await screen.findByText('Sin movimientos recibidos')).toBeTruthy();
   expect(screen.queryByText('private internal error')).toBeNull();
-  expect(screen.getByText(/revisa en el teléfono la vinculación/)).toBeTruthy();
+  expect(screen.getByText(/Si no llegan movimientos, revisa en el teléfono/).closest('details')).toBeNull();
 });
 

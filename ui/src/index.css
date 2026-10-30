@@ -12,11 +12,15 @@
   --color-yape: #7754a8;
 }
 
+::-webkit-scrollbar {
+  display: none; /* o width: 0; height: 0; */
+}
+
 @layer base {
   html {
     overflow-x: clip;
   }
-
+  
   body {
     min-width: 320px;
     min-height: 100vh;

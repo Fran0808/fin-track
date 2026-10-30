@@ -26,16 +26,18 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
         : failed
           ? 'Falló la sincronización de correo'
           : status.lastSuccessfulSyncAt
-            ? `Correo sincronizado: ${formatSyncDate(status.lastSuccessfulSyncAt)}`
+            ? 'Correo sincronizado'
             : 'Aún sin sincronizar';
   const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : connected ? CheckCircle2 : Mail;
 
   return (
     <div className="flex items-center gap-2.5" role="status" aria-live="polite">
       <Icon className={`h-4 w-4 shrink-0 ${syncing ? 'animate-spin text-brand' : failed || unavailable ? 'text-negative' : connected ? 'text-positive' : 'text-muted'}`} />
-      <div className="min-w-0">
-        <p className="max-w-48 truncate text-xs font-medium text-ink" title={label}>{syncing ? 'Sincronizando correos...' : label}</p>
-        {failed && status?.lastSuccessfulSyncAt && <p className="text-[11px] text-muted">Última correcta: {formatSyncDate(status.lastSuccessfulSyncAt)}</p>}
+      <div className="min-w-0 max-w-64">
+        <p className="text-xs font-medium text-ink">{syncing ? 'Sincronizando correos...' : label}</p>
+        {!unavailable && !syncing && connected && status?.lastSuccessfulSyncAt && (
+          <p className="text-[11px] text-muted">Última correcta: {formatSyncDate(status.lastSuccessfulSyncAt)}</p>
+        )}
       </div>
       {connected && (
         <button type="button" onClick={onSync} disabled={syncing} aria-label="Sincronizar correos ahora" title="Sincronizar ahora" className="rounded-lg border border-line p-2 text-brand hover:bg-canvas disabled:cursor-wait disabled:opacity-50">
