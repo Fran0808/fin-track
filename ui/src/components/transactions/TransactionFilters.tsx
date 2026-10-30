@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, CalendarDays } from 'lucide-react';
 import type { FlowType, PendingReason } from '../../types';
 import { STANDARD_CATEGORIES } from '../../types';
 import { useCategories } from '../../hooks';
@@ -8,6 +8,8 @@ import { CustomSelect } from '../common';
 import { TransactionDateFilter } from './TransactionDateFilter';
 
 interface TransactionFiltersProps {
+  renderHeader?: (search: ReactNode) => ReactNode;
+  dateScope?: string;
   categoryGroup?: string;
   merchantName?: string;
   search: string;
@@ -46,6 +48,8 @@ const CHANNEL_OPTIONS = [
 ];
 
 export function TransactionFilters({
+  renderHeader,
+  dateScope,
   categoryGroup,
   merchantName,
   search,
@@ -61,6 +65,7 @@ export function TransactionFilters({
   onFilterChange,
   onReset,
 }: TransactionFiltersProps) {
+  const dateMenu = useRef<HTMLDetailsElement>(null);
   const [localSearch, setLocalSearch] = useState(search);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(Boolean(pendingReason));
   const { options: categoryOptions, error: categoryError, refresh: refreshCategories } = useCategories(true);
@@ -85,19 +90,17 @@ export function TransactionFilters({
   ].filter(value => value !== '' && value !== undefined && value !== null).length;
 
   const hasAnyFilter = Boolean(categoryGroup !== undefined || merchantName !== undefined || localSearch.trim() || flowType || startDate || endDate || allHistory || activeAdvancedCount > 0);
+  const appliedDateScope = dateScope || (allHistory ? 'Todo el historial' : startDate && endDate
+    ? `${startDate.slice(0, 10).split('-').reverse().join('/')} al ${endDate.slice(0, 10).split('-').reverse().join('/')}` : 'Mes seleccionado');
 
-  return (
-    <div className="space-y-4">
-      {categoryGroup !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
-        <span className="min-w-0 break-words">Categoría: <strong>{categoryGroup ? STANDARD_CATEGORIES.find(item => item.id === categoryGroup)?.label ?? categoryGroup : 'Sin categoría'}</strong></span>
-        <button type="button" onClick={() => onFilterChange({ categoryGroup: undefined })} aria-label="Quitar filtro de categoría" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
-      </div>}
-      {merchantName !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
-        <span className="min-w-0 break-words">Comercio: <strong>{merchantName || 'Sin nombre'}</strong></span>
-        <button type="button" onClick={() => onFilterChange({ merchantName: undefined })} aria-label="Quitar filtro de comercio" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
-      </div>}
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="relative w-full xl:max-w-sm">
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => { if (dateMenu.current && !dateMenu.current.contains(event.target as Node)) dateMenu.current.open = false; };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, []);
+
+  const searchField = (
+        <div className="relative w-full sm:w-72 lg:w-80">
           <label htmlFor="transaction-search" className="sr-only">Buscar por comercio o categoría</label>
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input
@@ -122,6 +125,21 @@ export function TransactionFilters({
             </button>
           )}
         </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {renderHeader?.(searchField)}
+      {categoryGroup !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
+        <span className="min-w-0 break-words">Categoría: <strong>{categoryGroup ? STANDARD_CATEGORIES.find(item => item.id === categoryGroup)?.label ?? categoryGroup : 'Sin categoría'}</strong></span>
+        <button type="button" onClick={() => onFilterChange({ categoryGroup: undefined })} aria-label="Quitar filtro de categoría" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
+      </div>}
+      {merchantName !== undefined && <div className="flex items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand/5 px-3 py-2 text-sm">
+        <span className="min-w-0 break-words">Comercio: <strong>{merchantName || 'Sin nombre'}</strong></span>
+        <button type="button" onClick={() => onFilterChange({ merchantName: undefined })} aria-label="Quitar filtro de comercio" className="shrink-0 rounded p-1 text-brand hover:bg-brand/10"><X className="h-4 w-4" /></button>
+      </div>}
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        {!renderHeader && searchField}
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1 rounded-xl border border-line bg-canvas p-1" aria-label="Filtrar por tipo de movimiento">
@@ -140,10 +158,21 @@ export function TransactionFilters({
             ))}
           </div>
 
+          <details ref={dateMenu} className="relative" onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); dateMenu.current!.open = false; dateMenu.current?.querySelector('summary')?.focus(); } }}>
+            <summary className="flex max-w-full items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-ink focus-visible:outline-2 focus-visible:outline-brand" title={appliedDateScope}>
+              <CalendarDays className="h-4 w-4 shrink-0 text-muted" /><span>Fechas</span><span className="max-w-44 truncate font-normal text-muted">{appliedDateScope}</span><ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted" />
+            </summary>
+            <div className="absolute left-0 top-full z-20 mt-2 w-[min(34rem,calc(100vw-4rem))] rounded-2xl border border-line bg-white p-4 shadow-lg sm:left-auto sm:right-0">
+              <TransactionDateFilter key={`${allHistory}:${startDate || ''}:${endDate || ''}`} startDate={startDate} endDate={endDate} allHistory={allHistory} onFilterChange={value => { onFilterChange(value); if (dateMenu.current) dateMenu.current.open = false; }} />
+            </div>
+          </details>
+
           <button
             type="button"
             onClick={() => setIsAdvancedOpen((prev) => !prev)}
             aria-expanded={isAdvancedOpen}
+            aria-label="Filtros avanzados"
+            title="Filtros avanzados"
             className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${
               isAdvancedOpen || activeAdvancedCount > 0
                 ? 'border-brand bg-brand/5 text-brand'
@@ -151,7 +180,7 @@ export function TransactionFilters({
             }`}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Filtros avanzados
+            Filtros
             {activeAdvancedCount > 0 && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
                 {activeAdvancedCount}
@@ -175,7 +204,7 @@ export function TransactionFilters({
         </div>
       </div>
 
-      <TransactionDateFilter key={`${allHistory}:${startDate || ''}:${endDate || ''}`} startDate={startDate} endDate={endDate} allHistory={allHistory} onFilterChange={onFilterChange} />
+
 
       {isAdvancedOpen && (
         <div className="rounded-2xl border border-line bg-canvas/60 p-4 transition-all sm:p-5">

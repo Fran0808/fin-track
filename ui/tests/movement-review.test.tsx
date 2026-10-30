@@ -17,6 +17,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); window.history.replaceState({}, '', '/'); });
 
+it('keeps the applied scope on the closed date control, applies a day and dismisses with Escape or outside click', () => {
+  const change = vi.fn();
+  render(<TransactionFilters search="" flowType="" dateScope="Todo el historial" allHistory onFilterChange={change} onReset={vi.fn()} />);
+  const trigger = screen.getByText('Fechas', { exact: true }).closest('summary')!;
+  const menu = trigger.closest('details')!;
+  expect(menu.open).toBe(false);
+  expect(trigger.textContent).toContain('Todo el historial');
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole('button', { name: 'Día específico' }));
+  fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-10-28' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Buscar por fecha' }));
+  expect(change).toHaveBeenCalledWith({ allHistory: false, startDate: '2026-10-28T00:00:00', endDate: '2026-10-28T23:59:59.999999' });
+  expect(menu.open).toBe(false);
+  fireEvent.click(trigger); fireEvent.keyDown(menu, { key: 'Escape' });
+  expect(menu.open).toBe(false); expect(document.activeElement).toBe(trigger);
+  fireEvent.click(trigger); fireEvent.pointerDown(document.body);
+  expect(menu.open).toBe(false);
+});
+
 it('replaces Pendientes navigation with Movimientos, drops Tarjetas y cuentas, and preserves legacy review scope', async () => {
   window.history.replaceState({}, '', '/?vista=pendientes');
   const list = vi.spyOn(api, 'getTransactions').mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, size: 10, number: 0, first: true, last: true, empty: true });
@@ -46,6 +65,7 @@ it('selects missing category across history, clearing contradictory category and
   expect(change).toHaveBeenCalledWith({ pendingReason: 'CATEGORY', allHistory: true, startDate: undefined, endDate: undefined, category: '' });
   view.rerender(<TransactionFilters search="CINE" flowType="EXPENSE" pendingReason="CATEGORY" allHistory onFilterChange={change} onReset={vi.fn()} />);
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).disabled).toBe(true);
+  fireEvent.click(screen.getByText('Fechas', { exact: true }));
   expect(screen.getByRole('button', { name: 'Todo el historial' }).getAttribute('aria-pressed')).toBe('true');
   await waitFor(() => expect(api.getCategories).toHaveBeenCalled());
 });

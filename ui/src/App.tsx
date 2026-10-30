@@ -89,7 +89,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="border-b border-line bg-white">
-          <div className="mx-auto flex min-h-20 max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 lg:px-10">
+          <div className={`mx-auto flex min-h-20 flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 ${activeView === 'movimientos' ? 'max-w-none lg:px-8' : 'max-w-[1440px] lg:px-10'}`}>
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -138,7 +138,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1440px] flex-1 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <main className={`mx-auto w-full flex-1 px-5 py-8 sm:px-8 lg:py-10 ${activeView === 'movimientos' ? 'max-w-none lg:px-8' : 'max-w-[1440px] lg:px-10'}`}>
           {error && <p role="alert" className="mb-6 rounded-xl border border-negative/20 bg-negative/5 px-4 py-3 text-sm text-negative">{error}</p>}
           {activeView === 'inicio' && (
             <HomeView
