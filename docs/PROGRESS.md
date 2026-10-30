@@ -17,7 +17,83 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: simpler Movements hierarchy
+
+- Sidebar follow-up: user-requested click-any-cell detail in Movements now uses
+  a right-hand native nonmodal dialog at desktop widths (1280px+) with reserved
+  content space and selected-row highlighting. Narrow screens use a native modal
+  drawer; Inicio keeps its centered modal. A labeled chevron supports keyboard
+  opening, native close restores focus, and row changes are blocked while saving.
+  Shared classification/correction/history/reconciliation/rule flows retained;
+  table columns respond to available container width beside the sidebar.
+  Checks: 144 UI tests, lint (8 existing warnings), production build and doc
+  references passed. Built UI in Edge with synthetic API responses verified
+  1920/1280/390px layouts, row switching, keyboard/focus, resize, busy selection,
+  classification save, correction/history and rule navigation, and Inicio modal.
+  A browser-reproduced Escape issue from an open native picker was fixed and
+  covered: an option-originated key closes the picker before the sidebar.
+  Screenshots inspected. No live API/database access or backend/schema changes.
+  No existing service restart, staging, commit or push. Reload UI for acceptance.
+  Clarified row-click behavior: the sidebar now starts directly in financial
+  editing (amount/date/flow) with the merchant identified, retaining explicit
+  review/reason/history. Creation results and Inicio still open their detail
+  view. Read-only reconciled manuals retain detail access. All 144 UI tests,
+  build and lint (8 existing warnings) passed; direct row editing and per-row
+  values checked in Edge at desktop/mobile sizes with synthetic API responses.
+
+- Latest user follow-up: page subtotals are permanently visible at the footer;
+  removed their disclosure. `Sin categoría` uses a gray bordered badge with the
+  same full rounding as other categories at both layouts, and the creation
+  action is named `Agregar movimiento`.
+  Verified: 140 UI tests, lint (8 existing warnings), production build and
+  document references passed. Edge with synthetic API responses checked
+  1920/1024/390px layouts, visible subtotals, manual form opening and existing
+  filters/pagination. No backend/schema changes or financial data access.
+
+- Comparison follow-up: user-approved combination of compact reference controls
+  and FinTrack financial clarity. Only Movements uses the full content width;
+  search/actions share its header, dates collapse behind an applied-scope label,
+  and desktop rows align categories in a separate column with time below date.
+  Narrow layouts keep category under the merchant; mobile also shows its date.
+  Financial totals, identity, filters, CSV and manual/correction flows retained.
+  Status: verified for frontend scope. All 140 UI tests, lint (8 existing
+  warnings), production build and document references passed. Built UI in Edge
+  with synthetic API responses checked 1920/1024/390px layouts, date dismissal,
+  day/all-history/flow/search filters, stable totals across pages and optional
+  page subtotals. Screenshots inspected; local table scrolling is retained where
+  needed. No live API/database access, backend/schema changes, service restart,
+  staging or commits. Reload UI for acceptance; other engines not exercised.
+
+- Owner/scope: current chat; user-requested faster interpretation of Movements.
+  Removed redundant header copy and the separate `Registro` heading, combined
+  count/applied period/all-result totals in one strip, compacted the date row,
+  and moved page subtotals to a closed native disclosure at the table footer.
+  Pagination shows the visible row range. A single selected day is shown once.
+  Filters, all-result financial scope, source badges and CSV behavior retained.
+- Status/checks: verified for frontend scope. All 139 UI tests, lint (9 existing
+  warnings), production build and documentation checks passed. Built UI in Edge
+  with synthetic API responses verified 1440/390px layouts, totals stable across
+  pages, optional page subtotals, flow/day/all-history filters, empty search and
+  no page errors/overflow. Four final screenshots inspected; other engines and
+  live API not exercised. No backend/schema changes or financial database access.
+- Next: reload UI and review the focused UI commit. Standard `npm run dev`
+  startup remains available. No debug code, service restart, staging or commit.
+
 ## Current checkpoint: reviewed movement corrections
+
+- October 29 detail follow-up: removed the separate classification card and
+  permanent save instruction. Category is integrated below movement evidence;
+  save is visible only while changed, and the adjacent list-plus icon opens
+  the contextual rule with tooltip/accessibility label. Confirmed saved values
+  update the local baseline; failed writes retain the draft. No API changes.
+  All 139 UI tests, lint (9 existing warnings), production build and document
+  references passed. Built UI in Edge with synthetic API responses verified
+  initial/edited desktop and mobile layouts, conditional save, keyboard rule
+  opening, prefilled draft/cancel and Escape without overflow or page errors.
+  No financial database access, existing service restart, staging or commits.
+  Follow-up: replaced the correction/history back text with a left-arrow icon,
+  keeping tooltip/accessibility name. All 139 UI tests, build, lint and Edge
+  desktop/mobile keyboard return checks passed with synthetic API responses.
 
 - Owner/scope: current chat; user-approved amount/date/flow correction with a
   pencil icon, reason, explicit before/after review and paginated history icon.
@@ -55,7 +131,10 @@ See [README](../README.md), [architecture](architecture/overview.md) and
     financial summary in `HomeView` on `Gastos del mes` (first) and
     `Entradas del mes` (second) with `% respecto al mes anterior` comparisons,
     daily spend average, top expense category, previous-month reference and
-    movement count.
+    movement count. Grouped sidebar navigation into Seguimiento and Gestión with
+    active pill indicator, made the top header sticky with backdrop blur, added
+    subtle layered elevation to .surface cards, and added quick previous/next
+    month steppers to PeriodSelector.
   - Removed all `FinancialInstrument` UI views/components (`InstrumentsView`,
     `InstrumentForm`, `InstrumentAssignment`), navigation entries (`tarjetas`),
     manual-entry/reconciliation product fields, `INSTRUMENT` review filter, API
@@ -96,6 +175,17 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current checkpoint: manual registration and explicit reconciliation
 
+- October 29 selector follow-up: reused `CustomSelect` for manual type, payment
+  method and category. No API or ledger changes. All 130 UI tests, lint (9
+  warnings) and build passed; Edge with synthetic API responses verified
+  desktop/mobile appearance and selection, review and submission of an income
+  with wallet method and a past operation date. No live financial writes.
+- October 29 follow-up: fixed manual dialog dismissal during React StrictMode
+  development effect replay. The queued close event from cleanup must not dismiss
+  a reopened dialog. Regression failed before the one-line fix; 130 current UI
+  tests, lint (9 warnings) and production build passed. Edge against temporary
+  Vite with synthetic API responses verified opening, Escape, close/reopen,
+  mobile layout, review and submission; no financial database was accessed.
 - Owner/scope: current chat; evaluation finding 1 with user-approved explicit
   reconciliation when an email/phone capture exists or arrives later. See
   [manual behavior and rollout](domain/manual-transactions.md).

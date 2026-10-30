@@ -95,7 +95,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
       </div>
 
       <div className={`flex min-w-0 flex-1 flex-col ${activeView === 'movimientos' && selectedTransaction ? 'xl:pr-[420px]' : ''}`}>
-        <header className="border-b border-line bg-white">
+        <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur-md">
           <div className={`mx-auto flex min-h-20 flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 ${activeView === 'movimientos' ? 'max-w-none lg:px-8' : 'max-w-[1440px] lg:px-10'}`}>
             <div className="flex items-center gap-3">
               <button

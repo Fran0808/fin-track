@@ -15,13 +15,28 @@ interface NavItem {
   icon: ComponentType<{ className?: string }>;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
-  { id: 'mi-dinero', label: 'Análisis', icon: ChartNoAxesCombined },
-  { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
-  { id: 'reglas', label: 'Reglas', icon: ListFilter },
-  { id: 'categorias', label: 'Categorías', icon: Tags },
-  { id: 'configuracion', label: 'Configuración', icon: Settings2 },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: 'Seguimiento',
+    items: [
+      { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
+      { id: 'mi-dinero', label: 'Análisis', icon: ChartNoAxesCombined },
+      { id: 'movimientos', label: 'Movimientos', icon: ArrowLeftRight },
+    ],
+  },
+  {
+    title: 'Gestión',
+    items: [
+      { id: 'categorias', label: 'Categorías', icon: Tags },
+      { id: 'reglas', label: 'Reglas', icon: ListFilter },
+      { id: 'configuracion', label: 'Configuración', icon: Settings2 },
+    ],
+  },
 ];
 
 export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigationProps) {
@@ -36,28 +51,41 @@ export function SidebarNavigation({ activeView, onViewChange }: SidebarNavigatio
         </div>
       </div>
 
-      <nav className="mt-12" aria-label="Navegación principal">
-        <p className="eyebrow px-3">Principal</p>
-        <div className="mt-3 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onViewChange(item.id)}
-                aria-current={active ? 'page' : undefined}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition-colors ${active ? 'bg-brand/8 text-brand' : 'text-muted hover:bg-canvas hover:text-ink'}`}
-              >
-                <Icon className="h-4.5 w-4.5 shrink-0" />
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
+      <nav className="mt-10 space-y-7" aria-label="Navegación principal">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.title}>
+            <p className="eyebrow px-3">{group.title}</p>
+            <div className="mt-2.5 space-y-1">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const active = activeView === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onViewChange(item.id)}
+                    aria-current={active ? 'page' : undefined}
+                    className={`relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      active
+                        ? 'bg-brand/10 font-semibold text-brand'
+                        : 'font-medium text-muted hover:bg-canvas hover:text-ink'
+                    }`}
+                  >
+                    {active && (
+                      <span
+                        className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-brand"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <Icon className="h-4.5 w-4.5 shrink-0" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
-
     </aside>
   );
 }

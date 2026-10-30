@@ -58,6 +58,27 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
   const minYear = 2024;
   const maxYear = Math.max(new Date().getFullYear() + 2, year + 1);
 
+  const canGoPrevMonth = year > minYear || month > 1;
+  const canGoNextMonth = year < maxYear || month < 12;
+
+  const handlePrevMonth = () => {
+    if (!canGoPrevMonth) return;
+    if (month === 1) {
+      onChange(year - 1, 12);
+    } else {
+      onChange(year, month - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (!canGoNextMonth) return;
+    if (month === 12) {
+      onChange(year + 1, 1);
+    } else {
+      onChange(year, month + 1);
+    }
+  };
+
   const handleSelectMonth = (mIndex: number) => {
     onChange(activeYear, mIndex + 1);
     setIsOpen(false);
@@ -105,30 +126,54 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
         ))}
       </select>
 
-      {/* Modern styled Period Selector button */}
-      <button
-        type="button"
-        onClick={() => {
-          setIsOpen((prev) => {
-            if (!prev) setActiveYear(year);
-            return !prev;
-          });
-        }}
-        aria-haspopup="dialog"
-        aria-expanded={isOpen}
-        className="inline-flex items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2 text-sm font-semibold text-ink shadow-2xs transition hover:border-brand/40 hover:bg-canvas focus:outline-none focus:ring-2 focus:ring-brand/20"
-      >
-        <Calendar className="h-4 w-4 text-brand" aria-hidden="true" />
-        <span>
-          {currentMonthName} <span className="font-normal text-muted">{year}</span>
-        </span>
-        <ChevronDown
-          className={`h-3.5 w-3.5 text-muted transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-brand' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
+      {/* Unified Period Selector with quick prev/next month steppers */}
+      <div className="inline-flex items-center rounded-xl border border-line bg-white shadow-2xs">
+        <button
+          type="button"
+          onClick={handlePrevMonth}
+          disabled={!canGoPrevMonth}
+          aria-label="Mes anterior"
+          title="Mes anterior"
+          className="flex h-9 w-8 items-center justify-center rounded-l-xl border-r border-line/70 text-muted transition hover:bg-canvas hover:text-ink disabled:opacity-30"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen((prev) => {
+              if (!prev) setActiveYear(year);
+              return !prev;
+            });
+          }}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          className="inline-flex h-9 items-center gap-2 px-3 text-sm font-semibold text-ink transition hover:bg-canvas"
+        >
+          <Calendar className="h-4 w-4 text-brand" aria-hidden="true" />
+          <span>
+            {currentMonthName} <span className="font-normal text-muted">{year}</span>
+          </span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 text-muted transition-transform duration-200 ${
+              isOpen ? 'rotate-180 text-brand' : ''
+            }`}
+            aria-hidden="true"
+          />
+        </button>
+
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          disabled={!canGoNextMonth}
+          aria-label="Mes siguiente"
+          title="Mes siguiente"
+          className="flex h-9 w-8 items-center justify-center rounded-r-xl border-l border-line/70 text-muted transition hover:bg-canvas hover:text-ink disabled:opacity-30"
+        >
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
 
       {/* Modern Floating Period Picker Popover */}
       {isOpen && (

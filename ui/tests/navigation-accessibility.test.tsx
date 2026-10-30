@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@t
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CustomSelect } from '../src/components/common/CustomSelect';
 import { MobileNavigation } from '../src/components/layout/MobileNavigation';
+import { PeriodSelector } from '../src/components/layout/PeriodSelector';
 import { SidebarNavigation } from '../src/components/layout/SidebarNavigation';
 import { useDashboardNavigation } from '../src/hooks/useDashboardNavigation';
 
@@ -68,4 +69,19 @@ it('opens mobile navigation as a native modal and closes it after navigation', a
   fireEvent.click(screen.getByRole('button', { name: 'Movimientos' }));
   expect(navigate).toHaveBeenCalledWith('movimientos');
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+});
+
+it('groups sidebar navigation into Seguimiento and Gestión and steps months with quick arrows in PeriodSelector', () => {
+  render(<SidebarNavigation activeView="inicio" onViewChange={vi.fn()} />);
+  expect(screen.getByText('Seguimiento')).toBeTruthy();
+  expect(screen.getByText('Gestión')).toBeTruthy();
+
+  const onChange = vi.fn();
+  const periodView = render(<PeriodSelector year={2026} month={1} onChange={onChange} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Mes anterior' }));
+  expect(onChange).toHaveBeenCalledWith(2025, 12);
+
+  periodView.rerender(<PeriodSelector year={2026} month={12} onChange={onChange} />);
+  fireEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }));
+  expect(onChange).toHaveBeenCalledWith(2027, 1);
 });
