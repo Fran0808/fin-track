@@ -19,6 +19,14 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current checkpoint: flat category architecture and UI animations
 
+- UI Micro-interactions and Animation Harmonization:
+  - Collapsible CSS grid accordion animation (250ms) for the advanced filters toolbar in Movements.
+  - Smooth 200ms segmented control button transitions in Movements (flow filter) and Analysis (donut/bars view).
+  - Standardized scale-and-fade entrance (`modal-animate`, 200ms cubic bezier) across system modal dialogs: Manual Transaction, Pair Device, Create Rule, and Category Modals.
+  - Subtle directional period transition (`period-animate`, 160ms) when navigating months in the top PeriodSelector.
+  - Interactive confirmation feedback (`animate-pop`, 200ms) on category classification save badge.
+  - Checks: 147 UI Vitest tests passing, production build passed (687ms).
+
 - Movement details sidebar transition and direct cell actions:
   - Synchronized container space transition (`transition-[padding-right] duration-[250ms] ease-out`) with the Anime.js sidebar slide, eliminating the empty blank void during open/close.
   - Softened animation curve and timing (`ease: 'outCubic'`, duration reduced to 250ms) to remove harsh initial acceleration and deceleration.

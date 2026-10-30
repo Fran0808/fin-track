@@ -309,7 +309,7 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
             )}
 
             {(saveSuccess || category !== savedCategory) && <div className="flex flex-wrap items-center justify-end gap-3">
-                {saveSuccess && <span role="status" className="mr-auto inline-flex items-center gap-1 text-xs font-semibold text-positive">
+                {saveSuccess && <span role="status" className="animate-pop mr-auto inline-flex items-center gap-1 text-xs font-semibold text-positive">
                     <Check className="h-3.5 w-3.5" /> Cambios guardados
                   </span>}
               {category !== savedCategory && <button

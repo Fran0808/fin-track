@@ -98,7 +98,7 @@ export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClos
       onClose={onClose}
       onCancel={onClose}
       aria-labelledby={titleId}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-transparent p-0 text-ink backdrop:bg-ink/40"
+      className="modal-animate m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-transparent p-0 text-ink backdrop:bg-ink/40"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

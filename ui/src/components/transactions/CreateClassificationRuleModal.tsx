@@ -26,7 +26,7 @@ export function CreateClassificationRuleModal({ draft, onClose }: { draft: Class
 
   return <dialog ref={dialogRef} aria-labelledby="create-rule-title" onClose={onClose}
     onCancel={event => { if (busy) event.preventDefault(); }}
-    className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-6 text-ink shadow-xl backdrop:bg-ink/40">
+    className="modal-animate m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-6 text-ink shadow-xl backdrop:bg-ink/40">
     <div className="flex items-start justify-between gap-3">
       <h2 id="create-rule-title" className="font-display text-xl font-semibold">Crear regla para este comercio</h2>
       <button type="button" disabled={busy} aria-label="Cerrar nueva regla" onClick={onClose} className="rounded-lg p-1.5 text-muted hover:bg-canvas disabled:opacity-50"><X className="h-5 w-5" /></button>

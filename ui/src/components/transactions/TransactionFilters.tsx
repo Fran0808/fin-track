@@ -348,8 +348,13 @@ export function TransactionFilters({
       )}
 
       {/* Advanced Filters Expandable Drawer */}
-      {isAdvancedOpen && (
-        <div className="rounded-2xl border border-line bg-canvas/70 p-4 shadow-2xs transition-all sm:p-5">
+      <div
+        className={`grid transition-[grid-template-rows,opacity] duration-250 ease-out ${
+          isAdvancedOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="rounded-2xl border border-line bg-canvas/70 p-4 shadow-2xs sm:p-5 mt-1">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label htmlFor="filter-review" className="block text-xs font-semibold text-muted">
@@ -477,8 +482,9 @@ export function TransactionFilters({
               </button>
             </div>
           )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

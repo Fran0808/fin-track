@@ -92,7 +92,7 @@ export function CategoryModal({
         if (e.target === dialogRef.current) onClose();
       }}
       aria-labelledby="category-modal-title"
-      className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-line bg-white p-6 shadow-xl backdrop:bg-ink/40 text-ink sm:p-7"
+      className="modal-animate m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-line bg-white p-6 shadow-xl backdrop:bg-ink/40 text-ink sm:p-7"
     >
       <div className="flex items-center justify-between border-b border-line pb-4">
         <div className="flex items-center gap-3">

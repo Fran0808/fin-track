@@ -57,7 +57,7 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
                     key={value}
                     aria-pressed={categoryView === value}
                     onClick={() => setCategoryView(value)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${categoryView === value ? 'bg-white text-brand shadow-xs' : 'text-muted hover:text-ink'}`}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${categoryView === value ? 'bg-white text-brand shadow-xs' : 'text-muted hover:text-ink'}`}
                   >
                     {label}
                   </button>

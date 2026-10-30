@@ -152,7 +152,7 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
           className="inline-flex h-9 items-center gap-2 px-3 text-sm font-semibold text-ink transition hover:bg-canvas"
         >
           <Calendar className="h-4 w-4 text-brand" aria-hidden="true" />
-          <span>
+          <span key={`${year}-${month}`} className="period-animate inline-block">
             {currentMonthName} <span className="font-normal text-muted">{year}</span>
           </span>
           <ChevronDown
