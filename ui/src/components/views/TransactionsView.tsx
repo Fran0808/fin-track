@@ -58,9 +58,7 @@ export function TransactionsView({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">{filters.allHistory ? 'Historial completo' : 'Historial del período'}</p>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Movimientos</h1>
-          <p className="mt-2 text-sm text-muted">Consulta, filtra y clasifica las entradas, gastos y transferencias registradas.</p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Movimientos</h1>
         </div>
         <div className="flex flex-wrap gap-3">
         <button type="button" onClick={() => setManualOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Registrar manualmente</button>
@@ -118,7 +116,9 @@ export function TransactionsView({
           flowType={filters.flowType}
           loading={loading}
           periodName={filters.allHistory ? 'Todo el historial' : filters.startDate && filters.endDate
-            ? `${filters.startDate.slice(0, 10).split('-').reverse().join('/')} al ${filters.endDate.slice(0, 10).split('-').reverse().join('/')}`
+            ? filters.startDate.slice(0, 10) === filters.endDate.slice(0, 10)
+              ? filters.startDate.slice(0, 10).split('-').reverse().join('/')
+              : `${filters.startDate.slice(0, 10).split('-').reverse().join('/')} al ${filters.endDate.slice(0, 10).split('-').reverse().join('/')}`
             : periodName}
           onPageChange={onPageChange}
           onSelectTransaction={onSelectTransaction}

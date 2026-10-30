@@ -50,7 +50,8 @@ it('requires both dates, rejects reversed ranges and supports ranges across mont
 it('returns to the selected month without retaining the custom dates', () => {
   const onFilterChange = vi.fn();
   render(<TransactionDateFilter startDate="2026-09-30T00:00:00" endDate="2026-10-08T23:59:59.999999" onFilterChange={onFilterChange} />);
-  expect(screen.getByText(/Búsqueda aplicada/).textContent).toContain('30/09/2026 al 08/10/2026');
+  expect((screen.getByLabelText('Desde') as HTMLInputElement).value).toBe('2026-09-30');
+  expect((screen.getByLabelText('Hasta') as HTMLInputElement).value).toBe('2026-10-08');
   fireEvent.click(screen.getByRole('button', { name: 'Mes seleccionado' }));
   expect(onFilterChange).toHaveBeenCalledWith({ allHistory: false, startDate: undefined, endDate: undefined });
 });

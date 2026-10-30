@@ -25,14 +25,17 @@ Movement detail offers a pencil icon for reviewed amount/date/flow corrections
 and a history icon for before/after evidence. Both use the existing native dialog;
 see [behavior and rollout](../docs/domain/transaction-corrections.md).
 
-Movements displays `Total del filtro` for every matching transaction, independently
-of pagination, and `Esta página` for the visible rows. Expenses, income and internal
-transfers are separate; selecting a flow shows its matching amount. Empty filters
-show zero totals. The API computes filter totals with the same ownership and all
+Movements shows a single results strip with the matching count, applied period
+and expense/income/own-transfer totals for all matching transactions, independently
+of pagination. Page subtotals are collapsed under `Ver subtotal de esta página`
+at the table footer, beside the visible row range and pagination controls.
+Selecting a flow shows only its matching amount; empty filters show zero totals.
+The API computes filter totals with the same ownership and all
 listing predicates; page subtotals never substitute for them. Older APIs without
 `summary` display an explicit unavailable state. Deploy the API and UI together;
 this addition requires no database migration or Android update.
 
+The compact date row replaces the separate date card and permanent helper text.
 In Movements, use the visible date filter to choose the selected month, a specific
 day, or an inclusive date range. Choose the dates and press `Buscar por fecha`.
 Ranges can span multiple months. The final date includes the entire day.

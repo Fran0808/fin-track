@@ -46,7 +46,7 @@ it('selects missing category across history, clearing contradictory category and
   expect(change).toHaveBeenCalledWith({ pendingReason: 'CATEGORY', allHistory: true, startDate: undefined, endDate: undefined, category: '' });
   view.rerender(<TransactionFilters search="CINE" flowType="EXPENSE" pendingReason="CATEGORY" allHistory onFilterChange={change} onReset={vi.fn()} />);
   expect((screen.getByLabelText('Categoría') as HTMLSelectElement).disabled).toBe(true);
-  expect(screen.getByText('Se muestra todo el historial, sin límite de fechas.')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Todo el historial' }).getAttribute('aria-pressed')).toBe('true');
   await waitFor(() => expect(api.getCategories).toHaveBeenCalled());
 });
 

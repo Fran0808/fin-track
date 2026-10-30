@@ -22,50 +22,35 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
   const metrics = [
     { flow: 'EXPENSE', key: 'totalExpense', label: 'Gastos' },
     { flow: 'INCOME', key: 'totalIncome', label: 'Entradas' },
-    { flow: 'INTERNAL_TRANSFER', key: 'internalTransfersAmount', label: 'Transferencias internas' },
+    { flow: 'INTERNAL_TRANSFER', key: 'internalTransfersAmount', label: 'Transferencias propias' },
   ] as const;
   const visibleMetrics = metrics.filter(metric => !flowType || metric.flow === flowType);
 
+  const month = periodName?.match(/^(\d{1,2})\/(\d{4})$/);
+  const scope = month ? new Date(Number(month[2]), Number(month[1]) - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }) : periodName;
+
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 sm:px-6">
-        <div>
-          <h2 className="font-display text-lg font-semibold">
-            Registro {periodName && <span className="ml-1 text-sm font-normal text-muted">· {periodName}</span>}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            {pageData ? `${pageData.totalElements} movimientos encontrados` : 'Cargando movimientos'}
-          </p>
+      <div className="flex flex-col gap-4 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6" aria-busy={loading}>
+        <div className="shrink-0">
+          <h2 className="font-display text-base font-semibold">{pageData ? `${pageData.totalElements} ${pageData.totalElements === 1 ? 'movimiento' : 'movimientos'}` : 'Cargando movimientos'}</h2>
+          {scope && <p className="mt-1 text-xs text-muted">{scope}</p>}
+          {loading && pageData && <p role="status" className="mt-1 text-xs text-brand">Actualizando...</p>}
         </div>
-
-      </div>
-
-      {pageData && (
-        <div className="border-b border-line bg-canvas/50 px-5 py-4 sm:px-6" aria-busy={loading}>
-          {pageData.summary ? (
-            <div role="group" aria-label="Total del filtro">
-              <p className="text-xs font-semibold text-ink">Total del filtro · {pageData.totalElements} movimientos</p>
-              <dl className="mt-2 flex flex-wrap gap-x-6 gap-y-2">
-                {visibleMetrics.map(metric => (
-                  <div key={metric.key} className="text-sm">
-                    <dt className="text-xs text-muted">{metric.label}</dt>
-                    <dd className="font-num font-semibold text-ink">{formatCurrency(pageData.summary![metric.key])}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          ) : <p role="status" className="text-sm text-muted">Total del filtro no disponible. Actualiza el backend para consultarlo.</p>}
-          <div role="group" aria-label="Esta página" className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-            <span className="font-semibold">Esta página · {pageData.content.length} movimientos</span>
-            {visibleMetrics.map(metric => {
-              const cents = pageData.content.filter(t => t.flowType === metric.flow)
-                .reduce((total, t) => total + Math.round(t.amount * 100), 0);
-              return <span key={metric.key}>{metric.label}: <strong className="font-num font-semibold text-ink">{formatCurrency(cents / 100)}</strong></span>;
-            })}
+        {pageData && (pageData.summary ? (
+          <div role="group" aria-label="Total del filtro">
+            <p className="sr-only">Totales de todos los resultados de la búsqueda, no solo de esta página.</p>
+            <dl className="grid grid-cols-3 gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-end sm:gap-x-8">
+              {visibleMetrics.map(metric => (
+                <div key={metric.key} className="min-w-0">
+                  <dt className="min-h-8 text-xs text-muted sm:min-h-0">{metric.label}</dt>
+                  <dd className={`font-num mt-0.5 break-words text-base font-semibold sm:text-lg ${metric.flow === 'INCOME' ? 'text-positive' : 'text-ink'}`}>{formatCurrency(pageData.summary![metric.key])}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-          {loading && <p role="status" className="mt-2 text-xs font-semibold text-brand">Actualizando...</p>}
-        </div>
-      )}
+        ) : <p role="status" className="text-sm text-muted">Total del filtro no disponible. Actualiza el backend para consultarlo.</p>)}
+      </div>
 
       <div className="overflow-x-auto">
         <table className="w-full table-fixed border-collapse text-left sm:min-w-[700px] sm:table-auto">
@@ -130,15 +115,26 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
         </table>
       </div>
 
-      {pageData && pageData.totalPages > 1 && (
-        <nav aria-label="Paginación de movimientos" className="flex items-center justify-between gap-3 border-t border-line px-5 py-4 sm:px-6">
-          <span className="text-sm text-muted">Página {pageData.number + 1} de {pageData.totalPages}</span>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => onPageChange(pageData.number - 1)} disabled={pageData.first || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => onPageChange(pageData.number + 1)} disabled={pageData.last || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></button>
+      {pageData && <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
+        <details className="text-xs text-muted">
+          <summary className="w-fit rounded py-1 font-medium focus-visible:outline-2 focus-visible:outline-brand">Ver subtotal de esta página</summary>
+          <div role="group" aria-label="Esta página" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 pb-1">
+            <span>{pageData.content.length} {pageData.content.length === 1 ? 'movimiento' : 'movimientos'} en esta página</span>
+            {visibleMetrics.map(metric => {
+              const cents = pageData.content.filter(t => t.flowType === metric.flow).reduce((total, t) => total + Math.round(t.amount * 100), 0);
+              return <span key={metric.key}>{metric.label}: <strong className="font-num font-semibold text-ink">{formatCurrency(cents / 100)}</strong></span>;
+            })}
           </div>
-        </nav>
-      )}
+        </details>
+        {pageData.totalPages > 1 && <nav aria-label="Paginación de movimientos" className="flex items-center gap-3">
+          <span className="text-xs text-muted">{pageData.number * pageData.size + 1}–{pageData.number * pageData.size + pageData.content.length} de {pageData.totalElements}</span>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => onPageChange(pageData.number - 1)} disabled={pageData.number === 0 || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => onPageChange(pageData.number + 1)} disabled={pageData.number + 1 >= pageData.totalPages || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></button>
+          </div>
+        </nav>}
+      </div>}
+
     </div>
   );
 }

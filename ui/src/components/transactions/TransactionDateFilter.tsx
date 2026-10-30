@@ -19,15 +19,16 @@ export function TransactionDateFilter({ startDate, endDate, allHistory = false, 
   const inputClass = 'w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none';
 
   return (
-    <fieldset className="rounded-2xl border border-line bg-canvas/60 p-4">
-      <legend className="px-1 text-xs font-semibold text-muted">Fecha de los movimientos</legend>
-      <div className="flex flex-wrap gap-2" aria-label="Tipo de búsqueda por fecha">
+    <fieldset>
+      <legend className="sr-only">Fecha de los movimientos</legend>
+      <div className="flex flex-wrap items-center gap-2" aria-label="Tipo de búsqueda por fecha">
+        <span className="mr-1 text-xs font-medium text-muted">Fecha</span>
         {[
           ['month', 'Mes seleccionado'], ['day', 'Día específico'], ['range', 'Rango de fechas'],
           ['all', 'Todo el historial'],
         ].map(([value, label]) => (
           <button key={value} type="button" aria-pressed={mode === value}
-            className={`rounded-lg border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand ${mode === value ? 'border-brand bg-white text-brand' : 'border-line text-muted hover:text-ink'}`}
+            className={`rounded-lg px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-brand ${mode === value ? 'bg-brand/10 text-brand' : 'text-muted hover:bg-canvas hover:text-ink'}`}
             onClick={() => {
               setMode(value);
               if (value === 'month' || value === 'all') onFilterChange({ allHistory: value === 'all', startDate: undefined, endDate: undefined });
@@ -63,7 +64,6 @@ export function TransactionDateFilter({ startDate, endDate, allHistory = false, 
         </div>
       )}
       {invalidRange && <p id="transaction-date-error" role="alert" className="mt-2 text-sm text-negative">La fecha final debe ser igual o posterior a la inicial.</p>}
-      <p className="mt-2 text-xs text-muted">{allHistory ? 'Se muestra todo el historial, sin límite de fechas.' : start ? `Búsqueda aplicada: ${start.split('-').reverse().join('/')} al ${end.split('-').reverse().join('/')}.` : 'Se muestran los movimientos del mes seleccionado.'}</p>
     </fieldset>
   );
 }

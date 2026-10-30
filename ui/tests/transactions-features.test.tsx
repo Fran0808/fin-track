@@ -62,7 +62,7 @@ it('renders category in TransactionTable and shows dynamic summary', () => {
 
   expect(screen.getByText('Supermercado Metro')).toBeDefined();
   expect(screen.getByText('Alimentación y bebidas')).toBeDefined();
-  expect(screen.getByText('1 movimientos encontrados')).toBeDefined();
+  expect(screen.getByText('1 movimiento')).toBeDefined();
 });
 
 it('edits and saves only the category', async () => {
