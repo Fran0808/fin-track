@@ -27,8 +27,9 @@ see [behavior and rollout](../docs/domain/transaction-corrections.md).
 
 Movements shows a single results strip with the matching count, applied period
 and expense/income/own-transfer totals for all matching transactions, independently
-of pagination. Page subtotals are collapsed under `Ver subtotal de esta página`
-at the table footer, beside the visible row range and pagination controls.
+of pagination. Page subtotals remain visible at the table footer, beside the
+visible row range and pagination controls. Uncategorized rows use a gray bordered
+badge on desktop and mobile.
 Selecting a flow shows only its matching amount; empty filters show zero totals.
 The API computes filter totals with the same ownership and all
 listing predicates; page subtotals never substitute for them. Older APIs without
@@ -64,7 +65,7 @@ redundant descriptions and slogans. Tokens and font stacks live in
 
 ### Navigation and behavior
 
-Movements offers `Registrar manualmente` for omitted expenses/incoming payments,
+Movements offers `Agregar movimiento` for omitted expenses/incoming payments,
 with decimal input, optional owned category/product and a full review before
 confirmation. Manual rows carry a badge and `Manual` origin; retries reuse the
 same intent. The detail can review matching email/phone captures and explicitly

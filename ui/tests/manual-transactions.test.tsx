@@ -24,7 +24,7 @@ it('keeps the dialog open during development effect replay and still dismisses w
     setTimeout(() => this.dispatchEvent(new Event('close')), 0);
   };
   render(<StrictMode><TransactionsView pageData={null} loading={false} filters={{}} onFilterChange={vi.fn()} onPageChange={vi.fn()} onSelectTransaction={vi.fn()} /></StrictMode>);
-  fireEvent.click(screen.getByRole('button', { name: 'Registrar manualmente' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Agregar movimiento' }));
   await new Promise(resolve => setTimeout(resolve, 30));
   const dialog = screen.getByRole('dialog', { name: 'Registro manual' }) as HTMLDialogElement;
   expect(dialog.open).toBe(true);
@@ -37,7 +37,7 @@ it('opens manual entry when randomUUID is unavailable on an HTTP origin', async 
   const browserCrypto = globalThis.crypto;
   vi.stubGlobal('crypto', { getRandomValues: browserCrypto.getRandomValues.bind(browserCrypto) });
   render(<TransactionsView pageData={null} loading={false} filters={{}} onFilterChange={vi.fn()} onPageChange={vi.fn()} onSelectTransaction={vi.fn()} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Registrar manualmente' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Agregar movimiento' }));
   expect(await screen.findByRole('dialog', { name: 'Registro manual' })).toBeTruthy();
   expect(api.createManualTransaction).not.toHaveBeenCalled();
 });

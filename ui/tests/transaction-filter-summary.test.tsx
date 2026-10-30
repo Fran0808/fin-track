@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TransactionTable } from '../src/components/transactions/TransactionTable';
 import type { TransactionPageResponse, Transaction, FlowType } from '../src/types';
@@ -20,8 +20,6 @@ it('keeps filter totals stable across pages and distinguishes the page subtotal'
   expect(totals().getByText(currency(123.45))).toBeDefined();
   expect(totals().getByText(currency(987.65))).toBeDefined();
   expect(totals().getByText(currency(42.10))).toBeDefined();
-  expect((screen.getByText('Ver subtotal de esta página').closest('details') as HTMLDetailsElement).open).toBe(false);
-  fireEvent.click(screen.getByText('Ver subtotal de esta página'));
   expect(within(screen.getByRole('group', { name: 'Esta página' })).getByText(currency(0.10))).toBeDefined();
   rerender(<TransactionTable {...props} pageData={{ ...page, number: 1, first: false,
     content: [{ ...expense, amount: 22.25 }] }} />);
@@ -36,7 +34,6 @@ it.each(['EXPENSE', 'INCOME', 'INTERNAL_TRANSFER'] as FlowType[])('adapts the su
   const label = { EXPENSE: 'Gastos', INCOME: 'Entradas', INTERNAL_TRANSFER: 'Transferencias propias' }[flow];
   expect(within(total).getByText(label)).toBeDefined();
   expect(total.querySelectorAll('dt')).toHaveLength(1);
-  fireEvent.click(screen.getByText('Ver subtotal de esta página'));
   expect(within(screen.getByRole('group', { name: 'Esta página' })).getByText(currency(10.25))).toBeDefined();
 });
 
@@ -53,6 +50,5 @@ it('does not present a page subtotal as a filter total when the API lacks summar
   render(<TransactionTable {...props} pageData={{ ...page, summary: undefined }} />);
   expect(screen.queryByRole('group', { name: 'Total del filtro' })).toBeNull();
   expect(screen.getByText(/Total del filtro no disponible/)).toBeDefined();
-  fireEvent.click(screen.getByText('Ver subtotal de esta página'));
   expect(screen.getByRole('group', { name: 'Esta página' })).toBeDefined();
 });

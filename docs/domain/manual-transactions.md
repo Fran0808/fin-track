@@ -1,6 +1,6 @@
 # Manual movements and explicit reconciliation
 
-Movements → `Registrar manualmente` records a completed expense or incoming
+Movements → `Agregar movimiento` records a completed expense or incoming
 payment omitted from automatic capture. The user supplies a positive amount in
 soles (0.01–99999999.99, up to two decimal places), local operation date/time,
 concept/contact and a generic payment method: cash, card, bank transfer, wallet

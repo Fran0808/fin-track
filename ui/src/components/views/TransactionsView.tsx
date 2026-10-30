@@ -76,7 +76,7 @@ export function TransactionsView({
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
           {searchField}
-        <button type="button" onClick={() => setManualOpen(true)} aria-label="Registrar manualmente" title="Registrar manualmente" className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" /><span className="sm:hidden">Registrar</span><span className="hidden sm:inline">Registrar manualmente</span></button>
+        <button type="button" onClick={() => setManualOpen(true)} aria-label="Agregar movimiento" title="Agregar movimiento" className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Agregar movimiento</button>
         <button
           type="button"
           onClick={handleExportCSV}

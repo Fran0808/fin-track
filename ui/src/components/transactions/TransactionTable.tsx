@@ -93,6 +93,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                               {categoryLabel}
                             </span>
                           )}
+                          {!categoryLabel && <span className="inline-flex rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 xl:hidden">Sin categoría</span>}
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                           <span>{getTransactionFlowLabel(transaction)}</span>
@@ -101,7 +102,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-4 py-3 xl:table-cell">{categoryLabel ? <span className="inline-flex rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">{categoryLabel}</span> : <span className="text-xs text-muted">Sin categoría</span>}</td>
+                  <td className="hidden px-4 py-3 xl:table-cell">{categoryLabel ? <span className="inline-flex rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">{categoryLabel}</span> : <span className="inline-flex rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Sin categoría</span>}</td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted sm:table-cell"><span className="block">{dateParts.date}</span><span className="mt-0.5 block text-xs">{dateParts.time}</span></td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted sm:table-cell">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</td>
                   <td className={`font-num break-words px-2 py-3 text-right text-xs font-semibold sm:whitespace-nowrap sm:px-4 sm:text-sm ${isIncome ? 'text-positive' : isTransfer ? 'text-muted' : 'text-ink'}`}>
@@ -120,16 +121,13 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
       </div>
 
       {pageData && <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
-        <details className="text-xs text-muted">
-          <summary className="w-fit rounded py-1 font-medium focus-visible:outline-2 focus-visible:outline-brand">Ver subtotal de esta página</summary>
-          <div role="group" aria-label="Esta página" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 pb-1">
+          <div role="group" aria-label="Esta página" className="flex flex-wrap gap-x-4 gap-y-1 py-1 text-xs text-muted">
             <span>{pageData.content.length} {pageData.content.length === 1 ? 'movimiento' : 'movimientos'} en esta página</span>
             {visibleMetrics.map(metric => {
               const cents = pageData.content.filter(t => t.flowType === metric.flow).reduce((total, t) => total + Math.round(t.amount * 100), 0);
               return <span key={metric.key}>{metric.label}: <strong className="font-num font-semibold text-ink">{formatCurrency(cents / 100)}</strong></span>;
             })}
           </div>
-        </details>
         {pageData.totalPages > 1 && <nav aria-label="Paginación de movimientos" className="flex items-center gap-3">
           <span className="text-xs text-muted">{pageData.number * pageData.size + 1}–{pageData.number * pageData.size + pageData.content.length} de {pageData.totalElements}</span>
           <div className="flex gap-2">
