@@ -17,7 +17,17 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
-## Current checkpoint: flat category architecture and UI modernization
+## Current checkpoint: flat category architecture and UI animations
+
+- Movement details sidebar transition and direct cell actions:
+  - Synchronized container space transition (`transition-[padding-right] duration-[250ms] ease-out`) with the Anime.js sidebar slide, eliminating the empty blank void during open/close.
+  - Softened animation curve and timing (`ease: 'outCubic'`, duration reduced to 250ms) to remove harsh initial acceleration and deceleration.
+  - Row click shows movement detail directly, and clicking the active movement toggles the sidebar closed with smooth exit animation.
+  - Dedicated pencil edit button in row actions opens sidebar in edit mode directly; removed back arrow and redundant pencil icon from sidebar header in edit mode.
+  - Persistent sidebar: selecting another movement while the sidebar is already open updates content in place without re-sliding the panel.
+  - Responsive header icon: replaced `X` with `ChevronRight` in sidebar mode matching the movement table row chevrons.
+  - Symmetrical exit animation via `triggerClose` and `onClosing` event callback.
+  - Checks: 147 UI Vitest tests passing, production build passed (575ms).
 
 - Subcategory retirement: removed the unused `parent_id` / `subcategories` hierarchy
   across backend and frontend in favor of a clean, flat category model.

@@ -15,7 +15,7 @@ interface TransactionsViewProps {
   exportFilters?: TransactionFilterParams;
   onFilterChange: (filters: Partial<TransactionFilterParams>) => void;
   onPageChange: (newPage: number) => void;
-  onSelectTransaction: (transaction: Transaction) => void;
+  onSelectTransaction: (transaction: Transaction, options?: { edit?: boolean }) => void;
   periodName?: string;
   onCreated?: (transaction: Transaction) => void;
 }

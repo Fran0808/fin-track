@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "animejs": "^4.5.0",
     "lucide-react": "^1.45.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",

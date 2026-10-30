@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import type { Transaction, TransactionPageResponse, FlowType } from '../../types';
 import { formatCurrency, formatTransactionDateParts, getChannelLabel, getTransactionFlowLabel } from '../../utils';
 import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
@@ -11,7 +11,7 @@ interface TransactionTableProps {
   loading: boolean;
   periodName?: string;
   onPageChange: (page: number) => void;
-  onSelectTransaction: (transaction: Transaction) => void;
+  onSelectTransaction: (transaction: Transaction, options?: { edit?: boolean }) => void;
 }
 
 function CategoryChip({ category, isTransfer, compact = false }: { category?: string | null; isTransfer: boolean; compact?: boolean }) {
@@ -115,7 +115,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
 
               return (
                 <tr key={transaction.id} aria-selected={selectedTransactionId === transaction.id}
-                  onClick={() => { if (!selectionDisabled) onSelectTransaction(transaction); }}
+                  onClick={() => { if (!selectionDisabled) onSelectTransaction(transaction, { edit: false }); }}
                   className={`transition-colors ${selectionDisabled ? 'cursor-wait' : 'cursor-pointer'} ${selectedTransactionId === transaction.id ? 'bg-brand/5 shadow-[inset_3px_0_0_var(--color-brand)]' : 'hover:bg-canvas/80'}`}>
                   <td className="px-3 py-3 sm:px-6">
                     <div className="flex items-start gap-3">
@@ -144,10 +144,37 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                     {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
                   </td>
                   <td className="px-1 py-3 text-right sm:px-6">
-                    <button type="button" disabled={selectionDisabled} onClick={event => { event.stopPropagation(); onSelectTransaction(transaction); }} aria-current={selectedTransactionId === transaction.id ? 'true' : undefined}
-                      className="rounded-lg px-1 py-2 text-brand hover:bg-brand/10 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-50 sm:px-2.5" aria-label={`Ver detalle de ${transaction.contactName || 'movimiento'}`}>
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      {transaction.reconciledToId == null && (
+                        <button
+                          type="button"
+                          disabled={selectionDisabled}
+                          onClick={event => {
+                            event.stopPropagation();
+                            onSelectTransaction(transaction, { edit: true });
+                          }}
+                          className="rounded-lg p-1.5 text-muted transition-colors hover:bg-canvas hover:text-brand focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-50"
+                          aria-label={`Editar ${transaction.contactName || 'movimiento'}`}
+                          title="Editar movimiento"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={selectionDisabled}
+                        onClick={event => {
+                          event.stopPropagation();
+                          onSelectTransaction(transaction, { edit: false });
+                        }}
+                        aria-current={selectedTransactionId === transaction.id ? 'true' : undefined}
+                        className="rounded-lg p-1.5 text-brand transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-50"
+                        aria-label={`Ver detalle de ${transaction.contactName || 'movimiento'}`}
+                        title="Ver detalle"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

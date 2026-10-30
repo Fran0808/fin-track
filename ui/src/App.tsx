@@ -69,6 +69,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
 
   const [activeView, setActiveView] = useDashboardNavigation();
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [sidebarClosing, setSidebarClosing] = useState(false);
   const [editingSelection, setEditingSelection] = useState(false);
   const [detailBusy, setDetailBusy] = useState(false);
   const [ruleDraft, setRuleDraft] = useState<ClassificationRuleDraft | null>(null);
@@ -79,6 +80,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const navigateView = (view: NavView) => {
     if (detailBusy) return;
     setSelectedTransaction(null);
+    setSidebarClosing(false);
     setActiveView(view);
   };
 
@@ -95,7 +97,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         />
       </div>
 
-      <div className={`flex min-w-0 flex-1 flex-col ${activeView === 'movimientos' && selectedTransaction ? 'xl:pr-[420px]' : ''}`}>
+      <div className={`flex min-w-0 flex-1 flex-col transition-[padding-right] duration-[250ms] ease-out ${activeView === 'movimientos' && selectedTransaction && !sidebarClosing ? 'xl:pr-[420px]' : 'xl:pr-0'}`}>
         <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur-md">
           <div className={`mx-auto flex min-h-20 flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 ${activeView === 'movimientos' ? 'max-w-none lg:px-8' : 'max-w-[1440px] lg:px-10'}`}>
             <div className="flex items-center gap-3">
@@ -196,8 +198,24 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               exportFilters={transactionFilters}
               onFilterChange={handleFilterChange}
               onPageChange={handlePageChange}
-              onSelectTransaction={transaction => { setEditingSelection(true); setSelectedTransaction(transaction); }}
-              onCreated={transaction => { setEditingSelection(false); setSelectedTransaction(transaction); void refreshAll(); }}
+              onSelectTransaction={(transaction, options) => {
+                const isCurrentlySelected = selectedTransaction?.id === transaction.id;
+                const wantsEdit = options?.edit ?? false;
+
+                if (isCurrentlySelected) {
+                  if (wantsEdit && !editingSelection) {
+                    setSidebarClosing(false);
+                    setEditingSelection(true);
+                  } else {
+                    if (!sidebarClosing) setSidebarClosing(true);
+                  }
+                } else {
+                  setSidebarClosing(false);
+                  setEditingSelection(wantsEdit);
+                  setSelectedTransaction(transaction);
+                }
+              }}
+              onCreated={transaction => { setSidebarClosing(false); setEditingSelection(false); setSelectedTransaction(transaction); void refreshAll(); }}
               periodName={`${selectedPeriod.month.toString().padStart(2, '0')}/${selectedPeriod.year}`}
             />
           )}
@@ -218,7 +236,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} startEditing={editingSelection} onBusyChange={setDetailBusy} onClose={() => setSelectedTransaction(null)} onCreateRule={setRuleDraft} onUpdated={transaction => {
+      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} startEditing={editingSelection} closing={sidebarClosing} onBusyChange={setDetailBusy} onClosing={() => setSidebarClosing(true)} onClose={() => { setSelectedTransaction(null); setSidebarClosing(false); }} onCreateRule={setRuleDraft} onUpdated={transaction => {
         setEditingSelection(false);
         setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
         void refreshAll();

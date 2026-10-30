@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, X, Loader2, Pencil, History, ListPlus } from 'lucide-react';
+import { Check, X, ChevronRight, Loader2, Pencil, History, ListPlus } from 'lucide-react';
+import { animate } from 'animejs';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment } from '../../utils';
 import { api } from '../../services/api';
@@ -14,18 +15,27 @@ interface TransactionDetailModalProps {
   startEditing?: boolean;
   onBusyChange?: (busy: boolean) => void;
   transaction: Transaction | null;
+  closing?: boolean;
+  onClosing?: () => void;
   onClose: () => void;
   onUpdated?: (transaction: Transaction) => void;
   onCreateRule?: (draft: ClassificationRuleDraft) => void;
 }
 
+const isInstantMotion = typeof window !== 'undefined' && (
+  (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ||
+  navigator.userAgent.includes('jsdom')
+);
+
 export function TransactionDetailModal(props: TransactionDetailModalProps) {
-  return props.transaction ? <TransactionDetailContent key={props.transaction.id} {...props} transaction={props.transaction} /> : null;
+  return props.transaction ? <TransactionDetailContent {...props} transaction={props.transaction} /> : null;
 }
 
-function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRule, presentation = 'modal', startEditing = false, onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
+function TransactionDetailContent({ transaction, closing = false, onClosing, onClose, onUpdated, onCreateRule, presentation = 'modal', startEditing = false, onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openedAs = useRef<'modal' | 'sidebar' | null>(null);
+  const isClosing = useRef(false);
+  const prevTxId = useRef(transaction.id);
   const [wideScreen, setWideScreen] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches);
   const { options: categoryOptions, loading: loadingCategories, error: categoryError, refresh: refreshCategories } = useCategories(true);
 
@@ -42,6 +52,84 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
   const [archived, setArchived] = useState(transaction.reconciledToId != null);
   const readOnly = transaction.reconciledToId != null || archived;
   const docked = presentation === 'sidebar' && wideScreen;
+
+  const triggerClose = () => {
+    if (busy || isClosing.current) return;
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      onClose();
+      return;
+    }
+
+    isClosing.current = true;
+    onClosing?.();
+
+    if (isInstantMotion) {
+      dialog.close();
+      onClose();
+      return;
+    }
+
+    if (docked) {
+      animate(dialog, {
+        translateX: ['0%', '100%'],
+        duration: 250,
+        ease: 'outCubic',
+        onComplete: () => {
+          dialog.close();
+          onClose();
+        },
+      });
+    } else {
+      animate(dialog, {
+        scale: [1, 0.96],
+        opacity: [1, 0],
+        duration: 160,
+        ease: 'inQuad',
+        onComplete: () => {
+          dialog.close();
+          onClose();
+        },
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (prevTxId.current !== transaction.id) {
+      prevTxId.current = transaction.id;
+      isClosing.current = false;
+      setCategory(transaction.category || '');
+      setSavedCategory(transaction.category || '');
+      setSaveSuccess(false);
+      setSaveError(null);
+      setIsSaving(false);
+      setReconciling(false);
+      setCorrecting(false);
+      setCorrectionMode(startEditing && presentation === 'sidebar' && transaction.reconciledToId == null ? 'edit' : null);
+      setArchived(transaction.reconciledToId != null);
+
+      const dialog = dialogRef.current;
+      if (dialog && !isInstantMotion) {
+        animate(dialog, {
+          translateX: '0%',
+          duration: 150,
+          ease: 'outCubic',
+        });
+      }
+    }
+  }, [transaction, startEditing, presentation]);
+
+  useEffect(() => {
+    if (startEditing && presentation === 'sidebar' && transaction.reconciledToId == null) {
+      setCorrectionMode('edit');
+    }
+  }, [startEditing, presentation, transaction.reconciledToId]);
+
+  useEffect(() => {
+    if (closing && !isClosing.current) {
+      triggerClose();
+    }
+  }, [closing]);
 
   useEffect(() => {
     if (presentation !== 'sidebar' || typeof window.matchMedia !== 'function') return;
@@ -64,6 +152,23 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
     if (!dialog.open) {
       if (docked) dialog.show(); else dialog.showModal();
       openedAs.current = mode;
+
+      if (!isInstantMotion) {
+        if (docked) {
+          animate(dialog, {
+            translateX: ['100%', '0%'],
+            duration: 250,
+            ease: 'outCubic',
+          });
+        } else {
+          animate(dialog, {
+            scale: [0.96, 1],
+            opacity: [0, 1],
+            duration: 200,
+            ease: 'outCubic',
+          });
+        }
+      }
     }
   }, [docked]);
 
@@ -99,23 +204,35 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
       ref={dialogRef}
       id="transaction-detail-panel"
       aria-modal={!docked}
-      onClose={event => { if (!event.currentTarget.open) onClose(); }}
-      onCancel={event => { if (busy) event.preventDefault(); }}
+      onClose={event => {
+        if (!event.currentTarget.open && !isClosing.current) onClose();
+      }}
+      onCancel={event => {
+        if (busy) {
+          event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        triggerClose();
+      }}
       onKeyDown={event => {
         if (!docked || event.key !== 'Escape' || busy || event.defaultPrevented) return;
         const field = event.target instanceof Element ? event.target.closest('select, input') : null;
         if (field && (!CSS.supports('selector(:open)') || field.matches(':open'))) return;
-        event.preventDefault(); dialogRef.current?.close();
+        event.preventDefault();
+        triggerClose();
       }}
       onClick={event => {
         if (docked || busy || event.target !== dialogRef.current) return;
         const bounds = event.currentTarget.getBoundingClientRect();
-        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) event.currentTarget.close();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) {
+          triggerClose();
+        }
       }}
       aria-labelledby="transaction-dialog-title"
       className={presentation === 'sidebar'
-        ? 'fixed inset-y-0 right-0 left-auto z-40 m-0 h-dvh max-h-none w-[min(100%,420px)] max-w-none overflow-y-auto border-0 border-l border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/30'
-        : 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40'}
+        ? 'fixed inset-y-0 right-0 left-auto z-40 m-0 h-dvh max-h-none w-[min(100%,420px)] max-w-none overflow-y-auto border-0 border-l border-line bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30 will-change-transform'
+        : 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40 will-change-transform'}
     >
       <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
         <div>
@@ -124,14 +241,16 @@ function TransactionDetailContent({ transaction, onClose, onUpdated, onCreateRul
           {correctionMode && <p className="mt-1 text-xs text-muted">{transaction.contactName}</p>}
         </div>
         <div className="flex items-center gap-1">
-          {onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
+          {presentation !== 'sidebar' && onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
           <button type="button" disabled={busy} onClick={() => setCorrectionMode('history')} aria-label="Historial de correcciones" title="Historial de correcciones" className="rounded-lg p-2 text-muted hover:bg-canvas disabled:opacity-50"><History className="h-5 w-5" /></button>
-          <button type="button" onClick={() => dialogRef.current?.close()} disabled={busy} aria-label="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink"><X className="h-5 w-5" /></button>
+          <button type="button" onClick={triggerClose} disabled={busy} aria-label="Cerrar detalle" title="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink">
+            {presentation === 'sidebar' ? <ChevronRight className="h-5 w-5" /> : <X className="h-5 w-5" />}
+          </button>
         </div>
       </div>
 
       <div className="px-6 py-5">
-        {correctionMode ? <fieldset disabled={busy}><TransactionCorrectionPanel key={correctionMode} transactionId={transaction.id} mode={correctionMode} onBack={() => setCorrectionMode(null)} onBusyChange={setCorrecting} onSaved={updated => { setCorrectionMode(null); onUpdated?.(updated); }} /></fieldset> : <>
+        {correctionMode ? <fieldset disabled={busy}><TransactionCorrectionPanel key={correctionMode} transactionId={transaction.id} mode={correctionMode} onBack={presentation === 'sidebar' && correctionMode === 'edit' ? undefined : () => setCorrectionMode(null)} onBusyChange={setCorrecting} onSaved={updated => { setCorrectionMode(null); onUpdated?.(updated); }} /></fieldset> : <>
         <p className={`font-display font-num text-3xl font-semibold tracking-tight ${isIncome ? 'text-positive' : isTransfer ? 'text-brand' : 'text-ink'}`}>
           {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
         </p>

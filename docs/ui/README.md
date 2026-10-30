@@ -4,6 +4,7 @@ Read [UI instructions](../../ui/AGENTS.md) before editing.
 
 | Work | Reference |
 | --- | --- |
+| End-user financial usefulness evaluation | [October 25 review](end-user-evaluation-2026-10-25.md) |
 | Entry points and dashboard commands | [UI README](../../ui/README.md) |
 | Authentication and payload changes | [Contracts](../architecture/contracts.md) |
 | Dashboard's role | [Architecture](../architecture/overview.md#dashboard-and-authentication) |
