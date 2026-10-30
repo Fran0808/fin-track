@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Smartphone } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Smartphone, Scale } from 'lucide-react';
 import type { PeriodAnalytics, Transaction } from '../../types';
 import { formatCurrency, formatRelativeDate, getChannelLabel } from '../../utils';
 import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
@@ -58,6 +58,16 @@ export function HomeView({
   const topCategory = analytics?.categoryBreakdown?.[0] ?? null;
   const totalMovements = analytics?.totalMovements ?? 0;
 
+  const netCents = Math.round(income * 100) - Math.round(expense * 100);
+  const netBalance = netCents / 100;
+  const isPositive = netCents > 0;
+  const isNegative = netCents < 0;
+
+  const prevIncome = analytics?.previousPeriodIncome;
+  const prevExpense = analytics?.previousPeriodExpense;
+  const hasPrevNet = prevIncome != null && prevExpense != null;
+  const prevNetBalance = hasPrevNet ? (Math.round(prevIncome * 100) - Math.round(prevExpense * 100)) / 100 : null;
+
   return (
     <div className="space-y-8">
       <div>
@@ -72,7 +82,7 @@ export function HomeView({
           if (event.target === event.currentTarget) onIntroComplete();
         }}
       >
-        <div className="grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
           <div className="p-6 sm:p-7">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-ink">
@@ -148,6 +158,53 @@ export function HomeView({
             {!loading && (
               <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
                 <span><strong className="font-semibold text-ink">{totalMovements}</strong> {totalMovements === 1 ? 'movimiento en el mes' : 'movimientos en el mes'}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 sm:p-7">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-ink">
+                <Scale className={`h-4 w-4 ${isPositive ? 'text-positive' : isNegative ? 'text-negative' : 'text-muted'}`} />
+                <p className="eyebrow">Balance neto</p>
+              </div>
+              {!loading && (
+                <span
+                  className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    isPositive
+                      ? 'bg-positive/10 text-positive'
+                      : isNegative
+                      ? 'bg-negative/10 text-negative'
+                      : 'bg-canvas text-muted'
+                  }`}
+                >
+                  {isPositive ? 'A favor' : isNegative ? 'En contra' : 'En equilibrio'}
+                </span>
+              )}
+            </div>
+            <p className={`font-display font-num mt-3 text-2xl font-semibold tracking-tight sm:text-3xl ${
+              isPositive ? 'text-positive' : isNegative ? 'text-negative' : 'text-ink'
+            }`}>
+              {loading
+                ? 'S/ …'
+                : `${isPositive ? '+ ' : isNegative ? '− ' : ''}${formatCurrency(Math.abs(netBalance))}`}
+            </p>
+            <p className="font-num mt-1.5 text-xs text-muted">
+              {loading
+                ? 'Calculando…'
+                : prevNetBalance != null
+                ? `Mes anterior: ${prevNetBalance > 0 ? '+ ' : prevNetBalance < 0 ? '− ' : ''}${formatCurrency(Math.abs(prevNetBalance))}`
+                : 'Diferencia neta entre entradas y gastos'}
+            </p>
+            {!loading && (
+              <div className="font-num mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
+                <span>
+                  {isPositive
+                    ? 'Superávit en el período'
+                    : isNegative
+                    ? 'Salidas superan a las entradas'
+                    : 'Ingresos y gastos igualados'}
+                </span>
               </div>
             )}
           </div>

@@ -146,6 +146,38 @@ it('reports a failed CSV export without downloading a partial page and supports 
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
+
+it('displays Balance neto with surplus or deficit and exact decimal difference in HomeView', () => {
+  const analytics: PeriodAnalytics = {
+    periodName: 'Octubre 2026', monthlyExpense: 1200.50, monthlyIncome: 2000.75, internalTransfersAmount: 0,
+    previousPeriodExpense: 1000, previousPeriodIncome: 1500, comparisonThroughDay: null,
+    dailyExpenses: [], totalMovements: 4,
+    lastExpenseMerchant: 'Shop', lastExpenseAmount: 50, lastExpenseDate: '2026-10-01T12:00:00',
+    topChannel: 'YAPE', topChannelAmount: 1200.50, topChannelPercentage: 100,
+    channelBreakdown: [], topMerchants: [], categoryBreakdown: [],
+  };
+  const { rerender } = render(
+    <HomeView analytics={analytics} recentTransactions={[]} loading={false}
+      onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()}
+      selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />
+  );
+  expect(screen.getByText('Balance neto')).toBeTruthy();
+  expect(screen.getByText('A favor')).toBeTruthy();
+  expect(screen.getByText('+ S/ 800.25')).toBeTruthy();
+  expect(screen.getByText('Mes anterior: + S/ 500.00')).toBeTruthy();
+  expect(screen.getByText('Superávit en el período')).toBeTruthy();
+
+  // Test deficit
+  rerender(
+    <HomeView analytics={{ ...analytics, monthlyExpense: 2500, monthlyIncome: 2000 }} recentTransactions={[]} loading={false}
+      onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()}
+      selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />
+  );
+  expect(screen.getByText('En contra')).toBeTruthy();
+  expect(screen.getByText('− S/ 500.00')).toBeTruthy();
+  expect(screen.getByText('Salidas superan a las entradas')).toBeTruthy();
+});
+
 it('renders semantic category color chips in HomeView recent movements and TransactionTable', () => {
   const categorizedTx: Transaction = { ...tx, id: 11, category: 'ALIMENTACION' };
   const uncategorizedTx: Transaction = { ...tx, id: 12, contactName: 'Tienda sin rubro', category: null };

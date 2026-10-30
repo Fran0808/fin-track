@@ -19,6 +19,13 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current checkpoint: flat category architecture and UI animations
 
+- Home monthly net balance summary card:
+  - Added dedicated 3rd metric card in `HomeView` displaying exact "Balance neto" (`income - expense`) with decimal precision.
+  - Dynamically indicates "Superávit en el período" (`A favor` badge in positive green) or "Salidas superan a las entradas" (`En contra` badge in negative), plus comparison with previous period net balance when available.
+  - Adjusted summary layout to responsive 3-column grid (`md:grid-cols-3`).
+  - Added regression test in `tests/dashboard-interactions.test.tsx`.
+  - Checks: 148 UI Vitest tests passing, production build passed (566ms).
+
 - Movement table instant tab transitions & flicker elimination:
   - Implemented per-flow tab memory cache and instant derivation in `TransactionTable`: switching between "Todos", "Gastos", "Entradas" and "Transferencias" renders immediately with the correct matching rows and summary numbers instead of flashing mismatched stale data.
   - Removed disruptive "Actualizando..." text under the header that was causing vertical layout jitter.
