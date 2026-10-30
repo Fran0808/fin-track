@@ -19,6 +19,13 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current checkpoint: flat category architecture and UI animations
 
+- Movement table instant tab transitions & flicker elimination:
+  - Implemented per-flow tab memory cache and instant derivation in `TransactionTable`: switching between "Todos", "Gastos", "Entradas" and "Transferencias" renders immediately with the correct matching rows and summary numbers instead of flashing mismatched stale data.
+  - Removed disruptive "Actualizando..." text under the header that was causing vertical layout jitter.
+  - Added accessible pulsing skeleton placeholder rows during cold loads to prevent layout collapse.
+  - Added `animate-pop` to the `Limpiar filtros` button in `TransactionFilters` to eliminate toolbar jumps.
+  - Checks: 147 UI Vitest tests passing, production build passed (589ms).
+
 - UI Micro-interactions and Animation Harmonization:
   - Collapsible CSS grid accordion animation (250ms) for the advanced filters toolbar in Movements.
   - Smooth 200ms segmented control button transitions in Movements (flow filter) and Analysis (donut/bars view).

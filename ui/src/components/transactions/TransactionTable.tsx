@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import type { Transaction, TransactionPageResponse, FlowType } from '../../types';
 import { formatCurrency, formatTransactionDateParts, getChannelLabel, getTransactionFlowLabel } from '../../utils';
@@ -56,6 +57,42 @@ function CategoryChip({ category, isTransfer, compact = false }: { category?: st
 }
 
 export function TransactionTable({ pageData, flowType, loading, periodName, onPageChange, onSelectTransaction, selectedTransactionId, selectionDisabled = false }: TransactionTableProps) {
+  const cacheByFlow = useRef<Map<string, TransactionPageResponse>>(new Map());
+  const prevPeriodRef = useRef(periodName);
+
+  if (prevPeriodRef.current !== periodName) {
+    prevPeriodRef.current = periodName;
+    cacheByFlow.current.clear();
+  }
+
+  const currentFlowKey = flowType || '';
+
+  if (pageData) {
+    cacheByFlow.current.set(currentFlowKey, pageData);
+    if (currentFlowKey === '') {
+      for (const key of ['EXPENSE', 'INCOME', 'INTERNAL_TRANSFER']) {
+        cacheByFlow.current.delete(key);
+      }
+    }
+  }
+
+  let displayData: TransactionPageResponse | null = pageData;
+  if (!displayData) {
+    if (cacheByFlow.current.has(currentFlowKey)) {
+      displayData = cacheByFlow.current.get(currentFlowKey)!;
+    } else if (currentFlowKey && cacheByFlow.current.has('') && cacheByFlow.current.get('')!.number === 0) {
+      const allData = cacheByFlow.current.get('')!;
+      const filtered = allData.content.filter(t => t.flowType === currentFlowKey);
+      displayData = {
+        ...allData,
+        content: filtered,
+        totalElements: filtered.length,
+        totalPages: 1,
+        number: 0,
+      };
+      cacheByFlow.current.set(currentFlowKey, displayData);
+    }
+  }
   const metrics = [
     { flow: 'EXPENSE', key: 'totalExpense', label: 'Gastos' },
     { flow: 'INCOME', key: 'totalIncome', label: 'Entradas' },
@@ -70,18 +107,18 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
     <div className="@container">
       <div className="flex flex-col gap-4 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6" aria-busy={loading}>
         <div className="shrink-0">
-          <h2 className="font-display text-base font-semibold">{pageData ? `${pageData.totalElements} ${pageData.totalElements === 1 ? 'movimiento' : 'movimientos'}` : 'Cargando movimientos'}</h2>
+          <h2 className="font-display text-base font-semibold">{displayData ? `${displayData.totalElements} ${displayData.totalElements === 1 ? 'movimiento' : 'movimientos'}` : 'Cargando movimientos'}</h2>
           {scope && <p className="mt-1 text-xs text-muted">{scope}</p>}
-          {loading && pageData && <p role="status" className="mt-1 text-xs text-brand">Actualizando...</p>}
+          
         </div>
-        {pageData && (pageData.summary ? (
+        {displayData && (displayData.summary ? (
           <div role="group" aria-label="Total del filtro">
             <p className="sr-only">Totales de todos los resultados de la búsqueda, no solo de esta página.</p>
             <dl className="grid grid-cols-3 gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-end sm:gap-x-8">
               {visibleMetrics.map(metric => (
                 <div key={metric.key} className="min-w-0">
                   <dt className="min-h-8 text-xs text-muted sm:min-h-0">{metric.label}</dt>
-                  <dd className={`font-num mt-0.5 break-words text-base font-semibold sm:text-lg ${metric.flow === 'INCOME' ? 'text-positive' : 'text-ink'}`}>{formatCurrency(pageData.summary![metric.key])}</dd>
+                  <dd className={`font-num mt-0.5 break-words text-base font-semibold sm:text-lg ${metric.flow === 'INCOME' ? 'text-positive' : 'text-ink'}`}>{formatCurrency(displayData.summary![metric.key])}</dd>
                 </div>
               ))}
             </dl>
@@ -103,11 +140,43 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
             </tr>
           </thead>
           <tbody className="divide-y divide-line/60">
-            {loading && !pageData ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-muted">Cargando movimientos...</td></tr>
-            ) : !pageData?.content.length ? (
+            {loading && !displayData ? (
+              <>
+                <tr className="sr-only">
+                  <td colSpan={6}>Cargando movimientos...</td>
+                </tr>
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse" aria-hidden="true">
+                    <td className="px-3 py-3.5 sm:px-6">
+                      <div className="flex items-start gap-3">
+                        <div className="hidden h-8 w-8 shrink-0 rounded-lg bg-line/60 sm:block" />
+                        <div className="space-y-2 py-1">
+                          <div className="h-4 w-32 rounded bg-line/60" />
+                          <div className="h-3 w-20 rounded bg-line/40" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="hidden px-4 py-3 @4xl:table-cell">
+                      <div className="h-5 w-24 rounded-full bg-line/50" />
+                    </td>
+                    <td className="hidden px-4 py-3 @2xl:table-cell">
+                      <div className="h-4 w-16 rounded bg-line/50" />
+                    </td>
+                    <td className="hidden px-4 py-3 @2xl:table-cell">
+                      <div className="h-4 w-20 rounded bg-line/50" />
+                    </td>
+                    <td className="px-2 py-3 text-right sm:px-4">
+                      <div className="ml-auto h-4 w-16 rounded bg-line/60" />
+                    </td>
+                    <td className="px-1 py-3 text-right sm:px-6">
+                      <div className="ml-auto h-5 w-5 rounded bg-line/40" />
+                    </td>
+                  </tr>
+                ))}
+              </>
+            ) : !displayData?.content.length ? (
               <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-muted">No se encontraron movimientos. Prueba otro período o ajusta los filtros.</td></tr>
-            ) : pageData.content.map((transaction) => {
+            ) : displayData.content.map((transaction) => {
               const isIncome = transaction.flowType === 'INCOME';
               const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
               const Icon = isIncome ? ArrowDownLeft : isTransfer ? ArrowLeftRight : ArrowUpRight;
@@ -183,19 +252,19 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
         </table>
       </div>
 
-      {pageData && <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
+      {displayData && <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
           <div role="group" aria-label="Esta página" className="flex flex-wrap gap-x-4 gap-y-1 py-1 text-xs text-muted">
-            <span>{pageData.content.length} {pageData.content.length === 1 ? 'movimiento' : 'movimientos'} en esta página</span>
+            <span>{displayData.content.length} {displayData.content.length === 1 ? 'movimiento' : 'movimientos'} en esta página</span>
             {visibleMetrics.map(metric => {
-              const cents = pageData.content.filter(t => t.flowType === metric.flow).reduce((total, t) => total + Math.round(t.amount * 100), 0);
+              const cents = displayData.content.filter(t => t.flowType === metric.flow).reduce((total, t) => total + Math.round(t.amount * 100), 0);
               return <span key={metric.key}>{metric.label}: <strong className="font-num font-semibold text-ink">{formatCurrency(cents / 100)}</strong></span>;
             })}
           </div>
-        {pageData.totalPages > 1 && <nav aria-label="Paginación de movimientos" className="flex items-center gap-3">
-          <span className="text-xs text-muted">{pageData.number * pageData.size + 1}–{pageData.number * pageData.size + pageData.content.length} de {pageData.totalElements}</span>
+        {displayData.totalPages > 1 && <nav aria-label="Paginación de movimientos" className="flex items-center gap-3">
+          <span className="text-xs text-muted">{displayData.number * displayData.size + 1}–{displayData.number * displayData.size + displayData.content.length} de {displayData.totalElements}</span>
           <div className="flex gap-2">
-            <button type="button" onClick={() => onPageChange(pageData.number - 1)} disabled={pageData.number === 0 || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => onPageChange(pageData.number + 1)} disabled={pageData.number + 1 >= pageData.totalPages || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></button>
+            <button type="button" onClick={() => onPageChange(displayData.number - 1)} disabled={displayData.number === 0 || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></button>
+            <button type="button" onClick={() => onPageChange(displayData.number + 1)} disabled={displayData.number + 1 >= displayData.totalPages || loading} className="rounded-lg border border-line p-2 text-ink hover:bg-canvas disabled:opacity-40" aria-label="Página siguiente"><ChevronRight className="h-4 w-4" /></button>
           </div>
         </nav>}
       </div>}

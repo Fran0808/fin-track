@@ -313,7 +313,7 @@ export function TransactionFilters({
               setLocalSearch('');
               onReset();
             }}
-            className="inline-flex items-center gap-1 text-xs font-medium text-muted transition hover:text-negative"
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted transition hover:text-negative animate-pop"
           >
             <X className="h-3.5 w-3.5" />
             Limpiar filtros
