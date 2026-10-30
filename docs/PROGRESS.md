@@ -134,7 +134,9 @@ See [README](../README.md), [architecture](architecture/overview.md) and
     movement count. Grouped sidebar navigation into Seguimiento and Gestión with
     active pill indicator, made the top header sticky with backdrop blur, added
     subtle layered elevation to .surface cards, and added quick previous/next
-    month steppers to PeriodSelector.
+    month steppers to PeriodSelector. Unified semantic category color chips
+    across TransactionTable and HomeView recent movements, with distinct dashed
+    styling for uncategorized expenses.
   - Removed all `FinancialInstrument` UI views/components (`InstrumentsView`,
     `InstrumentForm`, `InstrumentAssignment`), navigation entries (`tarjetas`),
     manual-entry/reconciliation product fields, `INSTRUMENT` review filter, API

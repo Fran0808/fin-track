@@ -145,3 +145,23 @@ it('reports a failed CSV export without downloading a partial page and supports 
   expect(exportCsv).toHaveBeenLastCalledWith(filters);
   expect(screen.queryByRole('alert')).toBeNull();
 });
+
+it('renders semantic category color chips in HomeView recent movements and TransactionTable', () => {
+  const categorizedTx: Transaction = { ...tx, id: 11, category: 'ALIMENTACION' };
+  const uncategorizedTx: Transaction = { ...tx, id: 12, contactName: 'Tienda sin rubro', category: null };
+  const analytics: PeriodAnalytics = {
+    periodName: 'Octubre 2026', monthlyExpense: 100, monthlyIncome: 0, internalTransfersAmount: 0,
+    previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 2,
+    lastExpenseMerchant: 'Synthetic', lastExpenseAmount: 10, lastExpenseDate: '2026-10-01T12:00:00',
+    topChannel: 'YAPE', topChannelAmount: 100, topChannelPercentage: 100,
+    channelBreakdown: [], topMerchants: [], categoryBreakdown: [],
+  };
+  render(
+    <>
+      <HomeView analytics={analytics} recentTransactions={[categorizedTx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />
+      <TransactionsView pageData={{ ...page, content: [categorizedTx, uncategorizedTx] }} loading={false} filters={{}} onFilterChange={() => {}} onPageChange={() => {}} onSelectTransaction={() => {}} />
+    </>
+  );
+  expect(screen.getAllByText('Alimentación y bebidas').length).toBeGreaterThanOrEqual(2);
+  expect(screen.getAllByText('Sin categoría').length).toBeGreaterThanOrEqual(1);
+});

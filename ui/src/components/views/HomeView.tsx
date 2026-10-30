@@ -1,7 +1,7 @@
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Smartphone } from 'lucide-react';
 import type { PeriodAnalytics, Transaction } from '../../types';
 import { formatCurrency, formatRelativeDate, getChannelLabel } from '../../utils';
-import { getCategoryLabel } from '../../utils/categoryColors';
+import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
 
 interface HomeViewProps {
   analytics: PeriodAnalytics | null;
@@ -131,6 +131,8 @@ export function HomeView({
                 const isIncome = transaction.flowType === 'INCOME';
                 const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
                 const Icon = isIncome ? ArrowDownLeft : isTransfer ? ArrowLeftRight : ArrowUpRight;
+                const hasCategory = Boolean(transaction.category && transaction.category.trim());
+                const categoryColor = hasCategory ? getCategoryColor(transaction.category) : null;
                 return (
                   <button
                     key={transaction.id}
@@ -143,7 +145,21 @@ export function HomeView({
                         <Icon className="h-[18px] w-[18px]" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-ink">{transaction.contactName || 'Movimiento'}</span>
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="block truncate text-sm font-semibold text-ink">{transaction.contactName || 'Movimiento'}</span>
+                          {hasCategory && categoryColor && (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold text-ink"
+                              style={{
+                                backgroundColor: `${categoryColor}14`,
+                                borderColor: `${categoryColor}38`,
+                              }}
+                            >
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: categoryColor }} aria-hidden="true" />
+                              {getCategoryLabel(transaction.category)}
+                            </span>
+                          )}
+                        </span>
                         <span className="mt-0.5 block truncate text-xs text-muted">{getChannelLabel(transaction.channel)} · {formatRelativeDate(transaction.transactionDate)}</span>
                       </span>
                     </span>

@@ -1,7 +1,7 @@
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Transaction, TransactionPageResponse, FlowType } from '../../types';
-import { STANDARD_CATEGORIES } from '../../types';
 import { formatCurrency, formatTransactionDateParts, getChannelLabel, getTransactionFlowLabel } from '../../utils';
+import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
 
 interface TransactionTableProps {
   selectedTransactionId?: number;
@@ -14,10 +14,45 @@ interface TransactionTableProps {
   onSelectTransaction: (transaction: Transaction) => void;
 }
 
-function getCategoryLabel(categoryId?: string | null): string | null {
-  if (!categoryId) return null;
-  const found = STANDARD_CATEGORIES.find((c) => c.id === categoryId);
-  return found ? found.label : categoryId;
+function CategoryChip({ category, isTransfer, compact = false }: { category?: string | null; isTransfer: boolean; compact?: boolean }) {
+  const hasCategory = Boolean(category && category.trim());
+  if (hasCategory) {
+    const label = getCategoryLabel(category);
+    const color = getCategoryColor(category);
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border font-semibold text-ink ${
+          compact ? 'px-2 py-0.5 text-[10px] @4xl:hidden' : 'px-2.5 py-0.5 text-xs'
+        }`}
+        style={{
+          backgroundColor: `${color}14`,
+          borderColor: `${color}38`,
+        }}
+      >
+        <span
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ backgroundColor: color }}
+          aria-hidden="true"
+        />
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border font-medium ${
+        compact ? 'px-2 py-0.5 text-[10px] @4xl:hidden' : 'px-2.5 py-0.5 text-xs'
+      } ${
+        isTransfer
+          ? 'border-line bg-canvas text-muted'
+          : 'border-dashed border-amber-500/55 bg-amber-500/10 text-amber-900'
+      }`}
+    >
+      {!isTransfer && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden="true" />}
+      Sin categoría
+    </span>
+  );
 }
 
 export function TransactionTable({ pageData, flowType, loading, periodName, onPageChange, onSelectTransaction, selectedTransactionId, selectionDisabled = false }: TransactionTableProps) {
@@ -76,7 +111,6 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
               const isIncome = transaction.flowType === 'INCOME';
               const isTransfer = transaction.flowType === 'INTERNAL_TRANSFER';
               const Icon = isIncome ? ArrowDownLeft : isTransfer ? ArrowLeftRight : ArrowUpRight;
-              const categoryLabel = getCategoryLabel(transaction.category);
               const dateParts = formatTransactionDateParts(transaction.transactionDate);
 
               return (
@@ -92,12 +126,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="block max-w-full truncate text-sm font-semibold text-ink sm:max-w-56">{transaction.contactName || 'Movimiento'}</span>
                           {transaction.captureOrigin === 'MANUAL' && <span className="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold text-muted">Manual</span>}
-                          {categoryLabel && (
-                            <span className="inline-flex items-center rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand @4xl:hidden">
-                              {categoryLabel}
-                            </span>
-                          )}
-                          {!categoryLabel && <span className="inline-flex rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 @4xl:hidden">Sin categoría</span>}
+                          <CategoryChip category={transaction.category} isTransfer={isTransfer} compact />
                         </div>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                           <span>{getTransactionFlowLabel(transaction)}</span>
@@ -106,7 +135,9 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                       </div>
                     </div>
                   </td>
-                  <td className="hidden px-4 py-3 @4xl:table-cell">{categoryLabel ? <span className="inline-flex rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">{categoryLabel}</span> : <span className="inline-flex rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Sin categoría</span>}</td>
+                  <td className="hidden px-4 py-3 @4xl:table-cell">
+                    <CategoryChip category={transaction.category} isTransfer={isTransfer} />
+                  </td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted @2xl:table-cell"><span className="block">{dateParts.date}</span><span className="mt-0.5 block text-xs">{dateParts.time}</span></td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted @2xl:table-cell">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</td>
                   <td className={`font-num break-words px-2 py-3 text-right text-xs font-semibold @2xl:whitespace-nowrap sm:px-4 sm:text-sm ${isIncome ? 'text-positive' : isTransfer ? 'text-muted' : 'text-ink'}`}>
