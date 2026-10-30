@@ -17,6 +17,7 @@ import type { Category, CategoryRequest } from '../../types';
 import { api } from '../../services/api';
 import { CategoryIcon } from '../categories/CategoryIcon';
 import { CategoryModal } from '../categories/CategoryModal';
+import { getCategoryColor } from '../../utils/categoryColors';
 
 export function CategoriesView() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -239,21 +240,21 @@ export function CategoriesView() {
       )}
 
       {/* Header bar with FinTrack Identity */}
-      <section className="rounded-2xl border border-line bg-white p-6 shadow-xs">
+      <section className="surface p-6 sm:p-7 shadow-xs">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-start gap-3.5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand shrink-0">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand shrink-0 shadow-2xs">
               <Tags className="h-6 w-6" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Categorías</h1>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">Categorías</h1>
                 <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-semibold text-brand">
                   {categories.length} en total
                 </span>
               </div>
               <p className="mt-1 text-sm text-muted">
-                Personaliza tus categorías y decide cuáles del sistema deseas tener activas para la clasificación de tus movimientos.
+                Personaliza tus categorías y decide cuáles del sistema deseas tener activas para clasificar tus movimientos.
               </p>
             </div>
           </div>
@@ -285,7 +286,7 @@ export function CategoriesView() {
             <button
               type="button"
               onClick={() => openCreateModal(null)}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-brand/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <Plus className="h-4 w-4" />
               <span>Nueva categoría</span>
@@ -332,7 +333,7 @@ export function CategoriesView() {
             </div>
 
             {filteredUserCategories.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-line bg-canvas/40 p-8 text-center">
+              <div className="surface border-2 border-dashed border-line bg-canvas/40 p-8 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-muted shadow-xs">
                   <FolderPlus className="h-6 w-6 text-brand" />
                 </div>
@@ -360,19 +361,20 @@ export function CategoriesView() {
                 {filteredUserCategories.map((cat) => {
                   const hasSub = cat.subcategories && cat.subcategories.length > 0;
                   const isExpanded = expandedIds.has(cat.id);
+                  const resolvedColor = cat.color || getCategoryColor(cat.name);
 
                   return (
                     <div
                       key={cat.id}
-                      className="group rounded-2xl border border-line bg-white p-4 shadow-xs transition hover:border-brand/30"
+                      className="surface p-4 shadow-2xs transition hover:border-brand/40"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                            style={{ backgroundColor: `${cat.color || '#10B981'}15`, color: cat.color || '#10B981' }}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-2xs"
+                            style={{ backgroundColor: `${resolvedColor}18`, color: resolvedColor }}
                           >
-                            <CategoryIcon name={cat.icon} className="h-4 w-4" />
+                            <CategoryIcon name={cat.icon} className="h-4.5 w-4.5" />
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-ink">{cat.name}</p>
@@ -443,7 +445,10 @@ export function CategoriesView() {
                               className="flex items-center justify-between text-xs py-1"
                             >
                               <div className="flex items-center gap-2">
-                                <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: resolvedColor }}
+                                />
                                 <span className="font-medium text-ink">{sub.name}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -486,18 +491,18 @@ export function CategoriesView() {
                   </span>
                 </div>
                 <p className="text-xs text-muted">
-                  Las que apagues dejan de usarse al sugerir y clasificar transacciones.
+                  Las que desactives dejan de usarse al sugerir y clasificar transacciones.
                 </p>
               </div>
 
               {/* Status Filter Tabs */}
-              <div className="flex items-center rounded-xl bg-canvas p-1 border border-line/80 self-start sm:self-auto">
+              <div className="flex items-center rounded-xl bg-canvas p-1 border border-line/80 shadow-2xs self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setSystemFilter('all')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     systemFilter === 'all'
-                      ? 'bg-white text-ink shadow-xs'
+                      ? 'bg-white text-ink shadow-2xs'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -508,7 +513,7 @@ export function CategoriesView() {
                   onClick={() => setSystemFilter('active')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     systemFilter === 'active'
-                      ? 'bg-white text-ink shadow-xs'
+                      ? 'bg-white text-ink shadow-2xs'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -519,7 +524,7 @@ export function CategoriesView() {
                   onClick={() => setSystemFilter('inactive')}
                   className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                     systemFilter === 'inactive'
-                      ? 'bg-white text-ink shadow-xs'
+                      ? 'bg-white text-ink shadow-2xs'
                       : 'text-muted hover:text-ink'
                   }`}
                 >
@@ -529,131 +534,131 @@ export function CategoriesView() {
             </div>
 
             {filteredSystemCategories.length === 0 ? (
-              <div className="rounded-2xl border border-line bg-white p-8 text-center text-muted">
+              <div className="surface p-8 text-center text-muted">
                 <p className="text-sm">No se encontraron categorías del sistema con los filtros actuales.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                {filteredSystemCategories.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className={`flex items-center justify-between rounded-xl border p-3 shadow-2xs transition ${
-                      cat.active
-                        ? 'border-line bg-white hover:border-brand/30'
-                        : 'border-line/60 bg-canvas/50 opacity-75'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                      <div
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                        style={{
-                          backgroundColor: `${cat.color || '#64748B'}15`,
-                          color: cat.color || '#64748B',
-                        }}
-                      >
-                        <CategoryIcon name={cat.icon} className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className={`truncate text-sm font-semibold ${cat.active ? 'text-ink' : 'text-muted line-through'}`}>
-                          {cat.name}
-                        </p>
-                        <p className="text-[11px] text-muted">
-                          {cat.active ? 'Activa para sugerencias' : 'Apagada'}
-                        </p>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {filteredSystemCategories.map((cat) => {
+                  const resolvedColor = cat.color || getCategoryColor(cat.name);
 
-                    {/* Toggle Switch */}
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={cat.active}
-                      aria-label={`Alternar categoría del sistema ${cat.name}`}
-                      onClick={() => handleToggle(cat)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
-                        cat.active ? 'bg-brand' : 'bg-slate-300'
+                  return (
+                    <div
+                      key={cat.id}
+                      className={`surface flex items-center justify-between p-3.5 shadow-2xs transition ${
+                        cat.active
+                          ? 'hover:border-brand/40'
+                          : 'opacity-65 bg-canvas/60'
                       }`}
                     >
-                      <span
-                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
-                          cat.active ? 'translate-x-4.5 mt-0.5' : 'translate-x-0.5 mt-0.5'
+                      <div className="flex items-center gap-3 min-w-0 pr-2">
+                        <div
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-2xs"
+                          style={{
+                            backgroundColor: `${resolvedColor}18`,
+                            color: resolvedColor,
+                          }}
+                        >
+                          <CategoryIcon name={cat.icon} className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`truncate text-sm font-semibold ${cat.active ? 'text-ink' : 'text-muted line-through'}`}>
+                            {cat.name}
+                          </p>
+                          <p className="text-[11px] text-muted">
+                            {cat.active ? 'Activa para sugerencias' : 'Apagada'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Toggle Switch */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={cat.active}
+                        aria-label={`Alternar categoría del sistema ${cat.name}`}
+                        onClick={() => handleToggle(cat)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand/20 ${
+                          cat.active ? 'bg-brand' : 'bg-slate-300'
                         }`}
-                      />
-                    </button>
-                  </div>
-                ))}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
+                            cat.active ? 'translate-x-4.5 mt-0.5' : 'translate-x-0.5 mt-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Category Create/Edit Modal */}
-      <CategoryModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSaveCategory}
-        parentOptions={userCategories}
-        initialCategory={editingCategory}
-        defaultParentId={defaultParentId}
-      />
+      {/* Category Creation / Edit Modal */}
+      {modalOpen && (
+        <CategoryModal
+          isOpen={modalOpen}
+          initialCategory={editingCategory}
+          defaultParentId={defaultParentId}
+          parentOptions={userCategories}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSaveCategory}
+        />
+      )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Dialog */}
       <dialog
         ref={deleteDialogRef}
         role="alertdialog"
+        aria-modal="true"
         aria-labelledby="delete-dialog-title"
-        onClose={() => {
-          setCategoryToDelete(null);
-          setDeleteError(null);
-        }}
-        onClick={(e) => {
-          if (e.target === deleteDialogRef.current) {
-            setCategoryToDelete(null);
-            setDeleteError(null);
-          }
-        }}
-        className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-line bg-white p-6 shadow-xl backdrop:bg-ink/40 text-ink"
+        onCancel={() => setCategoryToDelete(null)}
+        className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border border-line bg-white p-6 shadow-2xl backdrop:bg-ink/40"
       >
-        {categoryToDelete && (
+        <div className="flex items-start gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-negative/10 text-negative">
+            <Trash2 className="h-5 w-5" />
+          </div>
           <div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-negative/10 text-negative">
-              <Trash2 className="h-5 w-5" />
-            </div>
-            <h3 id="delete-dialog-title" className="mt-4 font-display text-base font-bold text-ink">
+            <h2 id="delete-dialog-title" className="font-display text-lg font-bold text-ink">
               ¿Eliminar categoría?
-            </h3>
-            <p className="mt-1 text-xs text-muted leading-relaxed">
-              Estás a punto de eliminar la categoría <strong>{categoryToDelete.name}</strong>. Esta acción no se puede deshacer.
+            </h2>
+            <p className="mt-1.5 text-sm text-muted">
+              ¿Estás seguro de que deseas eliminar la categoría{' '}
+              <strong className="text-ink">{categoryToDelete?.name}</strong>? Los movimientos asociados conservarán
+              el nombre asignado, pero ya no aparecerá como opción en el catálogo.
             </p>
-            {deleteError && (
-              <p role="alert" className="mt-3 text-xs font-medium text-negative">
-                {deleteError}
-              </p>
-            )}
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setCategoryToDelete(null);
-                  setDeleteError(null);
-                }}
-                className="rounded-xl border border-line px-3.5 py-2 text-xs font-semibold text-muted hover:bg-canvas hover:text-ink"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={handleDeleteCategory}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-negative px-4 py-2 text-xs font-semibold text-white hover:bg-negative/90 disabled:opacity-50"
-              >
-                {isDeleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                Eliminar
-              </button>
-            </div>
+          </div>
+        </div>
+
+        {deleteError && (
+          <div role="alert" className="mt-4 rounded-xl border border-negative/20 bg-negative/5 p-3 text-xs text-negative">
+            {deleteError}
           </div>
         )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setCategoryToDelete(null)}
+            disabled={isDeleting}
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleDeleteCategory}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-2 rounded-xl bg-negative px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-negative/90 disabled:opacity-50"
+          >
+            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+            <span>Eliminar</span>
+          </button>
+        </div>
       </dialog>
     </div>
   );
