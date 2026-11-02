@@ -14,9 +14,10 @@ interface MyMoneyViewProps {
   onSelectMerchant?: (merchantName: string) => void;
   onSelectCategory?: (category: string | null) => void;
   onSelectDay?: (day: number) => void;
+  onSelectDateRange?: (startDate: string, endDate: string) => void;
 }
 
-export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory, onSelectDay }: MyMoneyViewProps) {
+export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, onSelectMerchant, onSelectCategory, onSelectDay, onSelectDateRange }: MyMoneyViewProps) {
   const [categoryView, setCategoryView] = useState<'donut' | 'bars'>('donut');
   const period = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric' }).format(new Date(selectedYear, selectedMonth - 1, 1));
 
@@ -35,10 +36,24 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
       <section className="surface p-6 sm:p-7" aria-labelledby="expense-trend-heading">
         <div className="mb-5 border-b border-line pb-4">
           <p className="eyebrow">Evolución</p>
-          <h2 id="expense-trend-heading" className="font-display mt-1 text-xl font-semibold">Gastos por día</h2>
-          <p className="mt-1 text-sm text-muted">Consulta el gasto diario o el acumulado de {period}.</p>
+          <h2 id="expense-trend-heading" className="font-display mt-1 text-xl font-semibold">Evolución de gastos</h2>
+          <p className="mt-1 text-sm text-muted">Consulta el gasto diario o semanal de {period}.</p>
         </div>
-        {loading ? <p className="py-12 text-sm text-muted" role="status">Calculando evolución...</p> : <ExpenseTrendChart points={analytics?.dailyExpenses ?? []} monthLabel={period} onSelectDay={onSelectDay} />}
+        {loading ? (
+          <p className="py-12 text-sm text-muted" role="status">Calculando evolución...</p>
+        ) : (
+          <ExpenseTrendChart
+            points={analytics?.dailyExpenses ?? []}
+            monthLabel={period}
+            onSelectDay={onSelectDay}
+            onSelectWeekRange={onSelectDateRange ? (startDay, endDay) => {
+              const pad = (n: number) => String(n).padStart(2, '0');
+              const start = `${selectedYear}-${pad(selectedMonth)}-${pad(startDay)}T00:00:00`;
+              const end = `${selectedYear}-${pad(selectedMonth)}-${pad(endDay)}T23:59:59.999999`;
+              onSelectDateRange(start, end);
+            } : undefined}
+          />
+        )}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">

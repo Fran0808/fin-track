@@ -195,6 +195,10 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 showDayTransactions(dateIso);
                 setActiveView('movimientos');
               }}
+              onSelectDateRange={(startDate, endDate) => {
+                handleFilterChange({ startDate, endDate, allHistory: false });
+                setActiveView('movimientos');
+              }}
             />
           )}
           {activeView === 'movimientos' && (
