@@ -65,6 +65,20 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 
 ## Current checkpoint: flat category architecture and UI animations
 
+- Redesigned weekly expense evolution breakdown cards:
+  - Replaced raw SVG bars in weekly mode with an interactive 5-column financial card grid in `ExpenseTrendChart`.
+  - Solved text collisions (Y-axis vs bar labels) and disproportionate emptiness by giving each week a dedicated container card with header (Sem X, date range), vertical fill gauge track (`h-32 rounded-xl bg-canvas`), bold amount, and percentage share.
+  - Added subtle "Mayor" tag on the peak week of the month and smooth hover/focus elevation with "Ver →" action link.
+  - Improved daily chart SVG geometry with top margin protection to prevent high-amount bar collision with the maximum value label.
+  - Checks: 150 UI Vitest tests passing, production build passed (583ms).
+
+- Weekly expense evolution chart (Diario | Semanal):
+  - Replaced the little-used cumulative line mode with a dedicated "Semanal" mode in `ExpenseTrendChart`, offering a clean `[ Diario | Semanal ]` segmented control.
+  - Aggregates daily expenses into 4–5 proportional weekly bars (Sem 1: 1–7, Sem 2: 8–14, Sem 3: 15–21, Sem 4: 22–28, Sem 5: 29–31) with precise cent summation, visible values on top, and percentage shares.
+  - Enables direct drill-down: clicking or pressing Enter on a weekly bar filters Movimientos for that exact week's date range.
+  - Updated regression coverage in `tests/expense-trend.test.tsx`.
+  - Checks: 150 UI Vitest tests passing, production build passed (590ms).
+
 - Smooth PeriodSelector transition between Seguimiento and Gestión:
   - Added functional 200ms ease-out horizontal collapse/expansion animation (`max-w-64 opacity-100 scale-100` vs `max-w-0 opacity-0 scale-95 pointer-events-none invisible -mr-3 sm:-mr-5`) for `PeriodSelector` in `App.tsx`.
   - Replaced abrupt unmount/mount with a smooth glide when navigating between Seguimiento (where the date selector is active) and Gestión (where it is hidden), smoothly translating the separator and user profile without jarring jumps.
