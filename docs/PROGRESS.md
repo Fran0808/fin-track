@@ -17,6 +17,19 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: weekly expense trend horizontal pacing breakdown
+
+- October 30 / November 4, owner/scope: current chat; user-requested redesign of weekly expense trend.
+  Replaced vertical column cards with a horizontal pacing breakdown list (Option 1).
+  Each week features week label, date range, "Mayor" indicator for peak week, formatted
+  amount, percentage of monthly spend, interactive hover feedback, drill-down to transactions
+  via onSelectWeekRange, and a full-width proportional horizontal gauge with an aligned dashed
+  benchmark marker for the calculated weekly average. Includes summary legend with weekly average
+  reference. Retained keyboard navigation (left/right/enter) and screen reader announcements.
+- Verified for automated UI scope: 150 tests across 27 test files passed; production build passed
+  in <1s (`npm run build --prefix ui`). No financial operations, credential rotation, service
+  restarts, git commit or git push executed.
+
 ## Current checkpoint: provider-independent mobile pairing copy
 
 - October 30, owner/scope: current chat; requested mobile pairing modal wording.
