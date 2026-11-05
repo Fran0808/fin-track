@@ -59,9 +59,17 @@ export function CreateClassificationRuleModal({ draft, onClose }: { draft: Class
               {activeCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
           </div>
-          <div><label htmlFor="quick-rule-priority" className="text-sm font-medium">Prioridad</label>
-            <input id="quick-rule-priority" type="number" required min={0} max={9999} step={1} value={priority} onChange={event => setPriority(event.target.value)} className={fieldClass} />
-          </div>
+          <details className="group rounded-xl border border-line/60 bg-canvas/40 p-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-muted hover:text-ink">
+              <span>Opciones avanzadas</span>
+              <span className="text-[10px] text-muted transition-transform group-open:rotate-180">▼</span>
+            </summary>
+            <div className="mt-3 border-t border-line/40 pt-3">
+              <label htmlFor="quick-rule-priority" className="text-sm font-medium">Prioridad</label>
+              <input id="quick-rule-priority" type="number" required min={0} max={9999} step={1} value={priority} onChange={event => setPriority(event.target.value)} className={fieldClass} />
+              <p className="mt-1.5 text-xs text-muted">Menor número se evalúa primero cuando coinciden varias reglas.</p>
+            </div>
+          </details>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enabled} onChange={event => setEnabled(event.target.checked)} className="accent-brand" />Regla activa</label>
           <div className="flex justify-end gap-4">
             <button type="button" onClick={onClose} className="text-sm text-muted">Cancelar</button>

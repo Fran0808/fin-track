@@ -17,6 +17,16 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: collapse rule priority under progressive disclosure
+
+- November 4, owner/scope: current chat; user-requested simplification of rule creation forms.
+  Moved numeric priority input into a collapsible `<details>` section labeled "Opciones avanzadas"
+  with a concise micro-explanation ("Menor número se evalúa primero cuando coinciden varias reglas.")
+  both in `CreateClassificationRuleModal` (transaction details) and `ClassificationRulesView` (management).
+  Default remains 100 so regular rule creation requires no extra inputs or cognitive overhead.
+- Verified for automated UI scope: 151 tests across 27 test files passed; production UI build succeeded
+  in 569ms (`npm run build --prefix ui`).
+
 ## Current checkpoint: automatic email sync recovery on transient failures
 
 - November 4, owner/scope: current chat; user-reported false red email sync indicator on app startup.
