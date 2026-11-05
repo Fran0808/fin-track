@@ -6,10 +6,39 @@ export interface WeeklyExpense {
   weekNumber: number;
   startDay: number;
   endDay: number;
+  activeEndDay: number;
   label: string;
   dateRangeLabel: string;
   amount: number;
   percentage: number;
+}
+
+const MONTH_INDEX: Record<string, number> = {
+  enero: 0,
+  febrero: 1,
+  marzo: 2,
+  abril: 3,
+  mayo: 4,
+  junio: 5,
+  julio: 6,
+  agosto: 7,
+  septiembre: 8,
+  setiembre: 8,
+  octubre: 9,
+  noviembre: 10,
+  diciembre: 11,
+};
+
+function getMonthTotalDays(monthLabel: string, maxPointDay: number): number {
+  const normalized = monthLabel.toLowerCase().trim();
+  const yearMatch = normalized.match(/\b(20\d{2})\b/);
+  const year = yearMatch ? Number(yearMatch[1]) : new Date().getFullYear();
+  for (const [name, monthIdx] of Object.entries(MONTH_INDEX)) {
+    if (normalized.includes(name)) {
+      return new Date(year, monthIdx + 1, 0).getDate();
+    }
+  }
+  return Math.max(maxPointDay, 30);
 }
 
 interface ExpenseTrendChartProps {
@@ -28,25 +57,30 @@ export function ExpenseTrendChart({ points, monthLabel, onSelectDay, onSelectWee
     return <p className="py-12 text-sm text-muted">Aún no hay gastos para mostrar en este período.</p>;
   }
 
-  // Derive weekly breakdown from points
-  const maxDay = points.length > 0 ? Math.max(...points.map((p) => p.day)) : 31;
+  // Derive full-month weekly breakdown from calendar month length
+  const maxRecordedDay = points.length > 0 ? Math.max(...points.map((p) => p.day)) : 30;
+  const totalDaysInMonth = getMonthTotalDays(monthLabel, maxRecordedDay);
+  const shortMonth = monthLabel.split(' ')[0]?.slice(0, 3).toLowerCase() ?? '';
+
   const rawWeeks = [
-    { weekNumber: 1, startDay: 1, endDay: Math.min(7, maxDay) },
-    { weekNumber: 2, startDay: 8, endDay: Math.min(14, maxDay) },
-    { weekNumber: 3, startDay: 15, endDay: Math.min(21, maxDay) },
-    { weekNumber: 4, startDay: 22, endDay: Math.min(28, maxDay) },
-    ...(maxDay >= 29 ? [{ weekNumber: 5, startDay: 29, endDay: maxDay }] : []),
-  ].filter((w) => w.startDay <= maxDay);
+    { weekNumber: 1, startDay: 1, endDay: Math.min(7, totalDaysInMonth) },
+    { weekNumber: 2, startDay: 8, endDay: Math.min(14, totalDaysInMonth) },
+    { weekNumber: 3, startDay: 15, endDay: Math.min(21, totalDaysInMonth) },
+    { weekNumber: 4, startDay: 22, endDay: Math.min(28, totalDaysInMonth) },
+    ...(totalDaysInMonth >= 29 ? [{ weekNumber: 5, startDay: 29, endDay: totalDaysInMonth }] : []),
+  ];
 
   const weeks: WeeklyExpense[] = rawWeeks.map((w) => {
     const weekPoints = points.filter((p) => p.day >= w.startDay && p.day <= w.endDay);
     const amountCents = weekPoints.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
     const amount = amountCents / 100;
     const percentage = total > 0 ? (amount / total) * 100 : 0;
+    const activeEndDay = Math.max(w.startDay, Math.min(w.endDay, maxRecordedDay));
     return {
       weekNumber: w.weekNumber,
       startDay: w.startDay,
       endDay: w.endDay,
+      activeEndDay,
       label: `Sem ${w.weekNumber}`,
       dateRangeLabel: `${w.startDay}–${w.endDay}`,
       amount,
@@ -62,8 +96,13 @@ export function ExpenseTrendChart({ points, monthLabel, onSelectDay, onSelectWee
 
   const maxDailyValue = Math.max(1, ...points.map((p) => p.amount));
   const maxWeeklyValue = Math.max(1, ...weeks.map((w) => w.amount));
-  const weeklyAverageCents = weeks.length > 0 ? Math.round((total * 100) / weeks.length) : 0;
+  const weeksWithSpend = weeks.filter((w) => w.amount > 0);
+  const elapsedWeeks = weeks.filter((w) => w.startDay <= maxRecordedDay);
+  const weeklyAverageCents = elapsedWeeks.length > 0 ? Math.round((total * 100) / elapsedWeeks.length) : 0;
   const weeklyAverage = weeklyAverageCents / 100;
+  const avgLinePct = maxWeeklyValue > 0 ? (weeklyAverage / maxWeeklyValue) * 100 : 0;
+  const showAverageMarker = elapsedWeeks.length > 1 && avgLinePct > 0 && avgLinePct < 98;
+  const lastActiveWeekIndex = Math.max(0, weeks.reduce((lastIdx, w, idx) => (w.amount > 0 ? idx : lastIdx), 0));
 
   const xDaily = (index: number) => points.length === 1 ? (left + right) / 2 : left + (index / (points.length - 1)) * (right - left);
   const yDaily = (amount: number) => bottom - (amount / maxDailyValue) * (bottom - top);
@@ -126,13 +165,13 @@ export function ExpenseTrendChart({ points, monthLabel, onSelectDay, onSelectWee
   const handleWeeklyKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if ((event.key === 'Enter' || event.key === ' ') && canOpenActiveWeek && activeWeek) {
       event.preventDefault();
-      onSelectWeekRange?.(activeWeek.startDay, activeWeek.endDay);
+      onSelectWeekRange?.(activeWeek.startDay, activeWeek.activeEndDay);
       return;
     }
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
     const direction = event.key === 'ArrowRight' ? 1 : -1;
-    setActiveIndex((current) => Math.max(0, Math.min(weeks.length - 1, (current ?? weeks.length - 1) + direction)));
+    setActiveIndex((current) => Math.max(0, Math.min(weeks.length - 1, (current ?? lastActiveWeekIndex) + direction)));
   };
 
   return (
@@ -268,103 +307,93 @@ export function ExpenseTrendChart({ points, monthLabel, onSelectDay, onSelectWee
           )}
         </div>
       ) : (
-        /* Redesigned Weekly Horizontal Pacing List */
+        /* Clean Weekly Horizontal Pacing Breakdown */
         <div>
           <div
             role="group"
             tabIndex={0}
             aria-label={`Gasto semanal en ${monthLabel}: ${formatCurrency(total)} registrados. Usa las flechas izquierda y derecha para explorar las semanas.`}
-            onFocus={() => setActiveIndex(weeks.length - 1)}
+            onFocus={() => setActiveIndex(lastActiveWeekIndex)}
             onBlur={() => setActiveIndex(null)}
             onKeyDown={handleWeeklyKeyDown}
-            className="space-y-2.5 focus-visible:outline-none"
+            className="divide-y divide-line/60 focus-visible:outline-none"
           >
             {weeks.map((week, index) => {
-              const isHighest = week.amount > 0 && week.amount === maxWeeklyValue;
+              const hasSpend = week.amount > 0;
+              const isHighest = weeksWithSpend.length > 1 && hasSpend && week.amount === maxWeeklyValue;
               const isSelected = activeIndex === index;
-              const isClickable = Boolean(onSelectWeekRange && week.amount > 0);
-              const fillPct = maxWeeklyValue > 0 ? (week.amount / maxWeeklyValue) * 100 : 0;
+              const isClickable = Boolean(onSelectWeekRange && hasSpend);
+              const fillPct = hasSpend && maxWeeklyValue > 0
+                ? Math.min(100, Math.max(4, (week.amount / maxWeeklyValue) * 100))
+                : 0;
 
               return (
                 <div
                   key={week.weekNumber}
                   role="button"
                   tabIndex={isClickable ? 0 : -1}
+                  aria-disabled={!isClickable}
                   aria-label={`Semana ${week.weekNumber} (${week.dateRangeLabel} de ${monthLabel}): ${formatCurrency(week.amount)}`}
                   onClick={() => {
-                    if (isClickable) onSelectWeekRange?.(week.startDay, week.endDay);
+                    if (isClickable) onSelectWeekRange?.(week.startDay, week.activeEndDay);
                   }}
                   onKeyDown={(event) => {
                     if ((event.key === 'Enter' || event.key === ' ') && isClickable) {
                       event.preventDefault();
-                      onSelectWeekRange?.(week.startDay, week.endDay);
+                      onSelectWeekRange?.(week.startDay, week.activeEndDay);
                     }
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(null)}
-                  className={`group relative flex flex-col gap-2 rounded-xl border p-3.5 sm:px-4 sm:py-3 transition-all ${
-                    isSelected
-                      ? 'border-brand/40 bg-brand/5 shadow-xs'
-                      : 'border-line/70 bg-white hover:border-brand/30 hover:bg-canvas/40'
-                  } ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={`group flex flex-col gap-2 py-3.5 first:pt-1 last:pb-1 transition-colors sm:flex-row sm:items-center sm:gap-5 ${
+                    isClickable ? 'cursor-pointer' : 'cursor-default'
+                  }`}
                 >
-                  {/* Row Top: Week label + dates, amount + percentage */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-ink">Sem {week.weekNumber}</span>
-                      <span className="text-xs text-muted">
-                        ({week.dateRangeLabel} {monthLabel.split(' ')[0]})
-                      </span>
-                      {isHighest && (
-                        <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
-                          Mayor
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-display font-num text-sm sm:text-base font-bold text-ink">
-                        {formatCurrency(week.amount)}
+                  {/* Left: Week label, date range & peak badge */}
+                  <div className="flex items-center justify-between sm:w-44 sm:shrink-0 sm:justify-start sm:gap-2.5">
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-sm font-semibold ${hasSpend ? (isClickable ? 'text-ink group-hover:text-brand' : 'text-ink') : 'text-muted'}`}>
+                        Sem {week.weekNumber}
                       </span>
                       <span className="font-num text-xs text-muted">
-                        {week.percentage.toFixed(1)}%
+                        {week.dateRangeLabel} {shortMonth}
                       </span>
-                      {isClickable && (
-                        <span className="hidden text-xs font-semibold text-brand sm:inline-block opacity-0 transition-opacity group-hover:opacity-100">
-                          Ver →
-                        </span>
-                      )}
                     </div>
+                    {isHighest && (
+                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-semibold text-brand">
+                        Mayor
+                      </span>
+                    )}
                   </div>
 
-                  {/* Row Bottom: Horizontal gauge bar with weekly average reference marker */}
-                  <div className="relative w-full">
-                    <div className="h-3 w-full overflow-hidden rounded-full bg-canvas border border-line/40">
-                      <svg className="h-full w-full" viewBox="0 0 100 12" preserveAspectRatio="none">
-                        <rect
-                          x="0"
-                          y="0"
-                          width={Math.max(week.amount > 0 ? 2 : 0, fillPct)}
-                          height="12"
-                          rx="6"
-                          fill="var(--color-brand)"
-                          fillOpacity={isSelected ? 1 : 0.75}
-                          className="transition-all duration-300"
-                          onClick={(event) => {
-                            if (isClickable) {
-                              event.stopPropagation();
-                              onSelectWeekRange?.(week.startDay, week.endDay);
-                            }
-                          }}
-                        />
-                      </svg>
-                    </div>
-                    {weeklyAverage > 0 && maxWeeklyValue > 0 && (
+                  {/* Center: Crisp native CSS horizontal bar with optional average marker */}
+                  <div className="relative flex-1 py-1" aria-hidden="true">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-canvas">
                       <div
-                        className="pointer-events-none absolute top-0 bottom-0 w-0.5 border-l-2 border-dashed border-ink/40 z-10"
-                        style={{ left: `${Math.min(100, (weeklyAverage / maxWeeklyValue) * 100)}%` }}
-                        aria-hidden="true"
+                        data-testid="weekly-bar-fill"
+                        className="h-full rounded-full bg-brand transition-all duration-300"
+                        style={{
+                          width: `${fillPct}%`,
+                          opacity: isSelected ? 1 : 0.85,
+                        }}
+                      />
+                    </div>
+                    {showAverageMarker && (
+                      <div
+                        className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 border-l-2 border-dashed border-ink/35"
+                        style={{ left: `${avgLinePct}%` }}
                       />
                     )}
+                  </div>
+
+                  {/* Right: Formatted amount & monthly share */}
+                  <div className="flex items-baseline justify-between gap-3 sm:w-40 sm:shrink-0 sm:justify-end">
+                    <span className={`font-display font-num text-sm font-semibold ${hasSpend ? 'text-ink' : 'text-muted'}`}>
+                      {formatCurrency(week.amount)}
+                    </span>
+                    <span className="font-num w-12 text-right text-xs text-muted">
+                      {week.percentage.toFixed(1)}%
+                    </span>
                   </div>
                 </div>
               );
@@ -382,22 +411,26 @@ export function ExpenseTrendChart({ points, monthLabel, onSelectDay, onSelectWee
           </div>
 
           {/* Benchmark Legend & Summary Footer */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line/60 pt-3 text-xs text-muted">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3.5 text-xs text-muted">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+                <span className="h-2 w-2 rounded-full bg-brand" />
                 <span>Gasto semanal</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-3 w-0.5 border-l-2 border-dashed border-ink/40" />
-                <span>
-                  Promedio semanal: <strong className="font-semibold text-ink">{formatCurrency(weeklyAverage)}</strong>
-                </span>
-              </div>
+              {elapsedWeeks.length > 1 ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="h-3 w-0.5 border-l-2 border-dashed border-ink/40" />
+                  <span>
+                    Promedio semanal: <strong className="font-num font-semibold text-ink">{formatCurrency(weeklyAverage)}</strong>
+                  </span>
+                </div>
+              ) : (
+                <span>1 de {weeks.length} semanas con registros en el período</span>
+              )}
             </div>
             {onSelectWeekRange && (
               <span className="text-[11px] text-muted">
-                Haz clic en una semana para ver sus movimientos
+                Haz clic en una semana con gastos para ver sus movimientos
               </span>
             )}
           </div>

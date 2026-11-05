@@ -59,14 +59,20 @@ it('triggers onSelectDay when clicking a daily bar with expenses or pressing Ent
   expect(onSelectDay).toHaveBeenLastCalledWith(3);
 });
 
-it('triggers onSelectWeekRange when clicking a weekly bar or pressing Enter', () => {
+it('triggers onSelectWeekRange when clicking a weekly row or pressing Enter, and omits Mayor when only one week has spend', () => {
   const onSelectWeek = vi.fn();
-  const view = render(<ExpenseTrendChart points={points} monthLabel="enero de 2026" onSelectWeekRange={onSelectWeek} />);
+  render(<ExpenseTrendChart points={points} monthLabel="enero de 2026" onSelectWeekRange={onSelectWeek} />);
   fireEvent.click(screen.getByRole('button', { name: 'Semanal' }));
-  const bars = view.container.querySelectorAll('rect');
-  expect(bars.length).toBe(1);
+  const bars = screen.getAllByTestId('weekly-bar-fill');
+  expect(bars.length).toBe(5);
+  expect(screen.queryByText('Mayor')).toBeNull();
 
-  fireEvent.click(bars[0]);
+  // Clicking a week with 0 spend does not trigger onSelectWeekRange
+  fireEvent.click(screen.getByRole('button', { name: /Semana 2/ }));
+  expect(onSelectWeek).not.toHaveBeenCalled();
+
+  // Clicking week 1 triggers onSelectWeekRange(1, 3)
+  fireEvent.click(screen.getByRole('button', { name: /Semana 1/ }));
   expect(onSelectWeek).toHaveBeenCalledWith(1, 3);
 
   const weeklyChart = screen.getByRole('group', { name: /Gasto semanal en/ });

@@ -20,12 +20,12 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 ## Current checkpoint: weekly expense trend horizontal pacing breakdown
 
 - October 30 / November 4, owner/scope: current chat; user-requested redesign of weekly expense trend.
-  Replaced vertical column cards with a horizontal pacing breakdown list (Option 1).
-  Each week features week label, date range, "Mayor" indicator for peak week, formatted
-  amount, percentage of monthly spend, interactive hover feedback, drill-down to transactions
-  via onSelectWeekRange, and a full-width proportional horizontal gauge with an aligned dashed
-  benchmark marker for the calculated weekly average. Includes summary legend with weekly average
-  reference. Retained keyboard navigation (left/right/enter) and screen reader announcements.
+  Replaced vertical column cards with a horizontal pacing breakdown list (Option 1), refined to match
+  FinTrack's native bar style (`h-2.5 rounded-full` CSS bars without SVG aspect-ratio distortion)
+  and `divide-y` list layout. Always renders all calendar weeks of the selected month (`Sem 1` to
+  `Sem 4/5`) so in-progress months retain full visual structure; only shows the "Mayor" badge and
+  dashed average marker when multiple weeks have activity. Retains drill-down to transactions via
+  `onSelectWeekRange`, keyboard navigation (left/right/enter) and screen reader announcements.
 - Verified for automated UI scope: 150 tests across 27 test files passed; production build passed
   in <1s (`npm run build --prefix ui`). No financial operations, credential rotation, service
   restarts, git commit or git push executed.
