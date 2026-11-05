@@ -73,3 +73,78 @@ export function getChannelLabel(channel: string): string {
       return channel.replace(/_/g, ' ');
   }
 }
+
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+export interface ExportFilenameFilters {
+  merchantName?: string;
+  categoryGroup?: string;
+  flowType?: string;
+  allHistory?: boolean;
+  startDate?: string;
+  endDate?: string;
+}
+
+export function formatExportFilename(
+  filters: ExportFilenameFilters = {},
+  periodName?: string,
+  now = new Date()
+): string {
+  const parts: string[] = ['fintrack_movimientos'];
+
+  if (filters.merchantName) {
+    const slug = filters.merchantName
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w-]/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 30);
+    if (slug) parts.push(slug);
+  }
+
+  if (filters.categoryGroup) {
+    const slug = filters.categoryGroup
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w-]/g, '_')
+      .replace(/_+/g, '_')
+      .slice(0, 25);
+    if (slug) parts.push(slug);
+  }
+
+  if (filters.flowType) {
+    if (filters.flowType === 'EXPENSE') parts.push('gastos');
+    else if (filters.flowType === 'INCOME') parts.push('entradas');
+    else if (filters.flowType === 'INTERNAL_TRANSFER') parts.push('transferencias');
+  }
+
+  if (filters.allHistory) {
+    parts.push('historico');
+    parts.push(now.toISOString().slice(0, 10));
+  } else if (filters.startDate && filters.endDate) {
+    const start = filters.startDate.slice(0, 10);
+    const end = filters.endDate.slice(0, 10);
+    if (start === end) {
+      parts.push(start);
+    } else {
+      parts.push(`${start}_al_${end}`);
+    }
+  } else if (periodName) {
+    const match = periodName.match(/^(\d{1,2})\/(\d{4})$/);
+    if (match) {
+      const monthNum = Number(match[1]);
+      const year = match[2];
+      const monthName = MONTH_NAMES[monthNum - 1] ?? match[1].padStart(2, '0');
+      parts.push(`${monthName}_${year}`);
+    } else {
+      parts.push(now.toISOString().slice(0, 10));
+    }
+  } else {
+    parts.push(now.toISOString().slice(0, 10));
+  }
+
+  return `${parts.join('_')}.csv`;
+}

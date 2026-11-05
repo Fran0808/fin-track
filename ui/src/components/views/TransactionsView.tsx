@@ -3,6 +3,7 @@ import { Download, Loader2, Plus } from 'lucide-react';
 import type { TransactionPageResponse, Transaction } from '../../types';
 import type { TransactionFilterParams } from '../../services';
 import { api } from '../../services/api';
+import { formatExportFilename } from '../../utils';
 import { ManualTransactionModal } from '../transactions/ManualTransactionModal';
 import { TransactionTable, TransactionFilters } from '../transactions';
 
@@ -53,7 +54,7 @@ export function TransactionsView({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `fintrack_movimientos_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = formatExportFilename(exportFilters, periodName);
       document.body.appendChild(link);
       link.click();
       link.remove();
