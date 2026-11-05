@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
+const NON_RECOVERABLE_SYNC_CODES = new Set(['AUTH_REQUIRED', 'ACCESS_DENIED', 'RATE_LIMITED']);
 import { api } from '../services/api';
 import type { TransactionFilterParams } from '../services/api';
 import type { FinancialSummary, PeriodAnalytics, Transaction, PageResponse, TransactionPageResponse, EmailSyncResponse, GoogleAuthStatus } from '../types';
@@ -68,24 +70,71 @@ export function useFinance(userId: number) {
   const error = [syncError, summaryResource.error, analyticsResource.error, transactionResource.error, recentResource.error]
     .filter((message, index, messages) => message && messages.indexOf(message) === index).join(' · ') || null;
 
-  const loadSyncStatus = useCallback(async () => {
+  const autoRecoveryUserRef = useRef<number | null>(null);
+
+  const loadSyncStatus = useCallback(async (): Promise<GoogleAuthStatus | null> => {
     if (!userId) {
       setSyncStatus(null);
       setSyncStatusUnavailable(false);
-      return;
+      return null;
     }
     try {
       const status = await api.getGoogleAuthStatus();
       setSyncStatus(status);
       setSyncStatusUnavailable(false);
+      return status;
     } catch {
       setSyncStatusUnavailable(true);
+      return null;
     }
   }, [userId]);
 
   useEffect(() => {
-    loadSyncStatus();
-  }, [loadSyncStatus]);
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const initSyncStatus = async () => {
+      const status = await loadSyncStatus();
+      if (cancelled || !userId) return;
+
+      if (!status) {
+        retryTimer = setTimeout(() => {
+          if (!cancelled) void loadSyncStatus();
+        }, 3000);
+        return;
+      }
+
+      const canAutoRecover =
+        status.connected &&
+        status.lastSyncFailed &&
+        !NON_RECOVERABLE_SYNC_CODES.has(status.lastSyncFailureCode ?? '');
+
+      if (canAutoRecover && autoRecoveryUserRef.current !== userId) {
+        autoRecoveryUserRef.current = userId;
+        try {
+          setIsSyncing(true);
+          const result = await api.syncEmails();
+          if (!cancelled) {
+            setSyncResult(result);
+            await Promise.all([loadSummary(true), loadAnalytics(true), loadTransactions(true), loadRecent(true)]);
+          }
+        } catch {
+          // Silent background recovery; status will reflect latest state below
+        } finally {
+          if (!cancelled) {
+            await loadSyncStatus();
+            setIsSyncing(false);
+          }
+        }
+      }
+    };
+
+    void initSyncStatus();
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [userId, loadSyncStatus, loadSummary, loadAnalytics, loadTransactions, loadRecent]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -172,7 +221,9 @@ export function useFinance(userId: number) {
     showDayTransactions,
     showChannelTransactions,
     triggerEmailSync,
-    refreshSyncStatus: loadSyncStatus,
+    refreshSyncStatus: async () => {
+      await loadSyncStatus();
+    },
     refreshAll: async () => {
       await Promise.all([loadSummary(), loadAnalytics(), loadTransactions(), loadRecent()]);
     },

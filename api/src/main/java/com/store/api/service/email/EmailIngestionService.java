@@ -62,22 +62,16 @@ public class EmailIngestionService {
         UserContext.requireCurrentUser();
 
         try {
-            Optional<String> googleToken = googleOAuthService.getValidAccessToken();
+            Optional<String> googleToken = fetchTokenWithRetry();
 
-        if (googleToken.isEmpty()) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
-                    "Conecta de nuevo tu cuenta de Google para sincronizar el correo.");
-        }
+            if (googleToken.isEmpty()) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                        "Conecta de nuevo tu cuenta de Google para sincronizar el correo.");
+            }
 
             SyncProgress progress = new SyncProgress();
             Long lastSyncedInternalDate = googleOAuthService.getLastSyncedInternalDate().orElse(null);
-            gmailApiClient.visitFinancialEmails(
-                    googleToken.get(),
-                    batchSize,
-                    lastSyncedInternalDate,
-                    id -> processedEmailRepository.existsById(processedKey(id)),
-                    msg -> processMessage(msg, progress)
-            );
+            visitEmailsWithRetry(googleToken.get(), lastSyncedInternalDate, progress);
             if (progress.errors == 0 && progress.maxDate > 0) googleOAuthService.updateLastSyncedInternalDate(progress.maxDate);
             googleOAuthService.recordSyncResult(progress.errors == 0, progress.errors == 0 ? null : com.store.api.model.enums.EmailSyncFailure.PROCESSING);
             return EmailSyncResponse.builder().status(progress.errors == 0 ? "SUCCESS" : "PARTIAL")
@@ -89,6 +83,57 @@ public class EmailIngestionService {
                     && status.getStatusCode().value() == 409 ? com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED
                     : com.store.api.service.email.EmailSyncException.classify(ex);
             googleOAuthService.recordSyncResult(false, failure);
+            throw ex;
+        }
+    }
+
+    private Optional<String> fetchTokenWithRetry() {
+        try {
+            return googleOAuthService.getValidAccessToken();
+        } catch (EmailSyncException ex) {
+            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.TEMPORARY) {
+                log.info("Retrying Google token refresh after temporary transport failure");
+                return googleOAuthService.getValidAccessToken();
+            }
+            throw ex;
+        }
+    }
+
+    private void visitEmailsWithRetry(String initialToken, Long lastSyncedInternalDate, SyncProgress progress) {
+        try {
+            gmailApiClient.visitFinancialEmails(
+                    initialToken,
+                    batchSize,
+                    lastSyncedInternalDate,
+                    id -> processedEmailRepository.existsById(processedKey(id)),
+                    msg -> processMessage(msg, progress)
+            );
+        } catch (EmailSyncException ex) {
+            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.TEMPORARY) {
+                log.info("Retrying Gmail synchronization after temporary transport failure");
+                gmailApiClient.visitFinancialEmails(
+                        initialToken,
+                        batchSize,
+                        lastSyncedInternalDate,
+                        id -> processedEmailRepository.existsById(processedKey(id)),
+                        msg -> processMessage(msg, progress)
+                );
+                return;
+            }
+            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED) {
+                Optional<String> refreshed = googleOAuthService.refreshAccessToken();
+                if (refreshed.isPresent()) {
+                    log.info("Retrying Gmail synchronization with refreshed access token");
+                    gmailApiClient.visitFinancialEmails(
+                            refreshed.get(),
+                            batchSize,
+                            lastSyncedInternalDate,
+                            id -> processedEmailRepository.existsById(processedKey(id)),
+                            msg -> processMessage(msg, progress)
+                    );
+                    return;
+                }
+            }
             throw ex;
         }
     }

@@ -184,17 +184,26 @@ public class GoogleOAuthService {
 
     @Transactional
     public Optional<String> getValidAccessToken() {
+        return getValidAccessToken(false);
+    }
+
+    @Transactional
+    public Optional<String> refreshAccessToken() {
+        return getValidAccessToken(true);
+    }
+
+    private Optional<String> getValidAccessToken(boolean forceRefresh) {
         Optional<GoogleOAuthToken> tokenOpt = findTokenForCurrentContext();
         if (tokenOpt.isEmpty()) {
             return Optional.empty();
         }
 
         GoogleOAuthToken token = tokenOpt.get();
-        if (!token.isExpired()) {
+        if (!forceRefresh && !token.isExpired()) {
             return Optional.of(token.getAccessToken());
         }
 
-        // Token expired, refresh it using refresh_token
+        // Token expired or forced refresh requested; refresh it using refresh_token
         if (token.getRefreshToken() == null || token.getRefreshToken().isBlank()) {
             log.warn("Google access token expired and no refresh token available. User must re-authenticate.");
             return Optional.empty();

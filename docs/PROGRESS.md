@@ -17,6 +17,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: automatic email sync recovery on transient failures
+
+- November 4, owner/scope: current chat; user-reported false red email sync indicator on app startup.
+  Added single-retry resilience in `EmailIngestionService` for `TEMPORARY` transport errors and
+  stale `AUTH_REQUIRED` (401) access tokens (forcing a token refresh via `GoogleOAuthService.refreshAccessToken()`
+  before recording a sync failure). On the frontend (`useFinance.ts`), if the initial status check
+  reports a recoverable failure (`lastSyncFailed: true` excluding `AUTH_REQUIRED`, `ACCESS_DENIED`,
+  and `RATE_LIMITED`), the hook automatically triggers a silent recovery sync once per session, and
+  retries status lookup after 3s if the initial status request fails during startup.
+- Verified for automated backend and UI scope: 310 backend tests passed (`verify-all.ps1 -SkipUi -SkipAndroid`),
+  151 UI tests across 27 test files passed, and production UI build succeeded (`npm run build --prefix ui`).
+
 ## Current checkpoint: weekly expense trend horizontal pacing breakdown
 
 - October 30 / November 4, owner/scope: current chat; user-requested redesign of weekly expense trend.

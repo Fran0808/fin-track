@@ -246,6 +246,38 @@ class EmailIngestionServiceTest {
     }
 
     @Test
+    void retriesOnceOnTemporaryGmailFailureAndClearsFailedStatus() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        doThrow(new EmailSyncException(com.store.api.model.enums.EmailSyncFailure.TEMPORARY))
+                .doNothing()
+                .when(gmailApiClient).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any());
+
+        EmailSyncResponse response = emailIngestionService.syncEmails();
+
+        assertEquals("SUCCESS", response.getStatus());
+        verify(gmailApiClient, times(2)).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any());
+        verify(googleOAuthService).recordSyncResult(true, null);
+        verify(googleOAuthService, never()).recordSyncResult(eq(false), any());
+    }
+
+    @Test
+    void refreshesTokenAndRetriesOnceWhenGmailRejectsStaleAccessToken() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("stale-token"));
+        when(googleOAuthService.refreshAccessToken()).thenReturn(Optional.of("fresh-token"));
+        doThrow(new EmailSyncException(com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED))
+                .when(gmailApiClient).visitFinancialEmails(eq("stale-token"), anyInt(), isNull(), any(), any());
+        doNothing()
+                .when(gmailApiClient).visitFinancialEmails(eq("fresh-token"), anyInt(), isNull(), any(), any());
+
+        EmailSyncResponse response = emailIngestionService.syncEmails();
+
+        assertEquals("SUCCESS", response.getStatus());
+        verify(googleOAuthService).refreshAccessToken();
+        verify(googleOAuthService).recordSyncResult(true, null);
+        verify(googleOAuthService, never()).recordSyncResult(eq(false), any());
+    }
+
+    @Test
     void messageMarkersAreNamespacedByUser() {
         when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
         stubGmail(null, List.of(EmailMessageDto.builder().messageId("same-provider-id").build()));

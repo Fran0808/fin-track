@@ -108,3 +108,32 @@ it('prevents financial reads without an authenticated user', async () => {
   expect(api.getPeriodAnalytics).not.toHaveBeenCalled();
   expect(api.getFinancialSummary).not.toHaveBeenCalled();
 });
+
+it('automatically retries email sync once on startup when previous sync failed with a recoverable code', async () => {
+  vi.mocked(api.getGoogleAuthStatus)
+    .mockResolvedValueOnce({
+      connected: true,
+      email: 'owner@example.test',
+      lastSuccessfulSyncAt: '2026-10-30T10:00:00Z',
+      lastSyncFailed: true,
+      lastSyncFailureCode: 'TEMPORARY',
+    })
+    .mockResolvedValue({
+      connected: true,
+      email: 'owner@example.test',
+      lastSuccessfulSyncAt: '2026-10-30T10:05:00Z',
+      lastSyncFailed: false,
+    });
+  const syncSpy = vi.spyOn(api, 'syncEmails').mockResolvedValue({
+    status: 'SUCCESS',
+    scannedCount: 1,
+    processedInBatch: 1,
+    savedCount: 0,
+    message: 'OK',
+    transactions: [],
+  });
+
+  const { result } = renderHook(() => useFinance(1));
+  await waitFor(() => expect(result.current.syncStatus?.lastSyncFailed).toBe(false));
+  expect(syncSpy).toHaveBeenCalledOnce();
+});
