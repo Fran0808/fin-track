@@ -17,6 +17,16 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: keyboard shortcut navigation for transaction search
+
+- November 4, owner/scope: current chat; user-selected search usability enhancement (Option B).
+  Added global `/` shortcut in `TransactionFilters` to immediately focus and select the transaction
+  search input from anywhere on the page (ignored while typing in other form fields). Rendered
+  subtle `<kbd>/</kbd>` key badge inside the input when empty. Added `Escape` handling to clear active
+  search text or blur the search field when already cleared.
+- Verified for automated UI scope: 157 tests across 27 test files passed; production UI build succeeded
+  in 557ms (`npm run build --prefix ui`).
+
 ## Current checkpoint: descriptive csv export naming by period and filters
 
 - November 4, owner/scope: current chat; user-selected export file naming improvement (Option 4).

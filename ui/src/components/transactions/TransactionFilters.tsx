@@ -67,6 +67,7 @@ export function TransactionFilters({
   onReset,
 }: TransactionFiltersProps) {
   const dateMenu = useRef<HTMLDetailsElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [localSearch, setLocalSearch] = useState(search);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(Boolean(pendingReason));
   const { options: categoryOptions, error: categoryError, refresh: refreshCategories } = useCategories(true);
@@ -81,6 +82,26 @@ export function TransactionFilters({
     }, 300);
     return () => clearTimeout(timer);
   }, [localSearch, search, onFilterChange]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isTyping =
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl instanceof HTMLSelectElement ||
+        activeEl?.getAttribute('contenteditable') === 'true';
+
+      if (event.key === '/' && !isTyping) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   const activeAdvancedCount = [
     pendingReason,
@@ -126,25 +147,46 @@ export function TransactionFilters({
       </label>
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
       <input
+        ref={searchInputRef}
         id="transaction-search"
         type="search"
         value={localSearch}
         onChange={(event) => setLocalSearch(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            if (localSearch) {
+              setLocalSearch('');
+              onFilterChange({ search: '' });
+            } else {
+              searchInputRef.current?.blur();
+            }
+          }
+        }}
         placeholder="Buscar comercio o categoría..."
         className="w-full rounded-xl border border-line bg-canvas py-2.5 pl-10 pr-10 text-sm text-ink placeholder:text-muted transition-colors focus:border-brand focus:bg-white focus:outline-none"
       />
-      {localSearch && (
+      {localSearch ? (
         <button
           type="button"
           onClick={() => {
             setLocalSearch('');
             onFilterChange({ search: '' });
+            searchInputRef.current?.focus();
           }}
           aria-label="Limpiar búsqueda"
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1 text-muted hover:text-ink"
         >
           <X className="h-4 w-4" />
         </button>
+      ) : (
+        <kbd
+          aria-hidden="true"
+          title="Presiona / para buscar"
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none rounded border border-line/80 bg-white/90 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-muted shadow-2xs"
+        >
+          /
+        </kbd>
       )}
     </div>
   );

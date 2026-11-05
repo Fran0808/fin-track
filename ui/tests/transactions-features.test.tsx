@@ -136,3 +136,36 @@ it('toggles advanced filters panel and emits multi-criteria filter updates', asy
   fireEvent.change(minInput, { target: { value: '25' } });
   expect(onFilterChange).toHaveBeenCalledWith({ minAmount: 25 });
 });
+
+it('focuses search input on slash key and clears or blurs on Escape', () => {
+  const onFilterChange = vi.fn();
+  render(
+    <TransactionFilters
+      renderHeader={(searchField) => <div>{searchField}</div>}
+      search=""
+      flowType=""
+      onFilterChange={onFilterChange}
+      onReset={vi.fn()}
+    />
+  );
+
+  const searchInput = screen.getByPlaceholderText('Buscar comercio o categoría...') as HTMLInputElement;
+  expect(document.activeElement).not.toBe(searchInput);
+
+  // Pressing '/' focuses search input
+  fireEvent.keyDown(window, { key: '/' });
+  expect(document.activeElement).toBe(searchInput);
+
+  // Typing search
+  fireEvent.change(searchInput, { target: { value: 'Tambo' } });
+  expect(searchInput.value).toBe('Tambo');
+
+  // Pressing Escape clears input and notifies filter change
+  fireEvent.keyDown(searchInput, { key: 'Escape' });
+  expect(searchInput.value).toBe('');
+  expect(onFilterChange).toHaveBeenCalledWith({ search: '' });
+
+  // Pressing Escape on empty input blurs it
+  fireEvent.keyDown(searchInput, { key: 'Escape' });
+  expect(document.activeElement).not.toBe(searchInput);
+});
