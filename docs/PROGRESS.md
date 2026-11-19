@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: October 28, 2026. This is the entry point for current work, not a release
+Updated: November 19, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -16,6 +16,21 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Android capture | FinTrack 1.3.9 (22): unused template/resource/config files removed; release HTTPS, redirect protection and credential-backup exclusions retained; 82 JVM tests per debug/captureTest/release variant passed and APK metadata verified. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
+
+## Current checkpoint: dashboard and API on the same Render origin
+
+- November 19, owner/scope: current chat. The Docker image builds the Vite
+  dashboard and embeds it in the Spring Boot JAR. The authentication filter
+  permits read requests for the dashboard and its static files.
+- Verified locally: 321 backend tests without a database, 157 dashboard tests,
+  production dashboard build and lint with existing warnings. The packaged JAR
+  started with the `prod` profile against disposable PostgreSQL and Gmail
+  scheduling disabled. The dashboard and its assets returned `200`, the
+  anonymous transactions endpoint returned `401`, and the Google OAuth entry
+  returned an authorization URL with a secure session cookie.
+- Remaining acceptance: Docker engine unavailable for the local image build.
+  Deploy the commit in Render and verify Google sign-in and the migrated
+  dashboard on the configured HTTPS origin. See [deployment](development/deployment.md).
 
 ## Current checkpoint: keyboard shortcut navigation for transaction search
 

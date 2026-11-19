@@ -33,12 +33,17 @@ deployment review; it cannot verify provider credentials or connectivity.
 
 ## HTTPS and browser sessions
 
-Serve the built dashboard and `/api` through **one public HTTPS origin**, forwarding
-API requests and the Google callback to the backend. Serve `ui/dist` with SPA
-fallback. Preserve the session cookie and avoid logging query strings or request
-bodies on authentication routes. Keep the API's internal port private behind the
-proxy, configure request/time limits there and trust forwarded headers only from
-that proxy.
+Serve the dashboard, `/api` and the Google callback through **one public HTTPS
+origin**. The service image builds `ui/dist` and embeds it in the Spring Boot JAR.
+Spring serves the dashboard at `/` and Vite's generated files under `/assets/`.
+The application uses `/` for both login and the authenticated dashboard.
+
+For Render, use a Docker Web Service with the repository root as the build
+context and `docker/Dockerfile.api` as the Dockerfile path. Use the assigned HTTPS
+origin for `APP_SERVER_PUBLIC_URL` and the OAuth URLs above. If a separate proxy
+terminates HTTPS, preserve the session cookie, keep the API's internal port
+private and trust forwarded headers only from that proxy. Avoid logging query
+strings or request bodies on authentication routes.
 
 OAuth state lasts ten minutes and is bound to the initiating browser. The callback
 places a single-use code in the URL fragment; the dashboard removes it immediately
@@ -143,12 +148,15 @@ tenant isolation, batches and cursor updates. CI provisions fresh databases for
 this test, `AppTests` and classification, each in its own disposable
 database. Reusing the deployment test schema intentionally fails initialization.
 
-Build the backend image from `docker/Dockerfile.api` and dashboard with `npm run
-build`. The image uses Java 21, America/Lima and a heap capped at 60% of available
-container memory; allow additional memory for threads and the JVM. Set actual
-container resource limits in the provider.
+Build the service image from the repository root with
+`docker build -f docker/Dockerfile.api -t fintrack .`. It builds the dashboard with
+Node.js 24 and packages the API with Java 21. The runtime uses America/Lima and
+caps the heap at 60% of available container memory. Allow additional memory for
+threads and the JVM and set resource limits in the hosting provider.
 
-After deployment, verify Google login/replay rejection, two-user isolation and a
+After deployment, verify that `/` serves the dashboard, its assets load, and an
+anonymous request to `/api/v1/transactions` returns `401`. Then verify Google
+login/replay rejection, two-user isolation and a
 synthetic device sync on the actual HTTPS domain. Authorize any real ingestion
 separately, then verify it before enabling the scheduler. Keep database backups and
 test restoration. Reverse-proxy behavior, provider TLS, real Google consent and

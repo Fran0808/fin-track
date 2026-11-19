@@ -1,4 +1,11 @@
-# Multi-stage Dockerfile for Backend API (Java 21 / Spring Boot 4)
+# Build the dashboard, then package it with the Spring Boot API.
+FROM node:24-bookworm-slim AS dashboard
+
+WORKDIR /dashboard
+COPY ui/package.json ui/package-lock.json ./
+RUN npm ci
+COPY ui/ ./
+RUN npm run build
 
 # Stage 1: Build JAR artifact with Maven
 FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
@@ -11,6 +18,7 @@ RUN mvn dependency:go-offline -B
 
 # Copy source code and build production package
 COPY api/src ./src
+COPY --from=dashboard /dashboard/dist/ ./src/main/resources/static/
 RUN mvn clean package -DskipTests
 
 # Stage 2: Minimal Production Runtime

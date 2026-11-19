@@ -17,6 +17,7 @@ import org.springframework.web.cors.CorsUtils;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Component
 @Order(1)
@@ -27,6 +28,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String AUTH_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String DEVICE_TOKEN_HEADER = "X-Device-Token";
+    private static final Pattern DASHBOARD_ASSET = Pattern.compile("/assets/[A-Za-z0-9_-][A-Za-z0-9._-]*");
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -48,7 +50,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             boolean isSessionExchange = "POST".equals(request.getMethod())
                     && "/api/v1/auth/google/session".equals(path);
-            if (publicAuthEndpoint || isSessionExchange || isVerifyEndpoint || CorsUtils.isPreFlightRequest(request)) {
+            if (isDashboardResource(request.getMethod(), path) || publicAuthEndpoint || isSessionExchange
+                    || isVerifyEndpoint || CorsUtils.isPreFlightRequest(request)) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -105,5 +108,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } finally {
             UserContext.clear();
         }
+    }
+
+    private boolean isDashboardResource(String method, String path) {
+        return ("GET".equals(method) || "HEAD".equals(method))
+                && ("/".equals(path) || "/index.html".equals(path) || "/favicon.png".equals(path)
+                || "/apple-touch-icon.png".equals(path) || DASHBOARD_ASSET.matcher(path).matches());
     }
 }

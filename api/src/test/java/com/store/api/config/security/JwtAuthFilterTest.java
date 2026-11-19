@@ -44,7 +44,8 @@ class JwtAuthFilterTest {
             "GET,/api/v1/emails/test-connection", "GET,/api/v1/auth/google/me",
             "GET,/api/v1/user/phone-status", "GET,/api/v1/auth/google/status", "POST,/api/v1/auth/google/disconnect",
             "POST,/api/v1/auth/google/url", "POST,/api/v1/auth/google/callback",
-            "GET,/api/v1/auth/google/url/extra", "OPTIONS,/api/v1/transactions"
+            "GET,/api/v1/auth/google/url/extra", "OPTIONS,/api/v1/transactions",
+            "POST,/", "POST,/assets/index-abc.js", "GET,/assets/nested/index.js", "GET,/index.html/extra"
     })
     void rejectsAnonymousRequests(String method, String path) throws Exception {
         UserContext.setCurrentUser(user);
@@ -54,6 +55,22 @@ class JwtAuthFilterTest {
         assertEquals(401, response.getStatus());
         assertEquals("Bearer", response.getHeader("WWW-Authenticate"));
         assertNull(UserContext.getCurrentUser());
+        verifyNoInteractions(users);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"GET,/", "HEAD,/", "GET,/index.html", "GET,/favicon.png", "GET,/apple-touch-icon.png",
+            "GET,/assets/index-abc.js", "HEAD,/assets/index-abc.css"})
+    void allowsDashboardResourcesWithoutAuthentication(String method, String path) throws Exception {
+        UserContext.setCurrentUser(user);
+        AtomicBoolean called = new AtomicBoolean();
+        filter.doFilter(new MockHttpServletRequest(method, path), new MockHttpServletResponse(),
+                (request, response) -> {
+                    assertNull(UserContext.getCurrentUser());
+                    called.set(true);
+                });
+
+        assertTrue(called.get());
         verifyNoInteractions(users);
     }
 
