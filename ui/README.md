@@ -27,9 +27,12 @@ Clicking a movement row opens its detail in a right sidebar, highlighting the
 selected row and opening amount/date/flow editing directly with current values.
 The review/reason step still precedes every financial correction. The back arrow
 returns to source/category details. The chevron button remains available to keyboard users. At desktop
-widths the sidebar leaves the list interactive; narrow screens use a full-height
-drawer. Inicio retains its centered modal. Columns adapt to the table's actual
-available width. Selection is blocked during a save; close/Escape restore focus.
+widths the sidebar leaves the list interactive and preserves column widths and
+page scroll. Scroll the table horizontally when there is less room beside the
+detail. Narrow screens use a full-height drawer. Inicio keeps its centered modal.
+Selection is blocked during a save. Close or press Escape to restore focus.
+The detail shows the known capture origin immediately. Reconciliation appears
+below the category for manual entries and for captures with a manual link.
 Movement detail offers a pencil icon for reviewed amount/date/flow corrections
 and a history icon for before/after evidence. Both use the shared detail container;
 see [behavior and rollout](../docs/domain/transaction-corrections.md).

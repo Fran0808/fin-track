@@ -17,6 +17,17 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: stable movement details
+
+- November 21, scope: dashboard. Known origins appear immediately and a capture
+  shows the reconciliation card below its category once a linked manual entry
+  is available. The docked detail preserves table column widths and scrolling.
+- Verified locally: 158 UI tests, lint with warnings and the production build.
+  Chrome checks at 1920, 1440, 1280 and 390 pixels used simulated data and delayed
+  responses to cover the Home modal, the movement sidebar and narrow drawer,
+  linked and unlinked captures, and switching rows while a request is pending.
+- Next: publish the change through GitHub and verify the dashboard on Render.
+
 ## Current checkpoint: Gmail synchronization failures and overlapping requests
 
 - November 21, owner/scope: current chat. Manual and scheduled Gmail scans now

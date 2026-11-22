@@ -52,7 +52,15 @@ export function ManualReconciliationPanel({ transaction, onUpdated, onBusyChange
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'No se pudo completar la conciliación.'); }
     finally { setBusy(false); onBusyChange(false); }
   };
-  if (!status.loading && !status.error && !manual && transaction.captureOrigin !== 'MANUAL' && !feedback) return null;
+  if (transaction.captureOrigin !== 'MANUAL' && !manual && !feedback) {
+    if (!status.error) return null;
+    return <p role="status" className="mt-4 text-xs text-muted">
+      No se pudo consultar la conciliación.{' '}
+      <button type="button" onClick={() => void status.refresh()} className="font-semibold text-brand underline">
+        Reintentar conciliación
+      </button>
+    </p>;
+  }
   return <section aria-labelledby="manual-reconciliation-title" className="mt-6 rounded-2xl border border-line p-4">
     <h3 id="manual-reconciliation-title" className="text-sm font-semibold">Conciliación del registro manual</h3>
     {!status.loading && <button type="button" disabled={busy} onClick={() => void status.refresh()} className="mt-2 text-xs font-semibold text-brand underline disabled:opacity-50">Actualizar estado de conciliación</button>}

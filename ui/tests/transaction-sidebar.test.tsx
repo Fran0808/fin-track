@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { TransactionDetailModal } from '../src/components/transactions/TransactionDetailModal';
 import { TransactionTable } from '../src/components/transactions/TransactionTable';
 import { api } from '../src/services/api';
-import type { Transaction } from '../src/types';
+import type { ManualReconciliationStatus, Transaction } from '../src/types';
 
 const tx: Transaction = { id: 1, amount: 12.34, flowType: 'EXPENSE', captureOrigin: 'UNKNOWN', contactName: 'Synthetic sidebar store', channel: 'CASH', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic-sidebar' };
 let media: { matches: boolean; addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> };
@@ -46,6 +46,35 @@ it('keeps the centered modal as the default for Home', () => {
   expect(dialog.className).toContain('m-auto');
   expect(screen.queryByLabelText('Importe (S/)')).toBeNull();
   expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledOnce();
+});
+
+it('shows the selected capture immediately and only shows real reconciliation below its category', async () => {
+  const email: Transaction = { ...tx, captureOrigin: 'EMAIL', category: 'Primera categoría' };
+  const phone: Transaction = { ...tx, id: 2, captureOrigin: 'PHONE', category: 'Segunda categoría' };
+  const manual: Transaction = { ...tx, id: 3, captureOrigin: 'MANUAL' };
+  const finish = new Map<number, (status: ManualReconciliationStatus) => void>();
+  vi.spyOn(api, 'getManualReconciliation').mockImplementation(id => new Promise(resolve => finish.set(id, resolve)));
+  vi.mocked(api.getTransactionOrigin).mockImplementation(() => new Promise(() => {}));
+  const props = { presentation: 'sidebar' as const, onClose: vi.fn(), onUpdated: vi.fn() };
+  const { rerender } = render(<TransactionDetailModal {...props} transaction={email} />);
+  const dialog = screen.getByRole('dialog');
+  expect(screen.getByText('Correo')).toBeTruthy();
+  expect(screen.getByLabelText('Categoría')).toHaveProperty('value', email.category);
+  expect(screen.queryByText('Conciliación del registro manual')).toBeNull();
+
+  rerender(<TransactionDetailModal {...props} transaction={phone} />);
+  expect(screen.getByRole('dialog')).toBe(dialog);
+  expect(screen.getByText('Teléfono')).toBeTruthy();
+  const category = screen.getByLabelText('Categoría');
+  expect(category).toHaveProperty('value', phone.category);
+  await act(async () => finish.get(email.id)!({ manual, captured: email, reconciledAt: null, revision: 1 }));
+  expect(screen.queryByText('Conciliación del registro manual')).toBeNull();
+  await act(async () => finish.get(phone.id)!({ manual, captured: phone, reconciledAt: null, revision: 1 }));
+  const heading = screen.getByRole('heading', { name: 'Conciliación del registro manual' });
+  expect(category.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+  rerender(<TransactionDetailModal {...props} transaction={manual} />);
+  expect(screen.getByText('Consultando conciliación...')).toBeTruthy();
 });
 
 it('changes the sidebar to a modal drawer on narrow screens without interpreting resize as user dismissal', async () => {

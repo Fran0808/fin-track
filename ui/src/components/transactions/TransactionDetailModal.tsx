@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, X, ChevronRight, Loader2, Pencil, History, ListPlus } from 'lucide-react';
 import { animate } from 'animejs';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
@@ -94,7 +94,7 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
     }
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prevTxId.current !== transaction.id) {
       prevTxId.current = transaction.id;
       isClosing.current = false;
@@ -266,10 +266,9 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
             <dt className="text-xs text-muted">Fecha y hora</dt>
             <dd className="mt-0.5 font-medium">{formatDate(transaction.transactionDate)}</dd>
           </div>
-          <TransactionOriginPanel transactionId={transaction.id} />
+          <TransactionOriginPanel transactionId={transaction.id} captureOrigin={transaction.captureOrigin} createdAt={transaction.createdAt} />
         </dl>
 
-        {onUpdated && transaction.captureOrigin && ['MANUAL','EMAIL','PHONE'].includes(transaction.captureOrigin) && <ManualReconciliationPanel transaction={transaction} onUpdated={onUpdated} onBusyChange={setReconciling} onArchivedChange={setArchived} />}
         {readOnly && <p role="status" className="mt-3 text-xs text-muted">Este registro manual se conserva como antecedente y ya no suma en los totales.</p>}
 
         <fieldset disabled={busy || readOnly} className="mt-4">
@@ -325,6 +324,9 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
           </div>
         </fieldset>
 
+        {onUpdated && transaction.captureOrigin && ['MANUAL', 'EMAIL', 'PHONE'].includes(transaction.captureOrigin) && (
+          <ManualReconciliationPanel key={transaction.id} transaction={transaction} onUpdated={onUpdated} onBusyChange={setReconciling} onArchivedChange={setArchived} />
+        )}
       </>}
       </div>
     </dialog>

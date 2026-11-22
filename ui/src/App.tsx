@@ -76,6 +76,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
+  const showMovementDetail = activeView === 'movimientos' && selectedTransaction !== null;
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
   const navigateView = (view: NavView) => {
     if (detailBusy) return;
@@ -97,7 +98,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         />
       </div>
 
-      <div className={`flex min-w-0 flex-1 flex-col transition-[padding-right] duration-[250ms] ease-out ${activeView === 'movimientos' && selectedTransaction && !sidebarClosing ? 'xl:pr-[420px]' : 'xl:pr-0'}`}>
+      {/* Match the full main width, minus its gutters and the table surface borders. */}
+      <div className={`flex min-w-0 flex-1 flex-col xl:@container xl:[--movements-table-width:calc(min(100cqw+var(--detail-space,0px),1440px)-5rem-2px)] ${showMovementDetail ? 'xl:[--detail-space:420px] xl:pr-(--detail-space)' : ''}`}>
         <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex min-h-20 max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 lg:px-10">
             <div className="flex items-center gap-3">

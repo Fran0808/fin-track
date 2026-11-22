@@ -104,7 +104,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
   const scope = month ? new Date(Number(month[2]), Number(month[1]) - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }) : periodName;
 
   return (
-    <div className="@container">
+    <div>
       <div className="flex flex-col gap-4 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6" aria-busy={loading}>
         <div className="shrink-0">
           <h2 className="font-display text-base font-semibold">{displayData ? `${displayData.totalElements} ${displayData.totalElements === 1 ? 'movimiento' : 'movimientos'}` : 'Cargando movimientos'}</h2>
@@ -126,7 +126,8 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
         ) : <p role="status" className="text-sm text-muted">Total del filtro no disponible. Actualiza el backend para consultarlo.</p>)}
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto [scrollbar-color:var(--color-muted)_transparent] [scrollbar-width:thin]">
+        <div className="@container xl:w-(--movements-table-width)">
         <table className="w-full table-fixed border-collapse text-left @2xl:table-auto">
           <caption className="sr-only">Movimientos del período seleccionado</caption>
           <thead>
@@ -250,6 +251,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {displayData && <div className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-5 py-3 sm:px-6">
