@@ -1,10 +1,27 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-
-const NON_RECOVERABLE_SYNC_CODES = new Set(['AUTH_REQUIRED', 'ACCESS_DENIED', 'RATE_LIMITED']);
 import { api } from '../services/api';
 import type { TransactionFilterParams } from '../services/api';
 import type { FinancialSummary, PeriodAnalytics, Transaction, PageResponse, TransactionPageResponse, EmailSyncResponse, GoogleAuthStatus } from '../types';
 import { useQueryResource } from './useQueryResource';
+
+const NON_RECOVERABLE_SYNC_CODES = new Set(['AUTH_REQUIRED', 'ACCESS_DENIED', 'RATE_LIMITED']);
+const EMPTY_BATCH_DELAY_MS = 1_000;
+const PROCESSED_BATCH_DELAY_MS = 15_000;
+
+function waitForNextEmailBatch(delay: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    signal.throwIfAborted();
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, delay);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
 
 function getPeriodDateRange(year: number, month: number) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -17,7 +34,7 @@ function getPeriodDateRange(year: number, month: number) {
 
 export function useFinance(userId: number) {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncResult, setSyncResult] = useState<EmailSyncResponse | null>(null);
+  const [syncBatches, setSyncBatches] = useState(0);
   const [syncStatus, setSyncStatus] = useState<GoogleAuthStatus | null>(null);
   const [syncStatusUnavailable, setSyncStatusUnavailable] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -71,6 +88,12 @@ export function useFinance(userId: number) {
     .filter((message, index, messages) => message && messages.indexOf(message) === index).join(' · ') || null;
 
   const autoRecoveryUserRef = useRef<number | null>(null);
+  const activeEmailSync = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    activeEmailSync.current?.abort();
+    activeEmailSync.current = null;
+  }, [userId]);
 
   const loadSyncStatus = useCallback(async (): Promise<GoogleAuthStatus | null> => {
     if (!userId) {
@@ -109,20 +132,23 @@ export function useFinance(userId: number) {
         status.lastSyncFailed &&
         !NON_RECOVERABLE_SYNC_CODES.has(status.lastSyncFailureCode ?? '');
 
-      if (canAutoRecover && autoRecoveryUserRef.current !== userId) {
+      if (canAutoRecover && autoRecoveryUserRef.current !== userId && !activeEmailSync.current) {
         autoRecoveryUserRef.current = userId;
+        const controller = new AbortController();
+        activeEmailSync.current = controller;
         try {
+          setSyncBatches(0);
           setIsSyncing(true);
-          const result = await api.syncEmails();
+          await api.syncEmails(controller.signal);
           if (!cancelled) {
-            setSyncResult(result);
             await Promise.all([loadSummary(true), loadAnalytics(true), loadTransactions(true), loadRecent(true)]);
           }
         } catch {
           // Silent background recovery; status will reflect latest state below
         } finally {
-          if (!cancelled) {
-            await loadSyncStatus();
+          if (!cancelled) await loadSyncStatus();
+          if (activeEmailSync.current === controller) {
+            activeEmailSync.current = null;
             setIsSyncing(false);
           }
         }
@@ -151,21 +177,42 @@ export function useFinance(userId: number) {
     return () => clearInterval(interval);
   }, [loadSummary, loadAnalytics, loadTransactions, loadRecent, loadSyncStatus, isSyncing, userId]);
 
-  const triggerEmailSync = async () => {
+  const triggerEmailSync = async (): Promise<Pick<EmailSyncResponse, 'status' | 'scannedCount' | 'savedCount'>> => {
+    if (!userId) throw new Error('Sesión no disponible');
+    if (activeEmailSync.current) throw new Error('Ya hay una sincronización en curso.');
+    const controller = new AbortController();
+    activeEmailSync.current = controller;
+    const { signal } = controller;
     try {
       setIsSyncing(true);
+      setSyncBatches(0);
       setSyncError(null);
-      const result = await api.syncEmails();
-      setSyncResult(result);
-      await Promise.all([loadSummary(), loadAnalytics(), loadTransactions(), loadRecent()]);
-      return result;
+      let scannedCount = 0;
+      let savedCount = 0;
+      for (;;) {
+        signal.throwIfAborted();
+        const batch = await api.syncEmails(signal);
+        signal.throwIfAborted();
+        scannedCount += batch.scannedCount;
+        savedCount += batch.savedCount;
+        if (batch.status !== 'CONTINUING') return { status: batch.status, scannedCount, savedCount };
+        setSyncBatches(count => count + 1);
+        await waitForNextEmailBatch(
+          batch.scannedCount > 0 ? PROCESSED_BATCH_DELAY_MS : EMPTY_BATCH_DELAY_MS, signal,
+        );
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al sincronizar correos';
-      setSyncError(msg);
+      if (!signal.aborted) setSyncError(msg);
       throw err;
     } finally {
-      await loadSyncStatus();
-      setIsSyncing(false);
+      if (!signal.aborted) {
+        await Promise.all([loadSyncStatus(), loadSummary(true), loadAnalytics(true), loadTransactions(true), loadRecent(true)]);
+      }
+      if (activeEmailSync.current === controller) {
+        activeEmailSync.current = null;
+        setIsSyncing(false);
+      }
     }
   };
 
@@ -206,7 +253,7 @@ export function useFinance(userId: number) {
     loadingSummary: analyticsResource.loading,
     loadingTransactions: transactionResource.loading,
     isSyncing,
-    syncResult,
+    syncBatches,
     syncStatus,
     syncStatusUnavailable,
     error,

@@ -17,7 +17,7 @@ interface SettingsViewProps {
   googleStatus: GoogleAuthStatus | null;
   statusUnavailable: boolean;
   syncing: boolean;
-  onSync: () => Promise<EmailSyncResponse>;
+  onSync: () => Promise<Pick<EmailSyncResponse, 'status' | 'scannedCount' | 'savedCount'>>;
   onStatusRefresh: () => Promise<void>;
   onOpenPairing: () => void;
 }
@@ -218,6 +218,7 @@ export function SettingsView({
               )}
             </div>
 
+            {syncing && <p className="mt-3 text-sm text-muted">Mantén FinTrack abierto para continuar con las tandas pendientes.</p>}
             {feedback && (
               <div
                 role={feedback.type === 'error' ? 'alert' : 'status'}

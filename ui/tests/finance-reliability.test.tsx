@@ -3,7 +3,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { useFinance } from '../src/hooks/useFinance';
 import { api } from '../src/services/api';
-import type { PageResponse, PeriodAnalytics, Transaction, TransactionPageResponse } from '../src/types';
+import type { EmailSyncResponse, PageResponse, PeriodAnalytics, Transaction, TransactionPageResponse } from '../src/types';
 
 const transaction: Transaction = { id: 1, amount: 10, flowType: 'EXPENSE', contactName: 'Synthetic merchant', channel: 'YAPE', transactionDate: '2026-10-01T12:00:00', createdAt: '2026-10-01T12:00:00', transactionHash: 'synthetic' };
 const page: PageResponse<Transaction> = { content: [transaction], totalElements: 1, totalPages: 1, number: 0, size: 10, first: true, last: true, empty: false };
@@ -21,7 +21,7 @@ beforeEach(() => {
   vi.spyOn(api, 'getGoogleAuthStatus').mockResolvedValue({ connected: false, email: null, lastSuccessfulSyncAt: null, lastSyncFailed: false });
   vi.spyOn(api, 'getTransactions').mockResolvedValue(page);
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it('keeps the latest search when an old request finishes later', async () => {
   const old = deferred<TransactionPageResponse>();
@@ -136,4 +136,60 @@ it('automatically retries email sync once on startup when previous sync failed w
   const { result } = renderHook(() => useFinance(1));
   await waitFor(() => expect(result.current.syncStatus?.lastSyncFailed).toBe(false));
   expect(syncSpy).toHaveBeenCalledOnce();
+});
+
+function emailBatch(status: string, scannedCount = 0, savedCount = 0): EmailSyncResponse {
+  return { status, scannedCount, processedInBatch: scannedCount, savedCount, message: '', transactions: [] };
+}
+
+it('continues an empty batch and paces subsequent downloads from a single click', async () => {
+  vi.useFakeTimers();
+  const sync = vi.spyOn(api, 'syncEmails')
+    .mockResolvedValueOnce(emailBatch('CONTINUING'))
+    .mockResolvedValueOnce(emailBatch('CONTINUING', 20, 2))
+    .mockResolvedValueOnce(emailBatch('SUCCESS', 1, 1));
+  const { result } = renderHook(() => useFinance(1));
+  let outcome!: ReturnType<typeof result.current.triggerEmailSync>;
+  await act(async () => { outcome = result.current.triggerEmailSync(); });
+  expect(result.current.syncBatches).toBe(1);
+  await act(async () => { await expect(result.current.triggerEmailSync()).rejects.toThrow('en curso'); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(999); });
+  expect(sync).toHaveBeenCalledOnce();
+  await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+  expect(sync).toHaveBeenCalledTimes(2);
+  expect(result.current.syncBatches).toBe(2);
+  expect(result.current.isSyncing).toBe(true);
+  await act(async () => { await vi.advanceTimersByTimeAsync(14_999); });
+  expect(sync).toHaveBeenCalledTimes(2);
+  await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+  expect(await outcome).toEqual({ status: 'SUCCESS', scannedCount: 21, savedCount: 3 });
+  expect(result.current.isSyncing).toBe(false);
+});
+
+it('stops automatic continuation when the API says Gmail is paused', async () => {
+  vi.useFakeTimers();
+  const sync = vi.spyOn(api, 'syncEmails')
+    .mockResolvedValueOnce(emailBatch('CONTINUING'))
+    .mockResolvedValueOnce(emailBatch('PAUSED'));
+  const { result } = renderHook(() => useFinance(1));
+  let outcome!: ReturnType<typeof result.current.triggerEmailSync>;
+  await act(async () => { outcome = result.current.triggerEmailSync(); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  expect(await outcome).toMatchObject({ status: 'PAUSED' });
+  expect(result.current.isSyncing).toBe(false);
+  expect(sync).toHaveBeenCalledTimes(2);
+});
+
+it('cancels the next batch when the authenticated dashboard closes', async () => {
+  vi.useFakeTimers();
+  const sync = vi.spyOn(api, 'syncEmails').mockResolvedValue(emailBatch('CONTINUING'));
+  const { result, unmount } = renderHook(() => useFinance(1));
+  let outcome!: Promise<unknown>;
+  await act(async () => { outcome = result.current.triggerEmailSync().catch(error => error); });
+  expect(result.current.syncBatches).toBe(1);
+  unmount();
+  await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+  expect(await outcome).toHaveProperty('name', 'AbortError');
+  expect(sync).toHaveBeenCalledOnce();
+  expect(sync.mock.calls[0][0]?.aborted).toBe(true);
 });

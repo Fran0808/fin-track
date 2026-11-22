@@ -22,6 +22,13 @@ Only fixed codes are stored, never provider bodies, tokens or error text:
 | `RATE_LIMITED` | HTTP 429 or HTTP 403 with a recognized Google rate limit or quota reason. Wait before trying again. |
 | `TEMPORARY` | Transport failure or HTTP 5xx; check server connectivity and retry later. |
 | `PROCESSING` | One or more messages failed to process; already saved movements remain, and the cursor does not advance. Retry, then investigate processing if persistent. |
+
+One manual click keeps requesting batches while the authenticated dashboard
+stays open. The dashboard pauses between requests and stops when the search
+completes, Gmail limits requests, or an error occurs. Closing the dashboard
+or signing out cancels future requests. The next manual sync uses the
+backend's saved page. The independent scheduled sync remains configurable
+through `GMAIL_SYNC_ENABLED`.
 | `UNKNOWN` / absent / future code | Cause unavailable; retry and request a connection review if persistent. Do not guess an authentication failure. |
 
 Scheduled and explicit scans share the same diagnostics path and only one scan

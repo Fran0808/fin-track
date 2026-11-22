@@ -286,9 +286,10 @@ export const api = {
     return response.blob();
   },
 
-  async syncEmails(): Promise<EmailSyncResponse> {
+  async syncEmails(signal?: AbortSignal): Promise<EmailSyncResponse> {
     const response = await fetchWithAuth(`${BASE_URL}/emails/sync`, {
       method: 'POST',
+      signal,
     });
     return handleResponse<EmailSyncResponse>(response);
   },

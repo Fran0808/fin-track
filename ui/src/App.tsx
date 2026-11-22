@@ -51,6 +51,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     syncStatus,
     syncStatusUnavailable,
     isSyncing,
+    syncBatches,
     triggerEmailSync,
     refreshSyncStatus,
     error,
@@ -126,7 +127,8 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
                 Vinculación móvil
               </button>
-              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} onSync={() => { void triggerEmailSync().catch(() => {}); }} />
+              <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} completedBatches={syncBatches}
+                onSync={() => { void triggerEmailSync().catch(() => {}); }} />
               <div
                 className={`flex items-center overflow-hidden transition-all duration-200 ease-out ${
                   !['configuracion', 'categorias', 'reglas'].includes(activeView) && !(activeView === 'movimientos' && (filters.allHistory || filters.startDate))

@@ -46,7 +46,14 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   the same pending and pause states in the header and settings.
   Verified locally with 367 backend tests, migration regressions, 160
   dashboard tests, lint with existing warnings and production builds. Publish
-  the follow-up and verify a manual batch in Render.
+  the follow-up and verify a manual batch in Render. Render logs on `c47491f`
+  confirmed two successful continuations still required separate clicks.
+- Manual synchronization now continues through pending batches from a single
+  click while the authenticated dashboard is open. It shows completed batches,
+  spaces requests, and stops on provider pause, error, completion or logout.
+  Verified locally with 163 UI tests, including simulated batches, pauses and
+  cancellation, plus the production UI build and lint with existing warnings.
+  Remaining acceptance: publish and verify a single manual session in Render.
 
 ## Current checkpoint: Gmail synchronization failures and overlapping requests
 

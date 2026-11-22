@@ -6,6 +6,7 @@ interface SyncStatusProps {
   status: GoogleAuthStatus | null;
   unavailable: boolean;
   syncing: boolean;
+  completedBatches?: number;
   onSync: () => void;
 }
 
@@ -18,7 +19,7 @@ function formatSyncDate(value: string, showSeconds = false): string {
   }).format(date);
 }
 
-export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusProps) {
+export function SyncStatus({ status, unavailable, syncing, completedBatches = 0, onSync }: SyncStatusProps) {
   const connected = status?.connected ?? false;
   const state = emailSyncState(status);
   const failed = state === 'failed';
@@ -48,6 +49,9 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
       <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${color} ${syncing ? 'animate-spin' : ''}`} />
       <div className="min-w-0 max-w-64">
         <p className="text-xs font-medium text-ink">{syncing ? 'Sincronizando correos...' : label}</p>
+        {syncing && completedBatches > 0 && (
+          <p className="text-[11px] text-muted">{completedBatches} {completedBatches === 1 ? 'tanda completada' : 'tandas completadas'}</p>
+        )}
         {!unavailable && !syncing && connected && paused && status?.syncRetryAt && (
           <p className="text-[11px] text-muted">Reintentar desde {formatSyncDate(status.syncRetryAt)}</p>
         )}
