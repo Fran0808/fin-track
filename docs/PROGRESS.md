@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: November 19, 2026. This is the entry point for current work, not a release
+Updated: November 21, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -16,6 +16,22 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Android capture | FinTrack 1.3.9 (22): unused template/resource/config files removed; release HTTPS, redirect protection and credential-backup exclusions retained; 82 JVM tests per debug/captureTest/release variant passed and APK metadata verified. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
+
+## Current checkpoint: Gmail synchronization failures and overlapping requests
+
+- November 21, owner/scope: current chat. Manual and scheduled Gmail scans now
+  share a per-user guard within one API instance. A concurrent manual request
+  returns `409`, and the scheduler skips an active scan without writing a failure.
+  The Gmail client recognizes quota-related `403` responses as rate limits and
+  logs only the status and allowlisted reason. The email API returns specific
+  messages for provider failures. See the [source diagnostics](domain/source-diagnostics.md).
+- Verified locally: 363 backend tests and eight SQL migration regressions passed
+  using disposable PostgreSQL and disabled email scheduling. The backend package,
+  157 dashboard tests and production dashboard build passed. Gmail responses were
+  simulated, including quota and access denials, overlapping requests and recovery.
+- Remaining acceptance: publish the patch and verify the new diagnostics on
+  Render if Gmail rejects another request. The original provider reason could not
+  be recovered from the previous logs.
 
 ## Current checkpoint: dashboard and API on the same Render origin
 

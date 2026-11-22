@@ -4,6 +4,7 @@ import com.store.api.model.dto.transaction.TransactionResponse;
 import com.store.api.model.dto.email.EmailMessageDto;
 import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
+import com.store.api.model.enums.EmailSyncFailure;
 import com.store.api.model.enums.FlowType;
 import com.store.api.repository.ProcessedEmailMessageRepository;
 import com.store.api.service.transaction.TransactionService;
@@ -29,6 +30,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -75,6 +80,51 @@ class EmailIngestionServiceTest {
                 () -> emailIngestionService.syncEmails()).getStatusCode().value());
         verifyNoInteractions(googleOAuthService, gmailApiClient, imapEmailClient,
                 parserDispatcher, transactionService, processedEmailRepository);
+    }
+
+    @Test
+    void skipsOverlappingSyncForTheSameUserAndReleasesTheSlotAfterFailure() throws Exception {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch finish = new CountDownLatch(1);
+        AtomicBoolean firstAttempt = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            if (UserContext.requireCurrentUser().getId() == 42L && firstAttempt.getAndSet(false)) {
+                started.countDown();
+                assertTrue(finish.await(5, TimeUnit.SECONDS));
+                throw new EmailSyncException(EmailSyncFailure.RATE_LIMITED);
+            }
+            return null;
+        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), nullable(Long.class), any(), any());
+
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var active = executor.submit(() -> {
+                UserContext.setCurrentUser(User.builder().id(42L).build());
+                try {
+                    return assertThrows(EmailSyncException.class, emailIngestionService::syncEmails).getFailure();
+                } finally {
+                    UserContext.clear();
+                }
+            });
+            try {
+                assertTrue(started.await(5, TimeUnit.SECONDS));
+                assertTrue(emailIngestionService.syncEmailsIfIdle().isEmpty());
+                assertEquals(409, assertThrows(ResponseStatusException.class,
+                        emailIngestionService::syncEmails).getStatusCode().value());
+                verify(googleOAuthService, never()).recordSyncResult(anyBoolean(), any());
+                verify(googleOAuthService, times(1)).getValidAccessToken();
+
+                UserContext.setCurrentUser(User.builder().id(99L).build());
+                assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
+            } finally {
+                finish.countDown();
+            }
+            assertEquals(EmailSyncFailure.RATE_LIMITED, active.get(5, TimeUnit.SECONDS));
+        }
+
+        UserContext.setCurrentUser(User.builder().id(42L).build());
+        assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
+        verify(googleOAuthService).recordSyncResult(false, EmailSyncFailure.RATE_LIMITED);
     }
 
     @Test

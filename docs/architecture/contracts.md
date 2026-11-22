@@ -70,6 +70,12 @@ Source diagnostics are additive: `GET /auth/google/status` adds nullable
 `lastSyncAttemptAt` (UTC completion time) and `lastSyncFailureCode` (safe enum).
 Full success clears the failure and updates `lastSuccessfulSyncAt`; partial/failure
 preserves the last success. Both explicit and scheduled scans record these fields.
+Within one API instance, manual and scheduled scans share one active run per user.
+An overlapping manual request returns `409` with a message that a scan is in
+progress. The scheduler skips an overlapping run. Neither overwrites the active
+run's status. Gmail failures return an actionable message. Missing authorization
+returns `409`, denied access returns `403`, rate limits return `429`, temporary
+provider failures return `503`, and unclassified provider failures return `502`.
 `GET /user/phone-status` returns only `{ "lastReceivedAt": <UTC instant or null> }`
 for the current web user. Both status responses use `Cache-Control: no-store`.
 Device access to phone status is forbidden. Accepted single/batch sync, including

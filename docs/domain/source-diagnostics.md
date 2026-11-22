@@ -18,13 +18,15 @@ Only fixed codes are stored, never provider bodies, tokens or error text:
 | Code | Evidence and next action |
 | --- | --- |
 | `AUTH_REQUIRED` | Missing usable authorization, HTTP 401 or explicit OAuth `invalid_grant`; offer the existing Google consent flow again. |
-| `ACCESS_DENIED` | HTTP 403; review Gmail permissions and Google access configuration. A 403 alone does not establish that consent was revoked. |
-| `RATE_LIMITED` | HTTP 429; wait before trying again. |
+| `ACCESS_DENIED` | HTTP 403 without a recognized rate limit reason. Review Gmail permissions and Google access configuration. |
+| `RATE_LIMITED` | HTTP 429 or HTTP 403 with a recognized Google rate limit or quota reason. Wait before trying again. |
 | `TEMPORARY` | Transport failure or HTTP 5xx; check server connectivity and retry later. |
 | `PROCESSING` | One or more messages failed to process; already saved movements remain, and the cursor does not advance. Retry, then investigate processing if persistent. |
 | `UNKNOWN` / absent / future code | Cause unavailable; retry and request a connection review if persistent. Do not guess an authentication failure. |
 
-Scheduled and explicit scans share the same diagnostics path. Partial ingestion
+Scheduled and explicit scans share the same diagnostics path and only one scan
+per user runs on an API instance. Logs include the HTTP status and a recognized
+Google reason from a fixed list. Unknown reasons use a fixed placeholder. Partial ingestion
 is shown as incomplete with the saved count, rather than complete. Failure to
 read status hides stale success/failure advice and permits refreshing status
 without starting a scan. The header label explicitly refers to email only.

@@ -1,6 +1,5 @@
 package com.store.api.service.email.scheduler;
 
-import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.service.email.EmailIngestionService;
 import com.store.api.service.auth.GoogleOAuthService;
 import com.store.api.config.security.UserContext;
@@ -31,8 +30,9 @@ public class EmailSyncScheduler {
         for (User user : connectedUsers) {
             UserContext.setCurrentUser(user);
             try {
-                EmailSyncResponse response = emailIngestionService.syncEmails();
-                log.info("Scheduled email sync completed: scanned={}, saved={}", response.getScannedCount(), response.getSavedCount());
+                emailIngestionService.syncEmailsIfIdle().ifPresent(response -> log.info(
+                        "Scheduled email sync completed: status={}, scanned={}, saved={}",
+                        response.getStatus(), response.getScannedCount(), response.getSavedCount()));
             } catch (Exception e) {
                 log.warn("Scheduled email synchronization failed");
             } finally {

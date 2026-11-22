@@ -49,6 +49,28 @@ class GmailApiClientTest {
         server.verify();
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "errors,userRateLimitExceeded,RATE_LIMITED", "errors,rateLimitExceeded,RATE_LIMITED",
+            "errors,dailyLimitExceeded,RATE_LIMITED", "details,QUOTA_EXCEEDED,RATE_LIMITED",
+            "errors,insufficientPermissions,ACCESS_DENIED", "details,ACCESS_TOKEN_SCOPE_INSUFFICIENT,ACCESS_DENIED",
+            "errors,private-provider-reason,ACCESS_DENIED"})
+    void distinguishesForbiddenQuotaResponsesFromAccessFailures(String field, String reason,
+            com.store.api.model.enums.EmailSyncFailure expected) {
+        String body = "{\"error\":{\"status\":\"PERMISSION_DENIED\",\"message\":\"private provider text\","
+                + "\"" + field + "\":[{\"reason\":\"" + reason + "\"}]}}";
+        server.expect(requestTo(startsWith("https://gmail.googleapis.com/gmail/v1/users/me/messages?")))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators
+                        .withStatus(org.springframework.http.HttpStatus.FORBIDDEN).body(body));
+
+        var error = assertThrows(com.store.api.service.email.EmailSyncException.class,
+                () -> client.fetchFinancialEmails("synthetic-token", 20));
+
+        assertEquals(expected, error.getFailure());
+        org.junit.jupiter.api.Assertions.assertNull(error.getCause());
+        server.verify();
+    }
+
     @Test
     void shouldNotInventABankSenderWhenFromIsMissing() {
         expectMessage("{\"name\":\"Subject\",\"value\":\"Constancia de transferencia BCP\"}");

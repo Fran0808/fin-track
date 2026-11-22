@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -29,13 +30,13 @@ class EmailSyncSchedulerTest {
         when(google.getConnectedUsers()).thenReturn(List.of(first, second));
 
         List<Long> syncedUsers = new ArrayList<>();
-        when(ingestion.syncEmails()).thenAnswer(invocation -> {
+        when(ingestion.syncEmailsIfIdle()).thenAnswer(invocation -> {
             Long id = UserContext.requireCurrentUser().getId();
             syncedUsers.add(id);
             if (id == 10L) {
                 throw new IllegalStateException("Test account unavailable");
             }
-            return EmailSyncResponse.builder().scannedCount(0).savedCount(0).build();
+            return Optional.of(EmailSyncResponse.builder().scannedCount(0).savedCount(0).build());
         });
 
         new EmailSyncScheduler(ingestion, google).scheduleEmailSync();

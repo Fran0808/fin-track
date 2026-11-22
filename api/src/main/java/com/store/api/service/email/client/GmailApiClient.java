@@ -16,8 +16,11 @@ import java.util.HashSet;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import com.store.api.model.dto.email.EmailMessageDto;
+import com.store.api.model.enums.EmailSyncFailure;
+import com.store.api.service.email.EmailSyncException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,11 @@ public class GmailApiClient {
 
     private static final String GMAIL_MESSAGES_ENDPOINT = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
     private static final ZoneId PERU_ZONE = ZoneId.of("America/Lima");
+    private static final Set<String> RATE_LIMIT_REASONS = Set.of("rateLimitExceeded", "userRateLimitExceeded",
+            "dailyLimitExceeded", "quotaExceeded", "RESOURCE_EXHAUSTED", "RATE_LIMIT_EXCEEDED", "QUOTA_EXCEEDED");
+    private static final Set<String> OTHER_SAFE_REASONS = Set.of("insufficientPermissions", "domainPolicy",
+            "forbidden", "authError", "accessNotConfigured", "backendError", "notFound", "badRequest",
+            "PERMISSION_DENIED", "UNAUTHENTICATED", "ACCESS_TOKEN_SCOPE_INSUFFICIENT", "SERVICE_DISABLED");
 
     private final ObjectMapper objectMapper;
     private final RestClient restClient = com.store.api.config.ExternalHttp.client();
@@ -99,9 +107,37 @@ public class GmailApiClient {
             if (pageToken != null && pageToken.isBlank()) pageToken = null;
             if (pageToken != null && !seenPages.add(pageToken)) throw new IllegalStateException("Gmail repeated a page token");
             } while (pageToken != null);
+        } catch (RestClientResponseException ex) {
+            int status = ex.getStatusCode().value();
+            String reason = safeErrorReason(ex);
+            EmailSyncFailure failure = status == 403 && RATE_LIMIT_REASONS.contains(reason)
+                    ? EmailSyncFailure.RATE_LIMITED : EmailSyncException.classify(ex);
+            log.warn("Gmail synchronization could not finish: status={}, reason={}, failure={}", status, reason, failure);
+            throw new EmailSyncException(failure);
         } catch (Exception ex) {
-            log.warn("Gmail synchronization could not finish");
-            throw new com.store.api.service.email.EmailSyncException(com.store.api.service.email.EmailSyncException.classify(ex));
+            EmailSyncFailure failure = EmailSyncException.classify(ex);
+            log.warn("Gmail synchronization could not finish: failure={}", failure);
+            throw new EmailSyncException(failure);
+        }
+    }
+
+    private String safeErrorReason(RestClientResponseException response) {
+        try {
+            JsonNode error = objectMapper.readTree(response.getResponseBodyAsString()).path("error");
+            String safeReason = "unknown";
+            for (String field : List.of("errors", "details")) {
+                for (JsonNode detail : error.path(field)) {
+                    String reason = detail.path("reason").asText("");
+                    if (RATE_LIMIT_REASONS.contains(reason)) return reason;
+                    if (OTHER_SAFE_REASONS.contains(reason)) safeReason = reason;
+                }
+            }
+            String status = error.path("status").asText("");
+            if (RATE_LIMIT_REASONS.contains(status)) return status;
+            if ("unknown".equals(safeReason) && OTHER_SAFE_REASONS.contains(status)) return status;
+            return safeReason;
+        } catch (tools.jackson.core.JacksonException ex) {
+            return "unknown";
         }
     }
 

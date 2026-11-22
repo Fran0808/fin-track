@@ -8,6 +8,7 @@ import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 import com.store.api.config.security.UserContext;
 import com.store.api.model.entity.ProcessedEmailMessage;
+import com.store.api.model.enums.EmailSyncFailure;
 import com.store.api.repository.ProcessedEmailMessageRepository;
 import com.store.api.service.transaction.TransactionService;
 import com.store.api.service.auth.GoogleOAuthService;
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Domain orchestrator service for email synchronization and transaction persistence.
@@ -37,6 +40,7 @@ public class EmailIngestionService {
     private final BankEmailParserDispatcher parserDispatcher;
     private final TransactionService transactionService;
     private final ProcessedEmailMessageRepository processedEmailRepository;
+    private final Set<Long> activeSyncUsers = ConcurrentHashMap.newKeySet();
 
     @Value("${mail.sync.batch-size:20}")
     private int batchSize;
@@ -59,7 +63,13 @@ public class EmailIngestionService {
     }
 
     public EmailSyncResponse syncEmails() {
-        UserContext.requireCurrentUser();
+        return syncEmailsIfIdle().orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT, "Ya hay una sincronización de correo en curso. Espera a que termine."));
+    }
+
+    public Optional<EmailSyncResponse> syncEmailsIfIdle() {
+        Long userId = UserContext.requireCurrentUser().getId();
+        if (!activeSyncUsers.add(userId)) return Optional.empty();
 
         try {
             Optional<String> googleToken = fetchTokenWithRetry();
@@ -73,17 +83,18 @@ public class EmailIngestionService {
             Long lastSyncedInternalDate = googleOAuthService.getLastSyncedInternalDate().orElse(null);
             visitEmailsWithRetry(googleToken.get(), lastSyncedInternalDate, progress);
             if (progress.errors == 0 && progress.maxDate > 0) googleOAuthService.updateLastSyncedInternalDate(progress.maxDate);
-            googleOAuthService.recordSyncResult(progress.errors == 0, progress.errors == 0 ? null : com.store.api.model.enums.EmailSyncFailure.PROCESSING);
-            return EmailSyncResponse.builder().status(progress.errors == 0 ? "SUCCESS" : "PARTIAL")
+            googleOAuthService.recordSyncResult(progress.errors == 0, progress.errors == 0 ? null : EmailSyncFailure.PROCESSING);
+            return Optional.of(EmailSyncResponse.builder().status(progress.errors == 0 ? "SUCCESS" : "PARTIAL")
                     .scannedCount(progress.scanned).processedInBatch(progress.scanned).savedCount(progress.saved)
                     .transactions(progress.transactions).message(progress.errors == 0
-                            ? "Emails synchronized successfully" : "Some email messages could not be processed").build();
+                            ? "Emails synchronized successfully" : "Some email messages could not be processed").build());
         } catch (RuntimeException ex) {
             var failure = ex instanceof org.springframework.web.server.ResponseStatusException status
-                    && status.getStatusCode().value() == 409 ? com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED
-                    : com.store.api.service.email.EmailSyncException.classify(ex);
+                    && status.getStatusCode().value() == 409 ? EmailSyncFailure.AUTH_REQUIRED : EmailSyncException.classify(ex);
             googleOAuthService.recordSyncResult(false, failure);
             throw ex;
+        } finally {
+            activeSyncUsers.remove(userId);
         }
     }
 
@@ -91,7 +102,7 @@ public class EmailIngestionService {
         try {
             return googleOAuthService.getValidAccessToken();
         } catch (EmailSyncException ex) {
-            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.TEMPORARY) {
+            if (ex.getFailure() == EmailSyncFailure.TEMPORARY) {
                 log.info("Retrying Google token refresh after temporary transport failure");
                 return googleOAuthService.getValidAccessToken();
             }
@@ -109,7 +120,7 @@ public class EmailIngestionService {
                     msg -> processMessage(msg, progress)
             );
         } catch (EmailSyncException ex) {
-            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.TEMPORARY) {
+            if (ex.getFailure() == EmailSyncFailure.TEMPORARY) {
                 log.info("Retrying Gmail synchronization after temporary transport failure");
                 gmailApiClient.visitFinancialEmails(
                         initialToken,
@@ -120,7 +131,7 @@ public class EmailIngestionService {
                 );
                 return;
             }
-            if (ex.getFailure() == com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED) {
+            if (ex.getFailure() == EmailSyncFailure.AUTH_REQUIRED) {
                 Optional<String> refreshed = googleOAuthService.refreshAccessToken();
                 if (refreshed.isPresent()) {
                     log.info("Retrying Gmail synchronization with refreshed access token");
