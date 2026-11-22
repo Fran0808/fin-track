@@ -4,6 +4,7 @@ DO $$ BEGIN
         RAISE EXCEPTION 'A fresh disposable fintrack_sources_eval_ database is required';
     END IF;
 END $$;
+
 CREATE TABLE users (id BIGINT PRIMARY KEY, email TEXT, device_pairing_token TEXT);
 CREATE TABLE google_oauth_tokens (id BIGINT PRIMARY KEY, user_id BIGINT REFERENCES users(id),
     access_token TEXT, last_successful_sync_at TIMESTAMPTZ, last_sync_failed BOOLEAN);
@@ -34,5 +35,22 @@ DO $$ BEGIN
         OR (SELECT last_sync_failure_code FROM google_oauth_tokens WHERE id=1) <> 'TEMPORARY'
         OR (SELECT last_phone_received_at FROM users WHERE id=2) IS NOT NULL THEN
         RAISE EXCEPTION 'Repeated migration changed explicit diagnostics';
+    END IF;
+END $$;
+
+\ir 20261121_gmail_scan_checkpoint.sql
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM google_oauth_tokens WHERE sync_window_end IS NOT NULL OR sync_page_token IS NOT NULL
+               OR sync_page_size IS NOT NULL OR sync_retry_at IS NOT NULL OR sync_rate_limit_count IS NOT NULL) THEN
+        RAISE EXCEPTION 'Migration invented Gmail sync progress';
+    END IF;
+END $$;
+UPDATE google_oauth_tokens SET sync_window_end=1000, sync_page_token='synthetic-page',
+    sync_page_size=20, sync_retry_at='2026-11-21 12:00Z', sync_rate_limit_count=2;
+\ir 20261121_gmail_scan_checkpoint.sql
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM google_oauth_tokens WHERE sync_window_end=1000 AND sync_page_token='synthetic-page'
+                   AND sync_page_size=20 AND sync_retry_at='2026-11-21 12:00Z' AND sync_rate_limit_count=2) THEN
+        RAISE EXCEPTION 'Repeated migration changed Gmail sync progress';
     END IF;
 END $$;

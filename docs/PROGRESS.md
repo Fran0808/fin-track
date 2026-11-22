@@ -28,6 +28,19 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   linked and unlinked captures, and switching rows while a request is pending.
 - Next: publish the change through GitHub and verify the dashboard on Render.
 
+## Current checkpoint: resumable Gmail synchronization
+
+- November 21, scope: backend, database and dashboard. Gmail imports save their
+  search window, page and retry time per connected user. Each execution bounds
+  its downloads. The dashboard shows pending work and the retry time.
+- Verified locally: 367 backend tests, SQL migration regressions on disposable
+  PostgreSQL, 160 dashboard tests, lint with warnings and production builds.
+  Simulated Gmail requests covered resumption and cooldown. Persistence tests
+  covered isolation between users and rejecting stale writes.
+- Production rollout requires the
+  [Gmail checkpoint migration](../scripts/migrations/20261121_gmail_scan_checkpoint.sql)
+  before deploying the backend. Production verification remains pending.
+
 ## Current checkpoint: Gmail synchronization failures and overlapping requests
 
 - November 21, owner/scope: current chat. Manual and scheduled Gmail scans now

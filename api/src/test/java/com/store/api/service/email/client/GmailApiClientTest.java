@@ -125,6 +125,23 @@ class GmailApiClientTest {
     }
 
     @Test
+    void resumesTheSameBoundedSearchAndStopsAtTheCheckpoint() {
+        String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+        server.expect(requestTo(org.hamcrest.Matchers.allOf(startsWith(endpoint + "?"),
+                        org.hamcrest.Matchers.containsString("pageToken=saved-page"),
+                        org.hamcrest.Matchers.containsString("maxResults=20"),
+                        org.hamcrest.Matchers.containsString("before:1790876400"))))
+                .andRespond(withSuccess("{\"nextPageToken\":\"following-page\"}", MediaType.APPLICATION_JSON));
+        client.visitFinancialEmails("synthetic-token", 20, null, id -> false,
+                message -> org.junit.jupiter.api.Assertions.fail("No message was listed"),
+                new GmailApiClient.Scan(1790876400000L, "saved-page", next -> {
+                    assertEquals("following-page", next);
+                    return false;
+                }));
+        server.verify();
+    }
+
+    @Test
     void malformedBodyFailsTheFetchInsteadOfMarkingItAsProcessed() {
         String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
         server.expect(requestTo(startsWith(endpoint + "?"))).andRespond(withSuccess(

@@ -62,6 +62,12 @@ export function SettingsView({
     setFeedback(null);
     try {
       const result = await onSync();
+      if (result.status === 'CONTINUING' || result.status === 'PAUSED') {
+        setFeedback({ type: 'success', message: result.status === 'CONTINUING'
+          ? 'Avance guardado. Quedan correos por sincronizar.'
+          : 'Gmail está en pausa. El avance se conserva para el siguiente intento.' });
+        return;
+      }
       setFeedback({
         type: result.status === 'PARTIAL' ? 'error' : 'success',
         message: result.status === 'PARTIAL'
@@ -97,6 +103,7 @@ export function SettingsView({
   };
 
   const gmailConnected = googleStatus?.connected === true;
+  const gmailPaused = Boolean(googleStatus?.syncRetryAt && Date.parse(googleStatus.syncRetryAt) > Date.now());
   const gmailFailed = !statusUnavailable && gmailConnected && googleStatus.lastSyncFailed;
   const checkingStatus = googleStatus === null && !statusUnavailable;
 
@@ -188,7 +195,7 @@ export function SettingsView({
                   <button
                     type="button"
                     onClick={() => void handleSync()}
-                    disabled={syncing || statusUnavailable}
+                    disabled={syncing || statusUnavailable || gmailPaused}
                     className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden="true" />

@@ -287,6 +287,37 @@ class DeploymentPersistenceTest {
         } finally { UserContext.clear(); }
     }
 
+    @Test void gmailCheckpointPersistsAcrossTransactionsAndRejectsStaleOrCrossUserWrites() {
+        User owner = user();
+        User other = user();
+        googleTokens.saveAndFlush(com.store.api.model.entity.GoogleOAuthToken.builder().user(owner)
+                .email(owner.getEmail()).accessToken("synthetic-access-token")
+                .expiresAt(LocalDateTime.now().plusHours(1)).build());
+        UserContext.setCurrentUser(owner);
+        try {
+            var initial = google.getGmailScan().orElseThrow();
+            var deadline = java.time.Instant.now().plusSeconds(300).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+            var saved = new com.store.api.service.auth.GoogleOAuthService.GmailScan(
+                    initial.tokenId(), 1000L, "synthetic-page", 20, deadline, 1);
+            google.saveGmailScan(initial, saved, null);
+            assertEquals(saved, google.getGmailScan().orElseThrow());
+            assertTrue(google.getStatus().isSyncPending());
+            assertEquals(deadline, google.getStatus().getSyncRetryAt());
+            assertTrue(google.getLastSyncedInternalDate().isEmpty());
+            assertThrows(IllegalStateException.class, () -> google.saveGmailScan(initial, initial, 1000L));
+
+            UserContext.setCurrentUser(other);
+            assertTrue(google.getGmailScan().isEmpty());
+            assertThrows(IllegalStateException.class, () -> google.saveGmailScan(saved, initial, 1000L));
+
+            UserContext.setCurrentUser(owner);
+            google.saveGmailScan(saved, initial, 1000L);
+            assertEquals(initial, google.getGmailScan().orElseThrow());
+            assertEquals(1000L, google.getLastSyncedInternalDate().orElseThrow());
+            assertFalse(google.getStatus().isSyncPending());
+        } finally { UserContext.clear(); }
+    }
+
     @Test void phoneReceptionTracksAcceptedRetriesButNotEmailOrInvalidBatches() {
         User owner = user();
         User other = user();

@@ -17,6 +17,10 @@ public interface GoogleOAuthTokenRepository extends JpaRepository<GoogleOAuthTok
     Optional<GoogleOAuthToken> findByEmail(String email);
     Optional<GoogleOAuthToken> findByUserId(Long userId);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM GoogleOAuthToken t WHERE t.user.id = :userId AND t.id = :id")
+    Optional<GoogleOAuthToken> lockSyncAccount(@Param("userId") Long userId, @Param("id") Long id);
+
     @Modifying
     @Query("UPDATE GoogleOAuthToken t SET t.lastSyncedInternalDate = :cursor WHERE t.user.id = :userId AND (t.lastSyncedInternalDate IS NULL OR t.lastSyncedInternalDate < :cursor)")
     int advanceCursor(@Param("userId") Long userId, @Param("cursor") Long cursor);

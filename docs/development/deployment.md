@@ -21,7 +21,7 @@ the resolved values. See [.env.example](../../.env.example) for local names.
 | `FRONTEND_ERROR_URL` | `https://fintrack.example.com?auth=google_error` |
 | `CORS_ALLOWED_ORIGINS` | Explicit HTTPS origins separated by commas; include `https://fintrack.example.com`, without a trailing slash, path or wildcard. |
 | `GMAIL_SYNC_ENABLED` | `false` until intentional real ingestion is authorized. |
-| `GMAIL_SYNC_BATCH_SIZE` | Gmail page size, 1–500, default 20; every matching page is visited. |
+| `GMAIL_SYNC_BATCH_SIZE` | Gmail page size, default 20. Authenticated sync caps it at 30 and saves the page size for any pending scan. |
 | `APP_BUSINESS_ZONE` | `America/Lima` by default, used for calendar-period comparisons. |
 | `DB_POOL_SIZE` | Default 5 connections per API instance; fit this to the database quota. |
 | `PORT` / `SERVER_PORT` | HTTP listening port; `PORT` takes precedence. |
@@ -115,18 +115,30 @@ neutral even while their operation is `UNKNOWN`; this is not a reason to re-impo
 emails or rewrite transaction hashes. Rolling back application code can retain
 the additional column; do not drop it and lose explicit confirmations.
 
+## Gmail synchronization rollout
+
+Before deploying this version on an existing database, apply
+[20261121_gmail_scan_checkpoint.sql](../../scripts/migrations/20261121_gmail_scan_checkpoint.sql)
+to the confirmed database. The migration adds nullable columns to
+`google_oauth_tokens` and preserves existing credentials and sync state.
+The empty database initializer already includes those columns.
+
 ## Reliability and limits
 
 Authenticated email ingestion requires that user's Google authorization. Global
 IMAP settings are retained for legacy tooling, with no authenticated fallback.
-Gmail pages are processed incrementally, with explicit connection/read timeouts.
-Failed downloads, malformed bodies or failed persistence prevent cursor advancement;
-already committed movements remain safe to retry. Cursor advancement is monotonic.
+Gmail scans save their page and the end of their search window in PostgreSQL.
+Each run processes at most one page with pending messages and checks at most
+five completed pages. A rate limit pauses manual and scheduled attempts for
+five minutes initially, doubling up to one hour on repeated limits. On an
+expired page token, the next run replays the same window and skips processed
+messages. Failed downloads or writes leave their page pending. The cursor
+advances through the completed window even when every message was already marked.
 Email parsing and hashing use the full body; only the optional stored diagnostic
 copy is capped at 65536 characters, so large HTML templates remain ingestible.
 Unsupported formats can still be marked processed and require controlled reprocessing
-when support is added. First sync of a large mailbox can be slow; manual sync is
-currently synchronous and the response collects saved movement summaries.
+when support is added. Large historical scans can span several executions.
+A manual sync processes one batch and returns its saved movement summaries.
 
 PostgreSQL transaction-level advisory locks serialize equal user/hash ingestion.
 Batch locks are acquired in stable order. The existing unique index remains the

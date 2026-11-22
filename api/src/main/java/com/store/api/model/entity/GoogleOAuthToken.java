@@ -41,6 +41,13 @@ public class GoogleOAuthToken {
     @Column(name = "last_synced_internal_date")
     private Long lastSyncedInternalDate;
 
+    private Long syncWindowEnd;
+    @Column(columnDefinition = "TEXT")
+    private String syncPageToken;
+    private Integer syncPageSize;
+    private Instant syncRetryAt;
+    private Integer syncRateLimitCount;
+
     @Column(name = "last_successful_sync_at")
     private Instant lastSuccessfulSyncAt;
 

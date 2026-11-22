@@ -68,6 +68,11 @@ before starting the updated API. Full payloads, endpoints and limitations are in
 
 Source diagnostics are additive: `GET /auth/google/status` adds nullable
 `lastSyncAttemptAt` (UTC completion time) and `lastSyncFailureCode` (safe enum).
+`syncPending` reports a saved search in progress. `syncRetryAt` gives the UTC
+time at which the provider can be contacted again after a rate limit.
+`POST /emails/sync` returns `CONTINUING` while the search has pages left and
+`PAUSED` during an existing cooldown. The attempt that receives a Gmail limit
+still returns HTTP 429. `SUCCESS` indicates the current search is complete.
 Full success clears the failure and updates `lastSuccessfulSyncAt`; partial/failure
 preserves the last success. Both explicit and scheduled scans record these fields.
 Within one API instance, manual and scheduled scans share one active run per user.

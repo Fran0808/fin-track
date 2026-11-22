@@ -62,24 +62,38 @@ public class GmailApiClient {
 
     public void visitFinancialEmails(String accessToken, int pageSize, Long lastSyncedEpochMs,
             Predicate<String> isProcessedFilter, Consumer<EmailMessageDto> consumer) {
+        visitFinancialEmails(accessToken, pageSize, lastSyncedEpochMs, isProcessedFilter, consumer,
+                new Scan(null, null, next -> true));
+    }
+
+    public record Scan(Long windowEnd, String pageToken, Predicate<String> pageComplete) {}
+
+    public static class InvalidPageToken extends IllegalStateException {}
+
+    public void visitFinancialEmails(String accessToken, int pageSize, Long lastSyncedEpochMs,
+            Predicate<String> isProcessedFilter, Consumer<EmailMessageDto> consumer, Scan scan) {
         if (pageSize < 1 || pageSize > 500) throw new IllegalArgumentException("Gmail page size must be between 1 and 500");
+        String pageToken = scan.pageToken();
+        boolean listing = false;
         try {
             String baseQuery = "BCP OR Yape OR constancia OR consumo OR notificacionesbcp.com.pe OR notificaciones@yape.pe OR yape.pe";
-            String query = baseQuery;
+            String query = "(" + baseQuery + ")";
 
             if (lastSyncedEpochMs != null && lastSyncedEpochMs > 0) {
                 // Look back 120 seconds before the cursor to absorb network delays or clock skew
                 long afterSeconds = (lastSyncedEpochMs / 1000) - 120;
                 if (afterSeconds > 0) {
-                    query = "(" + baseQuery + ") after:" + afterSeconds;
+                    query += " after:" + afterSeconds;
                 }
             }
 
+            if (scan.windowEnd() != null) query += " before:" + (scan.windowEnd() / 1000);
             final String searchQuery = query;
-            String pageToken = null;
             Set<String> seenPages = new HashSet<>();
+            if (pageToken != null) seenPages.add(pageToken);
             do {
             final String currentPage = pageToken;
+            listing = true;
             String listRaw = restClient.get()
                     .uri(GMAIL_MESSAGES_ENDPOINT, uriBuilder -> uriBuilder
                             .queryParam("q", searchQuery)
@@ -89,6 +103,7 @@ public class GmailApiClient {
                     .header("Authorization", "Bearer " + accessToken)
                     .retrieve()
                     .body(String.class);
+            listing = false;
 
             JsonNode listJson = objectMapper.readTree(listRaw);
             JsonNode messagesNode = listJson.path("messages");
@@ -106,9 +121,11 @@ public class GmailApiClient {
             pageToken = listJson.path("nextPageToken").asText(null);
             if (pageToken != null && pageToken.isBlank()) pageToken = null;
             if (pageToken != null && !seenPages.add(pageToken)) throw new IllegalStateException("Gmail repeated a page token");
+            if (!scan.pageComplete().test(pageToken)) return;
             } while (pageToken != null);
         } catch (RestClientResponseException ex) {
             int status = ex.getStatusCode().value();
+            if (status == 400 && listing && pageToken != null) throw new InvalidPageToken();
             String reason = safeErrorReason(ex);
             EmailSyncFailure failure = status == 403 && RATE_LIMIT_REASONS.contains(reason)
                     ? EmailSyncFailure.RATE_LIMITED : EmailSyncException.classify(ex);

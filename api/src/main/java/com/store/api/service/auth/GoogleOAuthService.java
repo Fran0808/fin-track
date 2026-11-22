@@ -263,6 +263,8 @@ public class GoogleOAuthService {
                     .connected(true)
                     .email(tokenOpt.get().getEmail())
                     .lastSuccessfulSyncAt(tokenOpt.get().getLastSuccessfulSyncAt())
+                    .syncPending(tokenOpt.get().getSyncWindowEnd() != null)
+                    .syncRetryAt(tokenOpt.get().getSyncRetryAt())
                     .lastSyncFailed(Boolean.TRUE.equals(tokenOpt.get().getLastSyncFailed()))
                     .lastSyncAttemptAt(tokenOpt.get().getLastSyncAttemptAt())
                     .lastSyncFailureCode(tokenOpt.get().getLastSyncFailureCode())
@@ -283,6 +285,39 @@ public class GoogleOAuthService {
     public Optional<Long> getLastSyncedInternalDate() {
         return findTokenForCurrentContext()
                 .map(GoogleOAuthToken::getLastSyncedInternalDate);
+    }
+
+    public record GmailScan(long tokenId, Long windowEnd, String pageToken, Integer pageSize,
+                            Instant retryAt, int rateLimitCount) {
+        private static GmailScan from(GoogleOAuthToken token) {
+            return new GmailScan(token.getId(), token.getSyncWindowEnd(), token.getSyncPageToken(),
+                    token.getSyncPageSize(), token.getSyncRetryAt(),
+                    token.getSyncRateLimitCount() == null ? 0 : token.getSyncRateLimitCount());
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<GmailScan> getGmailScan() {
+        return findTokenForCurrentContext().map(GmailScan::from);
+    }
+
+    @Transactional
+    public void saveGmailScan(GmailScan previous, GmailScan next, Long completedThrough) {
+        Long userId = UserContext.requireCurrentUser().getId();
+        GoogleOAuthToken token = tokenRepository.lockSyncAccount(userId, previous.tokenId())
+                .orElseThrow(() -> new IllegalStateException("Gmail account changed during synchronization"));
+        if (!previous.equals(GmailScan.from(token))) {
+            throw new IllegalStateException("Gmail synchronization progress changed");
+        }
+        token.setSyncWindowEnd(next.windowEnd());
+        token.setSyncPageToken(next.pageToken());
+        token.setSyncPageSize(next.pageSize());
+        token.setSyncRetryAt(next.retryAt());
+        token.setSyncRateLimitCount(next.rateLimitCount());
+        if (completedThrough != null && (token.getLastSyncedInternalDate() == null
+                || token.getLastSyncedInternalDate() < completedThrough)) {
+            token.setLastSyncedInternalDate(completedThrough);
+        }
     }
 
     @Transactional

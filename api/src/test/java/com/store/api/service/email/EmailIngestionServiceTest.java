@@ -9,6 +9,7 @@ import com.store.api.model.enums.FlowType;
 import com.store.api.repository.ProcessedEmailMessageRepository;
 import com.store.api.service.transaction.TransactionService;
 import com.store.api.service.auth.GoogleOAuthService;
+import com.store.api.service.auth.GoogleOAuthService.GmailScan;
 import com.store.api.service.email.client.GmailApiClient;
 import com.store.api.service.email.client.ImapEmailClient;
 import com.store.api.service.email.parser.BankEmailParserDispatcher;
@@ -27,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -66,6 +68,7 @@ class EmailIngestionServiceTest {
     @BeforeEach
     void setUp() {
         UserContext.setCurrentUser(User.builder().id(42L).build());
+        lenient().when(googleOAuthService.getGmailScan()).thenReturn(Optional.of(new GmailScan(1L, null, null, null, null, 0)));
     }
 
     @AfterEach
@@ -94,8 +97,9 @@ class EmailIngestionServiceTest {
                 assertTrue(finish.await(5, TimeUnit.SECONDS));
                 throw new EmailSyncException(EmailSyncFailure.RATE_LIMITED);
             }
+            invocation.<GmailApiClient.Scan>getArgument(5).pageComplete().test(null);
             return null;
-        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), nullable(Long.class), any(), any());
+        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), nullable(Long.class), any(), any(), any());
 
         try (var executor = Executors.newSingleThreadExecutor()) {
             var active = executor.submit(() -> {
@@ -168,7 +172,7 @@ class EmailIngestionServiceTest {
         verifyNoInteractions(transactionService);
         verify(processedEmailRepository).save(argThat(message ->
                 message.getMessageId().startsWith("v2:") && !message.getMessageId().contains("survey-regression")));
-        verify(googleOAuthService).updateLastSyncedInternalDate(1790876366000L);
+        verify(googleOAuthService).saveGmailScan(any(), any(), anyLong());
     }
 
     @Test
@@ -227,7 +231,7 @@ class EmailIngestionServiceTest {
         assertEquals("SUCCESS", response.getStatus());
 
         verify(processedEmailRepository, times(1)).save(any());
-        verify(googleOAuthService, times(1)).updateLastSyncedInternalDate(1700000060000L);
+        verify(googleOAuthService).saveGmailScan(any(), any(), anyLong());
         verify(googleOAuthService).recordSyncResult(true, null);
     }
 
@@ -245,7 +249,7 @@ class EmailIngestionServiceTest {
         assertEquals(0, response.getScannedCount());
         assertEquals(0, response.getSavedCount());
         verify(processedEmailRepository, never()).save(any());
-        verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
+        verify(googleOAuthService).saveGmailScan(any(), any(), anyLong());
         verify(googleOAuthService).recordSyncResult(true, null);
     }
 
@@ -266,15 +270,59 @@ class EmailIngestionServiceTest {
         assertEquals("PARTIAL", response.getStatus());
         verify(googleOAuthService).recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.PROCESSING);
         verify(processedEmailRepository, never()).save(any());
-        verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
+        verify(googleOAuthService, never()).saveGmailScan(any(), any(), anyLong());
     }
 
     private void stubGmail(Long cursor, List<EmailMessageDto> messages) {
         doAnswer(invocation -> {
             java.util.function.Consumer<EmailMessageDto> consumer = invocation.getArgument(4);
             messages.forEach(consumer);
+            invocation.<GmailApiClient.Scan>getArgument(5).pageComplete().test(null);
             return null;
-        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), eq(cursor), any(), any());
+        }).when(gmailApiClient).visitFinancialEmails(anyString(), anyInt(), eq(cursor), any(), any(), any());
+    }
+
+    @Test
+    void resumesAtSavedPageAndPreservesTheWindowUntilTheLastPage() {
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        var initial = new GmailScan(1L, 1790876400000L, "page-two", 20, null, 0);
+        var next = new GmailScan(1L, initial.windowEnd(), "page-three", 20, null, 0);
+        when(googleOAuthService.getGmailScan()).thenReturn(Optional.of(initial), Optional.of(next));
+        doAnswer(invocation -> {
+            GmailApiClient.Scan scan = invocation.getArgument(5);
+            assertEquals(initial.windowEnd(), scan.windowEnd());
+            if ("page-two".equals(scan.pageToken())) {
+                invocation.<java.util.function.Consumer<EmailMessageDto>>getArgument(4).accept(
+                        EmailMessageDto.builder().messageId("synthetic-second-page").build());
+                assertFalse(scan.pageComplete().test("page-three"));
+            } else {
+                assertEquals("page-three", scan.pageToken());
+                assertFalse(scan.pageComplete().test(null));
+            }
+            return null;
+        }).when(gmailApiClient).visitFinancialEmails(anyString(), eq(20), isNull(), any(), any(), any());
+        assertEquals("CONTINUING", emailIngestionService.syncEmails().getStatus());
+        verify(googleOAuthService).saveGmailScan(initial, next, null);
+        verify(googleOAuthService, never()).recordSyncResult(anyBoolean(), any());
+        assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
+        verify(googleOAuthService).saveGmailScan(eq(next), any(), eq(initial.windowEnd()));
+    }
+
+    @Test
+    void persistsAnIncreasingPauseAndSkipsAllProviderCallsDuringCooldown() {
+        var scan = new GmailScan(1L, 1790876400000L, "page-two", 20, null, 1);
+        when(googleOAuthService.getGmailScan()).thenReturn(Optional.of(scan),
+                Optional.of(new GmailScan(1L, scan.windowEnd(), scan.pageToken(), 20, Instant.now().plusSeconds(600), 2)));
+        when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
+        doThrow(new EmailSyncException(EmailSyncFailure.RATE_LIMITED)).when(gmailApiClient)
+                .visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any(), any());
+        assertThrows(EmailSyncException.class, emailIngestionService::syncEmails);
+        verify(googleOAuthService).saveGmailScan(eq(scan), argThat(saved -> saved.rateLimitCount() == 2
+                && scan.pageToken().equals(saved.pageToken())
+                && saved.retryAt().isAfter(Instant.now().plusSeconds(590))), isNull());
+        assertEquals("PAUSED", emailIngestionService.syncEmails().getStatus());
+        verify(googleOAuthService, times(1)).getValidAccessToken();
+        verify(gmailApiClient, times(1)).visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any(), any());
     }
 
     @Test
@@ -289,9 +337,9 @@ class EmailIngestionServiceTest {
     void failedPageDoesNotAdvanceCursor() {
         when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
         doThrow(new IllegalStateException("simulated page failure")).when(gmailApiClient)
-                .visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any());
+                .visitFinancialEmails(anyString(), anyInt(), isNull(), any(), any(), any());
         assertThrows(IllegalStateException.class, emailIngestionService::syncEmails);
-        verify(googleOAuthService, never()).updateLastSyncedInternalDate(anyLong());
+        verify(googleOAuthService, never()).saveGmailScan(any(), any(), anyLong());
         verify(googleOAuthService).recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.UNKNOWN);
     }
 
@@ -299,13 +347,16 @@ class EmailIngestionServiceTest {
     void retriesOnceOnTemporaryGmailFailureAndClearsFailedStatus() {
         when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("synthetic-token"));
         doThrow(new EmailSyncException(com.store.api.model.enums.EmailSyncFailure.TEMPORARY))
-                .doNothing()
-                .when(gmailApiClient).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any());
+                .doAnswer(invocation -> {
+                    invocation.<GmailApiClient.Scan>getArgument(5).pageComplete().test(null);
+                    return null;
+                })
+                .when(gmailApiClient).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any(), any());
 
         EmailSyncResponse response = emailIngestionService.syncEmails();
 
         assertEquals("SUCCESS", response.getStatus());
-        verify(gmailApiClient, times(2)).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any());
+        verify(gmailApiClient, times(2)).visitFinancialEmails(eq("synthetic-token"), anyInt(), isNull(), any(), any(), any());
         verify(googleOAuthService).recordSyncResult(true, null);
         verify(googleOAuthService, never()).recordSyncResult(eq(false), any());
     }
@@ -315,9 +366,11 @@ class EmailIngestionServiceTest {
         when(googleOAuthService.getValidAccessToken()).thenReturn(Optional.of("stale-token"));
         when(googleOAuthService.refreshAccessToken()).thenReturn(Optional.of("fresh-token"));
         doThrow(new EmailSyncException(com.store.api.model.enums.EmailSyncFailure.AUTH_REQUIRED))
-                .when(gmailApiClient).visitFinancialEmails(eq("stale-token"), anyInt(), isNull(), any(), any());
-        doNothing()
-                .when(gmailApiClient).visitFinancialEmails(eq("fresh-token"), anyInt(), isNull(), any(), any());
+                .when(gmailApiClient).visitFinancialEmails(eq("stale-token"), anyInt(), isNull(), any(), any(), any());
+        doAnswer(invocation -> {
+            invocation.<GmailApiClient.Scan>getArgument(5).pageComplete().test(null);
+            return null;
+        }).when(gmailApiClient).visitFinancialEmails(eq("fresh-token"), anyInt(), isNull(), any(), any(), any());
 
         EmailSyncResponse response = emailIngestionService.syncEmails();
 

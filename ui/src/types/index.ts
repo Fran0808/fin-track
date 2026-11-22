@@ -266,6 +266,8 @@ export interface GoogleAuthStatus {
   connected: boolean;
   email: string | null;
   lastSuccessfulSyncAt: string | null;
+  syncPending?: boolean;
+  syncRetryAt?: string | null;
   lastSyncFailed: boolean;
   lastSyncAttemptAt?: string | null;
   lastSyncFailureCode?: string | null;

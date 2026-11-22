@@ -67,6 +67,8 @@ CREATE TABLE google_oauth_tokens (
     user_id BIGINT REFERENCES users(id), email VARCHAR(255) NOT NULL UNIQUE,
     access_token TEXT NOT NULL, refresh_token TEXT, expires_at TIMESTAMP NOT NULL,
     scope VARCHAR(255), last_synced_internal_date BIGINT,
+    sync_window_end BIGINT, sync_page_token TEXT, sync_page_size INTEGER,
+    sync_retry_at TIMESTAMP WITH TIME ZONE, sync_rate_limit_count INTEGER,
     last_successful_sync_at TIMESTAMP WITH TIME ZONE, last_sync_failed BOOLEAN,
     last_sync_attempt_at TIMESTAMP WITH TIME ZONE, last_sync_failure_code VARCHAR(32),
     CONSTRAINT chk_email_sync_failure CHECK (last_sync_failure_code IS NULL OR last_sync_failure_code IN ('AUTH_REQUIRED', 'ACCESS_DENIED', 'RATE_LIMITED', 'TEMPORARY', 'PROCESSING', 'UNKNOWN')),

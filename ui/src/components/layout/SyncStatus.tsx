@@ -17,13 +17,18 @@ function formatSyncDate(value: string): string {
 export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusProps) {
   const connected = status?.connected ?? false;
   const failed = status?.lastSyncFailed ?? false;
+  const paused = Boolean(status?.syncRetryAt && Date.parse(status.syncRetryAt) > Date.now());
   const label = unavailable
     ? 'Estado de sincronización no disponible'
     : !status
       ? 'Consultando sincronización'
       : !connected
         ? 'Gmail no conectado'
-        : failed
+        : paused
+          ? 'Gmail en pausa'
+          : status.syncPending && (!failed || status.lastSyncFailureCode === 'RATE_LIMITED')
+            ? 'Correos pendientes de sincronizar'
+            : failed
           ? 'Falló la sincronización de correo'
           : status.lastSuccessfulSyncAt
             ? 'Correo sincronizado'
@@ -35,12 +40,15 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
       <Icon className={`h-4 w-4 shrink-0 ${syncing ? 'animate-spin text-brand' : failed || unavailable ? 'text-negative' : connected ? 'text-positive' : 'text-muted'}`} />
       <div className="min-w-0 max-w-64">
         <p className="text-xs font-medium text-ink">{syncing ? 'Sincronizando correos...' : label}</p>
-        {!unavailable && !syncing && connected && status?.lastSuccessfulSyncAt && (
+        {!unavailable && !syncing && connected && paused && status?.syncRetryAt && (
+          <p className="text-[11px] text-muted">Reintentar desde {formatSyncDate(status.syncRetryAt)}</p>
+        )}
+        {!unavailable && !syncing && connected && !paused && status?.lastSuccessfulSyncAt && (
           <p className="text-[11px] text-muted">Última correcta: {formatSyncDate(status.lastSuccessfulSyncAt)}</p>
         )}
       </div>
       {connected && (
-        <button type="button" onClick={onSync} disabled={syncing} aria-label="Sincronizar correos ahora" title="Sincronizar ahora" className="rounded-lg border border-line p-2 text-brand hover:bg-canvas disabled:cursor-wait disabled:opacity-50">
+        <button type="button" onClick={onSync} disabled={syncing || paused} aria-label="Sincronizar correos ahora" title="Sincronizar ahora" className="rounded-lg border border-line p-2 text-brand hover:bg-canvas disabled:opacity-50">
           <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
         </button>
       )}

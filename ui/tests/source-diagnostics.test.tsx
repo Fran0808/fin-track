@@ -44,6 +44,26 @@ it.each([
   expect(screen.queryByRole('button', { name: 'Volver a conectar Gmail' }) !== null).toBe(['AUTH_REQUIRED', 'ACCESS_DENIED'].includes(code));
 });
 
+it('shows when Gmail can resume and unlocks sync after the pause', () => {
+  const onSync = vi.fn();
+  const status = { ...base, syncPending: true, lastSyncFailureCode: 'RATE_LIMITED' };
+  const { rerender } = render(<SyncStatus status={{ ...status, syncRetryAt: new Date(Date.now() + 60_000).toISOString() }}
+    unavailable={false} syncing={false} onSync={onSync} />);
+  expect(screen.getByText('Gmail en pausa')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Sincronizar correos ahora' })).toHaveProperty('disabled', true);
+  rerender(<SyncStatus status={{ ...status, syncRetryAt: new Date(Date.now() - 60_000).toISOString() }}
+    unavailable={false} syncing={false} onSync={onSync} />);
+  expect(screen.getByText('Correos pendientes de sincronizar')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Sincronizar correos ahora' })).toHaveProperty('disabled', false);
+});
+
+it('reports a saved batch as ongoing in settings', async () => {
+  settings(base, false, vi.fn().mockResolvedValue({ status: 'CONTINUING', savedCount: 2 }));
+  fireEvent.click(screen.getByRole('button', { name: 'Sincronizar ahora' }));
+  expect(await screen.findByText('Avance guardado. Quedan correos por sincronizar.')).toBeTruthy();
+  expect(screen.queryByText(/Sincronización completa/)).toBeNull();
+});
+
 it('hides stale advice when email status is unavailable but keeps phone reception independent', async () => {
   vi.mocked(api.getPhoneReceptionStatus).mockResolvedValue({ lastReceivedAt: '2026-10-27T12:00:00Z' });
   const refresh = settings({ ...base, lastSyncFailureCode: 'AUTH_REQUIRED' }, true);
