@@ -1,10 +1,9 @@
 # Transaction capture origin
 
 The movement detail displays the origin of its first successful capture as
-`Correo`, `Teléfono` or `Manual`, plus `Registrado en FinTrack` and an optional
-`Referencia de operación`. The registration timestamp is the transaction's
-existing `createdAt`, not the operation date, email sent time, or phone observation
-time. No phone identity or package name is inferred or displayed.
+`Correo`, `Teléfono` or `Manual` and the registration timestamp under `Registro`.
+That timestamp is the transaction's existing `createdAt`. The optional email
+receipt reference remains part of the stored capture evidence.
 
 Manual creation uses a separate web-only endpoint with explicit review and no
 invented receipt. See [manual entry and reconciliation](manual-transactions.md).

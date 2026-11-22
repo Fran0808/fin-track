@@ -13,8 +13,7 @@ export function TransactionOriginPanel({ transactionId, captureOrigin, createdAt
   const { data, loading, error, refresh } = useQueryResource(load, 'No se pudo consultar el origen.');
   const origin = data?.origin ?? captureOrigin;
   const label = origin === 'EMAIL' ? 'Correo' : origin === 'PHONE' ? 'Teléfono' : origin === 'MANUAL' ? 'Manual' : null;
-  const reference = data?.origin === 'EMAIL' ? data.operationReference : null;
-  const registeredAt = data ? data.registeredAt : createdAt;
+  const registeredAt = createdAt || data?.registeredAt;
 
   return (
     <>
@@ -25,9 +24,9 @@ export function TransactionOriginPanel({ transactionId, captureOrigin, createdAt
         </dd>
       </div>
       <div>
-        <dt className="text-xs text-muted">{reference ? 'Referencia' : 'Registro'}</dt>
+        <dt className="text-xs text-muted">Registro</dt>
         <dd className="mt-0.5 min-w-0 break-all font-medium">
-          {reference || (registeredAt ? formatDate(registeredAt) : loading ? '—' : 'No disponible')}
+          {registeredAt ? formatDate(registeredAt) : loading ? '—' : 'No disponible'}
         </dd>
       </div>
       {error && <div className="col-span-2">

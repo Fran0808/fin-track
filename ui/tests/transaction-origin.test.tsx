@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { TransactionOriginPanel } from '../src/components/transactions/TransactionOriginPanel';
 import { api } from '../src/services/api';
@@ -17,13 +17,22 @@ it('distinguishes manual records from automatic captures without inventing a rec
 });
 afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 
-it('shows email origin and the normalized receipt reference',async()=>{
-  vi.spyOn(api,'getTransactionOrigin').mockResolvedValue(email);
-  render(<TransactionOriginPanel transactionId={7} />);
-  expect(await screen.findByText('Correo')).toBeDefined();
-  expect(screen.getByText('Referencia')).toBeDefined();
-  expect(screen.getByText('OP-123')).toBeDefined();
-  expect(api.getTransactionOrigin).toHaveBeenCalledWith(7);
+it('keeps the registration date visible when the delayed email reference arrives', async () => {
+  let resolve!: (value: TransactionOrigin) => void;
+  const origin = new Promise<TransactionOrigin>(complete => { resolve = complete; });
+  const load = vi.spyOn(api, 'getTransactionOrigin').mockReturnValue(origin);
+  render(<TransactionOriginPanel transactionId={7} captureOrigin="EMAIL" createdAt={email.registeredAt!} />);
+
+  const label = screen.getByText('Registro');
+  const date = screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g, ' '));
+  expect(screen.getByText('Correo')).toBeDefined();
+  await act(async () => resolve(email));
+
+  expect(screen.getByText('Registro')).toBe(label);
+  expect(screen.getByText(formatDate(email.registeredAt!).replace(/\s+/g, ' '))).toBe(date);
+  expect(screen.queryByText('Referencia')).toBeNull();
+  expect(screen.queryByText(email.operationReference!)).toBeNull();
+  expect(load).toHaveBeenCalledWith(7);
 });
 
 it('labels phone captures as Teléfono and never displays phone security text as a receipt',async()=>{
@@ -53,13 +62,15 @@ it('offers retry after an unavailable source without reporting an invented origi
 it('does not publish a previous movement’s delayed origin after switching movements',async()=>{
   let resolve!: (value:TransactionOrigin)=>void;
   const old=new Promise<TransactionOrigin>(accept=>{resolve=accept;});
-  vi.spyOn(api,'getTransactionOrigin').mockImplementation(id=>id===1?old:Promise.resolve({...email,origin:'PHONE',operationReference:null}));
+  const phoneDate = '2026-01-04T12:34:56';
+  vi.spyOn(api,'getTransactionOrigin').mockImplementation(id=>id===1?old:Promise.resolve({...email,origin:'PHONE',registeredAt:phoneDate,operationReference:null}));
   const {rerender}=render(<TransactionOriginPanel transactionId={1} />);
   expect(screen.getByText('Consultando origen...')).toBeDefined();
   rerender(<TransactionOriginPanel transactionId={2} />);
   await screen.findByText('Teléfono');
   await act(async()=>resolve(email));
-  await waitFor(()=>expect(screen.queryByText('OP-123')).toBeNull());
+  expect(screen.getByText(formatDate(phoneDate).replace(/\s+/g, ' '))).toBeDefined();
+  expect(screen.queryByText(formatDate(email.registeredAt!).replace(/\s+/g, ' '))).toBeNull();
   expect(screen.queryByText('Correo')).toBeNull();
 });
 

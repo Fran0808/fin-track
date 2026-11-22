@@ -27,6 +27,9 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   responses to cover the Home modal, the movement sidebar and narrow drawer,
   linked and unlinked captures, and switching rows while a request is pending.
 - Next: publish the change through GitHub and verify the dashboard on Render.
+- Follow-up: the movement detail keeps `Registro` visible when the origin
+  request returns an email receipt reference. Verified with 163 UI tests,
+  including a delayed response, the production build and lint with warnings.
 
 ## Current checkpoint: resumable Gmail synchronization
 

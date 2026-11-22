@@ -96,8 +96,9 @@ use `Correo` / `Teléfono`. Apply the
 [source diagnostics migration](../scripts/migrations/20261027_source_diagnostics.sql)
 before deploying/restarting the API. See [semantics and rollout](../docs/domain/source-diagnostics.md).
 
-Movement details show the first capture origin as `Correo` or `Teléfono`, the
-server registration time and an explicit email receipt reference when recorded.
+Movement details show the first capture origin as `Correo` or `Teléfono` and
+the server registration time under `Registro`. Email receipt references remain
+available in the stored capture evidence.
 Historical rows show `Origen no disponible`; source is never guessed from the
 payment channel or diagnostic text. Raw email/notification bodies and phone
 security codes are not displayed. Origin loads independently with retry support.
