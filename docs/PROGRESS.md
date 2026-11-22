@@ -39,7 +39,14 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   covered isolation between users and rejecting stale writes.
 - Production rollout requires the
   [Gmail checkpoint migration](../scripts/migrations/20261121_gmail_scan_checkpoint.sql)
-  before deploying the backend. Production verification remains pending.
+  before deploying the backend. Applied in Supabase. Render deployed `cd5351f`
+  and the saved page advanced on a manual attempt. A full sweep remains pending.
+- Follow-up: partial progress now updates the attempt timestamp and clears a
+  prior error. The dashboard displays the result next to the action and uses
+  the same pending and pause states in the header and settings.
+  Verified locally with 367 backend tests, migration regressions, 160
+  dashboard tests, lint with existing warnings and production builds. Publish
+  the follow-up and verify a manual batch in Render.
 
 ## Current checkpoint: Gmail synchronization failures and overlapping requests
 

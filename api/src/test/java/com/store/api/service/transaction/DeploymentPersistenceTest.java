@@ -304,6 +304,13 @@ class DeploymentPersistenceTest {
             assertTrue(google.getStatus().isSyncPending());
             assertEquals(deadline, google.getStatus().getSyncRetryAt());
             assertTrue(google.getLastSyncedInternalDate().isEmpty());
+            google.recordSyncResult(false, com.store.api.model.enums.EmailSyncFailure.RATE_LIMITED);
+            google.recordSyncProgress(initial.tokenId());
+            var progress = google.getStatus();
+            assertFalse(progress.isLastSyncFailed());
+            assertNull(progress.getLastSyncFailureCode());
+            assertNotNull(progress.getLastSyncAttemptAt());
+            assertNull(progress.getLastSuccessfulSyncAt());
             assertThrows(IllegalStateException.class, () -> google.saveGmailScan(initial, initial, 1000L));
 
             UserContext.setCurrentUser(other);

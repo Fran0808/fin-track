@@ -303,6 +303,7 @@ class EmailIngestionServiceTest {
         }).when(gmailApiClient).visitFinancialEmails(anyString(), eq(20), isNull(), any(), any(), any());
         assertEquals("CONTINUING", emailIngestionService.syncEmails().getStatus());
         verify(googleOAuthService).saveGmailScan(initial, next, null);
+        verify(googleOAuthService).recordSyncProgress(initial.tokenId());
         verify(googleOAuthService, never()).recordSyncResult(anyBoolean(), any());
         assertEquals("SUCCESS", emailIngestionService.syncEmails().getStatus());
         verify(googleOAuthService).saveGmailScan(eq(next), any(), eq(initial.windowEnd()));

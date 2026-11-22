@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { PhoneReceptionPanel } from '../settings/PhoneReceptionPanel';
-import { emailFailureAdvice } from '../settings/sourceDiagnostics';
+import { emailFailureAdvice, emailSyncState } from '../settings/sourceDiagnostics';
 import {
   AlertCircle,
   CheckCircle2,
@@ -64,7 +64,9 @@ export function SettingsView({
       const result = await onSync();
       if (result.status === 'CONTINUING' || result.status === 'PAUSED') {
         setFeedback({ type: 'success', message: result.status === 'CONTINUING'
-          ? 'Avance guardado. Quedan correos por sincronizar.'
+          ? (result.scannedCount === 0
+            ? 'Avance guardado. Esta tanda no encontró correos nuevos. Quedan correos por revisar.'
+            : `Avance guardado. Correos revisados en esta tanda: ${result.scannedCount}. Movimientos guardados: ${result.savedCount}. Quedan correos por revisar.`)
           : 'Gmail está en pausa. El avance se conserva para el siguiente intento.' });
         return;
       }
@@ -103,8 +105,10 @@ export function SettingsView({
   };
 
   const gmailConnected = googleStatus?.connected === true;
-  const gmailPaused = Boolean(googleStatus?.syncRetryAt && Date.parse(googleStatus.syncRetryAt) > Date.now());
-  const gmailFailed = !statusUnavailable && gmailConnected && googleStatus.lastSyncFailed;
+  const syncState = emailSyncState(googleStatus);
+  const gmailPaused = !statusUnavailable && gmailConnected && syncState === 'paused';
+  const gmailPending = !statusUnavailable && gmailConnected && syncState === 'pending';
+  const gmailFailed = !statusUnavailable && gmailConnected && syncState === 'failed';
   const checkingStatus = googleStatus === null && !statusUnavailable;
 
   return (
@@ -116,22 +120,6 @@ export function SettingsView({
           Administra las fuentes que envían movimientos a FinTrack y revisa si están listas para sincronizar.
         </p>
       </div>
-
-      {feedback && (
-        <div
-          role={feedback.type === 'error' ? 'alert' : 'status'}
-          className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
-            feedback.type === 'error'
-              ? 'border-negative/20 bg-negative/5 text-negative'
-              : 'border-positive/20 bg-positive/5 text-positive'
-          }`}
-        >
-          {feedback.type === 'error'
-            ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-          <span>{feedback.message}</span>
-        </div>
-      )}
 
       <div className="mx-auto grid w-full max-w-2xl gap-6">
         <section className="surface flex flex-col overflow-hidden" aria-labelledby="email-source-title">
@@ -149,12 +137,14 @@ export function SettingsView({
               <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
                 statusUnavailable || gmailFailed
                   ? 'bg-negative/8 text-negative'
-                  : gmailConnected
-                    ? 'bg-positive/10 text-positive'
-                    : 'bg-canvas text-muted'
+                  : gmailPaused || gmailPending
+                    ? 'bg-brand/8 text-brand'
+                    : gmailConnected
+                      ? 'bg-positive/10 text-positive'
+                      : 'bg-canvas text-muted'
               }`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                {checkingStatus ? 'Comprobando...' : statusUnavailable ? 'No disponible' : gmailFailed ? 'Requiere atención' : gmailConnected ? 'Conectado' : 'Sin conectar'}
+                {checkingStatus ? 'Comprobando...' : statusUnavailable ? 'No disponible' : gmailFailed ? 'Requiere atención' : gmailPaused ? 'En pausa' : gmailPending ? 'Revisión pendiente' : gmailConnected ? 'Conectado' : 'Sin conectar'}
               </span>
             </div>
           </div>
@@ -186,6 +176,7 @@ export function SettingsView({
                 {emailFailureAdvice(googleStatus)}
               </p>
             )}
+            {gmailPaused && <p className="mt-4 text-sm text-muted">Puedes reintentar desde {formatSyncDate(googleStatus?.syncRetryAt ?? null)}.</p>}
 
             <p className="mt-4 text-xs leading-5 text-muted">Este estado corresponde solo al correo. Una sincronización correcta no garantiza que todos tus gastos tengan un comprobante compatible.</p>
             <button type="button" onClick={() => void onStatusRefresh()} className="mt-3 self-start text-sm font-semibold text-brand underline">Actualizar estado de correo</button>
@@ -199,7 +190,7 @@ export function SettingsView({
                     className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-                    {syncing ? 'Sincronizando...' : 'Sincronizar ahora'}
+                    {syncing ? 'Sincronizando...' : gmailPending ? 'Continuar sincronización' : 'Sincronizar ahora'}
                   </button>
                   {gmailFailed && ['AUTH_REQUIRED', 'ACCESS_DENIED'].includes(googleStatus.lastSyncFailureCode ?? '') && (
                     <button type="button" disabled={connecting} onClick={() => void handleConnect()} className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-brand disabled:opacity-50">{connecting ? 'Abriendo Google...' : 'Volver a conectar Gmail'}</button>
@@ -226,6 +217,22 @@ export function SettingsView({
                 </button>
               )}
             </div>
+
+            {feedback && (
+              <div
+                role={feedback.type === 'error' ? 'alert' : 'status'}
+                className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm mt-3 ${
+                  feedback.type === 'error'
+                    ? 'border-negative/20 bg-negative/5 text-negative'
+                    : 'border-positive/20 bg-positive/5 text-positive'
+                }`}
+              >
+                {feedback.type === 'error'
+                  ? <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />}
+                <span>{feedback.message}</span>
+              </div>
+            )}
           </div>
         </section>
 

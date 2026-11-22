@@ -329,6 +329,11 @@ public class GoogleOAuthService {
     }
 
     @Transactional
+    public void recordSyncProgress(long tokenId) {
+        tokenRepository.recordSyncProgress(UserContext.requireCurrentUser().getId(), tokenId, Instant.now());
+    }
+
+    @Transactional
     public void recordSyncResult(boolean success) {
         recordSyncResult(success, success ? null : com.store.api.model.enums.EmailSyncFailure.UNKNOWN);
     }

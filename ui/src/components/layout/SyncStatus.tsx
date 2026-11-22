@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle2, Loader2, Mail, RefreshCw } from 'lucide-react';
 import type { GoogleAuthStatus } from '../../types';
+import { emailSyncState } from '../settings/sourceDiagnostics';
 
 interface SyncStatusProps {
   status: GoogleAuthStatus | null;
@@ -8,16 +9,21 @@ interface SyncStatusProps {
   onSync: () => void;
 }
 
-function formatSyncDate(value: string): string {
+function formatSyncDate(value: string, showSeconds = false): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Fecha no disponible';
-  return new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
+  return new Intl.DateTimeFormat('es-PE', {
+    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    second: showSeconds ? '2-digit' : undefined,
+  }).format(date);
 }
 
 export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusProps) {
   const connected = status?.connected ?? false;
-  const failed = status?.lastSyncFailed ?? false;
-  const paused = Boolean(status?.syncRetryAt && Date.parse(status.syncRetryAt) > Date.now());
+  const state = emailSyncState(status);
+  const failed = state === 'failed';
+  const paused = state === 'paused';
+  const pending = state === 'pending';
   const label = unavailable
     ? 'Estado de sincronización no disponible'
     : !status
@@ -26,24 +32,29 @@ export function SyncStatus({ status, unavailable, syncing, onSync }: SyncStatusP
         ? 'Gmail no conectado'
         : paused
           ? 'Gmail en pausa'
-          : status.syncPending && (!failed || status.lastSyncFailureCode === 'RATE_LIMITED')
+          : pending
             ? 'Correos pendientes de sincronizar'
             : failed
-          ? 'Falló la sincronización de correo'
-          : status.lastSuccessfulSyncAt
-            ? 'Correo sincronizado'
-            : 'Aún sin sincronizar';
-  const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : connected ? CheckCircle2 : Mail;
+              ? 'Falló la sincronización de correo'
+              : status.lastSuccessfulSyncAt
+                ? 'Correo sincronizado'
+                : 'Aún sin sincronizar';
+  const Icon = syncing ? Loader2 : failed || unavailable ? AlertCircle : pending || paused ? Mail : connected ? CheckCircle2 : Mail;
+  const color = syncing ? 'text-brand' : failed || unavailable ? 'text-negative' : pending || paused ? 'text-brand' : connected ? 'text-positive' : 'text-muted';
+  const lastBatch = pending && !status?.lastSyncFailed ? status?.lastSyncAttemptAt : null;
 
   return (
     <div className="flex items-center gap-2.5" role="status" aria-live="polite">
-      <Icon className={`h-4 w-4 shrink-0 ${syncing ? 'animate-spin text-brand' : failed || unavailable ? 'text-negative' : connected ? 'text-positive' : 'text-muted'}`} />
+      <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${color} ${syncing ? 'animate-spin' : ''}`} />
       <div className="min-w-0 max-w-64">
         <p className="text-xs font-medium text-ink">{syncing ? 'Sincronizando correos...' : label}</p>
         {!unavailable && !syncing && connected && paused && status?.syncRetryAt && (
           <p className="text-[11px] text-muted">Reintentar desde {formatSyncDate(status.syncRetryAt)}</p>
         )}
-        {!unavailable && !syncing && connected && !paused && status?.lastSuccessfulSyncAt && (
+        {!unavailable && !syncing && connected && lastBatch && (
+          <p className="text-[11px] text-muted">Última tanda: {formatSyncDate(lastBatch, true)}</p>
+        )}
+        {!unavailable && !syncing && connected && !paused && !lastBatch && status?.lastSuccessfulSyncAt && (
           <p className="text-[11px] text-muted">Última correcta: {formatSyncDate(status.lastSuccessfulSyncAt)}</p>
         )}
       </div>

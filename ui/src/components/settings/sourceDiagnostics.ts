@@ -1,5 +1,13 @@
 import type { GoogleAuthStatus } from '../../types';
 
+export function emailSyncState(status: GoogleAuthStatus | null) {
+  if (status?.syncRetryAt && Date.parse(status.syncRetryAt) > Date.now()) return 'paused';
+  if (status?.syncPending && (!status.lastSyncFailed || status.lastSyncFailureCode === 'RATE_LIMITED')) {
+    return 'pending';
+  }
+  return status?.lastSyncFailed ? 'failed' : 'idle';
+}
+
 export function emailFailureAdvice(status: GoogleAuthStatus): string {
   switch (status.lastSyncFailureCode) {
     case 'AUTH_REQUIRED': return 'Google requiere una nueva autorización. Vuelve a conectar Gmail para reanudar la lectura.';

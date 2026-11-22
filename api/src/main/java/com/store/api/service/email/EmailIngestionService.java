@@ -107,6 +107,7 @@ public class EmailIngestionService {
                 googleOAuthService.recordSyncResult(true, null);
                 return Optional.of(response(progress, "SUCCESS", "Correo sincronizado."));
             }
+            googleOAuthService.recordSyncProgress(saved.tokenId());
             return Optional.of(response(progress, "CONTINUING", "Quedan correos por revisar."));
         } catch (RuntimeException ex) {
             var failure = ex instanceof org.springframework.web.server.ResponseStatusException status

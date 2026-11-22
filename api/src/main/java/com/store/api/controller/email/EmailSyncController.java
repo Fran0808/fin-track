@@ -5,6 +5,7 @@ import com.store.api.model.dto.email.EmailSyncResponse;
 import com.store.api.service.email.EmailIngestionService;
 import com.store.api.service.email.EmailSyncException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/emails")
 @RequiredArgsConstructor
+@Slf4j
 public class EmailSyncController {
 
     private final EmailIngestionService emailIngestionService;
@@ -27,6 +29,8 @@ public class EmailSyncController {
     @PostMapping("/sync")
     public ResponseEntity<EmailSyncResponse> syncEmails() {
         EmailSyncResponse result = emailIngestionService.syncEmails();
+        log.info("Manual email sync: status={}, scanned={}, saved={}",
+                result.getStatus(), result.getScannedCount(), result.getSavedCount());
         return ResponseEntity.ok(result);
     }
 

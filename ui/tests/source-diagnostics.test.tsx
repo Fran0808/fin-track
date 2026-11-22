@@ -55,12 +55,20 @@ it('shows when Gmail can resume and unlocks sync after the pause', () => {
     unavailable={false} syncing={false} onSync={onSync} />);
   expect(screen.getByText('Correos pendientes de sincronizar')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Sincronizar correos ahora' })).toHaveProperty('disabled', false);
+  expect(screen.queryByText(/Última tanda:/)).toBeNull();
+  rerender(<SyncStatus status={{ ...status, lastSyncFailed: false, lastSyncFailureCode: null,
+    lastSyncAttemptAt: '2026-11-21T20:30:30Z' }} unavailable={false} syncing={false} onSync={onSync} />);
+  expect(screen.getByText(/Última tanda:/)).toBeTruthy();
 });
 
-it('reports a saved batch as ongoing in settings', async () => {
-  settings(base, false, vi.fn().mockResolvedValue({ status: 'CONTINUING', savedCount: 2 }));
-  fireEvent.click(screen.getByRole('button', { name: 'Sincronizar ahora' }));
-  expect(await screen.findByText('Avance guardado. Quedan correos por sincronizar.')).toBeTruthy();
+it('shows progress next to the Gmail controls even when the batch finds nothing new', async () => {
+  settings({ ...base, syncPending: true, lastSyncFailureCode: 'RATE_LIMITED' }, false,
+    vi.fn().mockResolvedValue({ status: 'CONTINUING', scannedCount: 0, savedCount: 0 }));
+  expect(screen.getByText('Revisión pendiente')).toBeTruthy();
+  expect(screen.queryByText(/Google limitó temporalmente/)).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Continuar sincronización' }));
+  const feedback = await screen.findByText('Avance guardado. Esta tanda no encontró correos nuevos. Quedan correos por revisar.');
+  expect(feedback.closest('section')?.getAttribute('aria-labelledby')).toBe('email-source-title');
   expect(screen.queryByText(/Sincronización completa/)).toBeNull();
 });
 

@@ -37,6 +37,15 @@ public interface GoogleOAuthTokenRepository extends JpaRepository<GoogleOAuthTok
             """)
     int recordSyncResult(@Param("userId") Long userId, @Param("failed") boolean failed, @Param("now") Instant now, @Param("failure") com.store.api.model.enums.EmailSyncFailure failure);
 
+    @Modifying
+    @Query("""
+            UPDATE GoogleOAuthToken t
+            SET t.lastSyncFailed = false, t.lastSyncFailureCode = null, t.lastSyncAttemptAt = :now
+            WHERE t.user.id = :userId AND t.id = :tokenId
+              AND (t.lastSyncAttemptAt IS NULL OR t.lastSyncAttemptAt <= :now)
+            """)
+    int recordSyncProgress(@Param("userId") Long userId, @Param("tokenId") Long tokenId, @Param("now") Instant now);
+
     @Query("SELECT DISTINCT t.user FROM GoogleOAuthToken t")
     List<User> findConnectedUsers();
 }
