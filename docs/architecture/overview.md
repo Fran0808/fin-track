@@ -95,6 +95,22 @@ Add provider formats through the existing dispatchers, with isolated positive,
 negative, ambiguity and replay tests. Do not add placeholder integrations before
 they are needed or broaden Android's authorized package list incidentally.
 
+- Gmail readers supply both their candidate search terms and their sender and
+  format checks. Adding a Spring `BankEmailParser` makes its terms available
+  to Gmail discovery. Terms discover candidates and the parser still checks
+  the sender and receipt format. Keep new terms specific to official receipts.
+- Android readers explicitly supply a channel and their exact authorized
+  package names. Register a production reader in `CaptureSourceRegistry`; the
+  dispatcher rejects duplicate packages and validates the package before it
+  reads the format. Existing devices keep their listener identity and Room
+  database. Readers may use the shared neutral `INTERNAL_TRANSFER` flow when
+  receipt evidence establishes that classification.
+- Register presentation metadata for known channel codes in `ChannelType`.
+  Transactions and analytics expose the label and kind so the dashboard can
+  render the provider without a new branch. The movement filter also reads
+  the distinct channels already observed for the current user. Unregistered
+  channel codes retain a neutral presentation.
+
 `operationType` describes what happened; `flowType` describes its effect on totals.
 The initial explicit operation is `OWN_CARD_PAYMENT`, which requires
 `INTERNAL_TRANSFER`. `UNKNOWN` means insufficient operation evidence and preserves
@@ -117,15 +133,18 @@ expired authorization requires reconnecting Google; authenticated ingestion neve
 falls back to the globally configured IMAP mailbox.
 `BankEmailParserDispatcher` selects a bank parser. A recognized financial operation
 is converted to a transaction request and persisted through `TransactionService`.
-Processed message keys combine the user ID and Gmail message ID. Gmail pages are
-visited completely; a failed page, detail download or processing step prevents
-cursor advancement. Successful movements survive a partial run and retries deduplicate.
+Processed message keys combine the user ID and Gmail message ID. Bounded batches
+save progress per search window. Saved page tokens are tied to the query and page
+size, so a deployment that changes provider terms replays the unfinished window
+from its first page and skips completed messages. A failed page, detail download
+or processing step keeps it pending. Successful movements survive partial runs.
 `EmailSyncScheduler` invokes this workflow for connected users when enabled.
 
 The current parsers check mailbox domains and confirmation patterns, and reject
 ambiguous operation amounts. Surveys and rewards must not be stored as expenses.
-Rejected messages can still be marked processed; supporting a new format can
-require a controlled reprocessing plan.
+Rejected messages can still be marked processed. Installing a new parser starts
+from the current mailbox cursor; importing older receipts requires a controlled
+reprocessing plan that preserves per-user deduplication.
 
 ## Dashboard and authentication
 

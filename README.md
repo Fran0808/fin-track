@@ -13,6 +13,8 @@ excluded from expenses. Listen Service is the repository name.
   supported packages, stores movements locally and synchronizes them with the API.
 - **Bank email ingestion:** parse supported transaction confirmations through the
   email ingestion pipeline. Automatic synchronization is disabled in the environment template.
+- **Provider extensions:** add [bank and wallet readers](docs/architecture/overview.md#provider-extension)
+  through Gmail or Android. The dashboard uses shared payment channel metadata for labels and filters.
 - **Cashflow dashboard:** period summaries, expense charts and transaction filters
   for dates, amounts, category, tags, payment channel and financial instrument.
 - **Classification:** system and custom categories, subcategories, tags and personal notes.

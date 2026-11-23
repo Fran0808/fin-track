@@ -2,6 +2,9 @@ package com.financemanager.listener
 
 import com.financemanager.listener.parser.FlowType
 import com.financemanager.listener.parser.NotificationParserDispatcher
+import com.financemanager.listener.parser.NotificationParser
+import com.financemanager.listener.parser.ParsedTransaction
+import com.financemanager.listener.parser.YapeNotificationParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -12,7 +15,22 @@ import java.math.BigDecimal
 
 class NotificationParserDispatcherTest {
 
-    private val dispatcher = NotificationParserDispatcher()
+    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser()))
+
+    @Test
+    fun additionalParserRoutesOnlyItsRegisteredPackage() {
+        val additional = object : NotificationParser {
+            override val supportedPackages = setOf("test.example.wallet")
+            override fun parse(title: String?, text: String?, bigText: String?) = ParsedTransaction(
+                BigDecimal("12.34"), FlowType.INCOME, "Synthetic contact", "TEST_WALLET",
+                transactionHash = "synthetic-receipt", rawText = text.orEmpty()
+            )
+        }
+        val multiSource = NotificationParserDispatcher(listOf(YapeNotificationParser(), additional))
+        assertEquals("TEST_WALLET", multiSource.parse("test.example.wallet", null, "receipt")?.channel)
+        assertNull(multiSource.parse("test.example.wallet.clone", null, "receipt"))
+        assertTrue(multiSource.isSupportedPackage("com.bcp.innovacxion.yapeapp"))
+    }
 
     @Test
     fun isSupportedPackage_withYapePackage_returnsTrue() {

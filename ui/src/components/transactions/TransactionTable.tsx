@@ -209,7 +209,7 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
                     <CategoryChip category={transaction.category} isTransfer={isTransfer} />
                   </td>
                   <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted @2xl:table-cell"><span className="block">{dateParts.date}</span><span className="mt-0.5 block text-xs">{dateParts.time}</span></td>
-                  <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted @2xl:table-cell">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</td>
+                  <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-muted @2xl:table-cell">{getChannelLabel(transaction.channel, transaction.paymentChannel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</td>
                   <td className={`font-num break-words px-2 py-3 text-right text-xs font-semibold @2xl:whitespace-nowrap sm:px-4 sm:text-sm ${isIncome ? 'text-positive' : isTransfer ? 'text-muted' : 'text-ink'}`}>
                     {isIncome ? '+ ' : isTransfer ? '' : '− '}{formatCurrency(transaction.amount)}
                   </td>

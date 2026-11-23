@@ -261,7 +261,7 @@ export function HomeView({
                             </span>
                           )}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-muted">{getChannelLabel(transaction.channel)} · {formatRelativeDate(transaction.transactionDate)}</span>
+                        <span className="mt-0.5 block truncate text-xs text-muted">{getChannelLabel(transaction.channel, transaction.paymentChannel)} · {formatRelativeDate(transaction.transactionDate)}</span>
                       </span>
                     </span>
                     <span className={`font-num shrink-0 text-sm font-semibold ${isIncome ? 'text-positive' : isTransfer ? 'text-muted' : 'text-ink'}`}>
@@ -285,26 +285,27 @@ export function HomeView({
           ) : (
             <div className="mt-5 space-y-4">
               {analytics.channelBreakdown.slice(0, 5).map((channel, index) => {
-                const isWallet = channel.channel.includes('YAPE') || channel.channel.includes('PLIN');
+                const isWallet = (channel.paymentChannel?.kind ?? channel.channel) === 'WALLET';
                 const Icon = isWallet ? Smartphone : CreditCard;
+                const label = channel.displayName?.replace(/\*\*/g, '··') || getChannelLabel(channel.channel, channel.paymentChannel);
                 return (
                   <button
                     key={`${channel.channel}-${channel.cardLast4 || index}`}
                     type="button"
                     disabled={loading || !onSelectChannel}
                     onClick={() => onSelectChannel?.(channel.channel)}
-                    aria-label={`Ver movimientos de ${channel.displayName?.replace(/\*\*/g, '··') || getChannelLabel(channel.channel)}`}
+                    aria-label={`Ver movimientos de ${label}`}
                     className="group block w-full rounded-xl p-2 text-left transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-ink group-hover:text-brand">
-                        <Icon className={`h-4 w-4 shrink-0 ${isWallet ? 'text-yape' : 'text-brand'}`} />
-                        <span className="truncate">{channel.displayName?.replace(/\*\*/g, '··') || getChannelLabel(channel.channel)}</span>
+                        <Icon className={`h-4 w-4 shrink-0 ${isWallet ? 'text-violet-accent' : 'text-brand'}`} />
+                        <span className="truncate">{label}</span>
                       </span>
                       <span className="font-num shrink-0 text-sm font-semibold">{formatCurrency(channel.amount)}</span>
                     </div>
                     <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas group-hover:bg-line/60">
-                      <div className={`h-full rounded-full ${isWallet ? 'bg-yape' : 'bg-brand'}`} style={{ width: `${Math.min(100, Math.max(0, channel.percentage))}%` }} />
+                      <div className={`h-full rounded-full ${isWallet ? 'bg-violet-accent' : 'bg-brand'}`} style={{ width: `${Math.min(100, Math.max(0, channel.percentage))}%` }} />
                     </div>
                     <p className="font-num mt-1 text-right text-xs text-muted">{channel.percentage.toFixed(1)}%</p>
                   </button>

@@ -23,7 +23,7 @@ class OperationContractTest {
 
     @Test fun existingDeviceRequestsDoNotInventAnOperationType() {
         val request = TransactionSyncDto(BigDecimal("12.34"), "EXPENSE", "Synthetic contact",
-            transactionDate = "2026-01-01T12:00:00", transactionHash = "synthetic")
+            channel = "WALLET", transactionDate = "2026-01-01T12:00:00", transactionHash = "synthetic")
         val json = gson.toJsonTree(request).asJsonObject
         assertFalse(json.has("operationType"))
         assertEquals(BigDecimal("12.34"), json.get("amount").asBigDecimal)

@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.financemanager.listener.capture.*
 import com.financemanager.listener.data.*
 import com.financemanager.listener.parser.NotificationParserDispatcher
+import com.financemanager.listener.parser.YapeNotificationParser
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -30,7 +31,7 @@ class CaptureInboxTest {
             open().withDatabase { db -> db.captureInboxDao().insert(observation()) }
             open().withDatabase { db ->
                 assertEquals(1, db.captureInboxDao().pending().size)
-                NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+                NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
                 assertEquals(1, db.transactionDao().getUnsyncedTransactions("owner-a").size)
                 assertTrue(db.captureInboxDao().pending().isEmpty())
             }
@@ -42,7 +43,7 @@ class CaptureInboxTest {
             inbox.insert(observation())
             inbox.insert(observation().copy(recovering = true, ownerKey = "owner-b"))
             val ambiguous = inbox.insert(observation(time = 101))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertEquals(1, db.transactionDao().getUnsyncedTransactions("owner-a").size)
             assertTrue(db.transactionDao().getUnsyncedTransactions("owner-b").isEmpty())
             assertEquals("REVIEW", inbox.get(ambiguous)?.status)
@@ -57,7 +58,7 @@ class CaptureInboxTest {
             inbox.insert(observation(key = "key-2"))
             inbox.insert(observation(time = 101, text = "Persona Demo te envió S/ 12.30. El cód. de seguridad es: 222"))
             val summary = inbox.insert(observation(key = "summary").copy(groupSummary = true))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertEquals(3, db.transactionDao().getUnsyncedTransactions("owner-a").size)
             assertEquals("IGNORED", inbox.get(summary)?.status)
         }
@@ -68,7 +69,7 @@ class CaptureInboxTest {
             inbox.insert(observation())
             inbox.insert(CaptureObservation(observationKey = "remove", kind = "REMOVED", sourceKey = "key-1"))
             inbox.insert(observation(time = 101))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertEquals(2, db.transactionDao().getUnsyncedTransactions("owner-a").size)
         }
     }
@@ -76,11 +77,11 @@ class CaptureInboxTest {
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().withDatabase { db ->
             val id = db.captureInboxDao().insert(observation())
             db.openHelper.writableDatabase.execSQL("CREATE TRIGGER synthetic_failure BEFORE INSERT ON local_transactions BEGIN SELECT RAISE(ABORT, 'synthetic failure'); END")
-            try { NotificationInboxProcessor(db, NotificationParserDispatcher()).drain(); fail("Expected synthetic failure") } catch (_: android.database.sqlite.SQLiteException) { }
+            try { NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain(); fail("Expected synthetic failure") } catch (_: android.database.sqlite.SQLiteException) { }
             assertEquals("PENDING", db.captureInboxDao().get(id)?.status)
             assertTrue(db.transactionDao().getUnsyncedTransactions("owner-a").isEmpty())
             db.openHelper.writableDatabase.execSQL("DROP TRIGGER synthetic_failure")
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertEquals("SAVED", db.captureInboxDao().get(id)?.status)
         }
     }
@@ -90,7 +91,7 @@ class CaptureInboxTest {
             inbox.insert(observation().copy(packageName = "com.android.shell"))
             val limit = inbox.insert(observation().copy(truncated = true))
             val malformed = inbox.insert(observation().copy(lines = "999:x"))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertTrue(db.transactionDao().getUnsyncedTransactions("owner-a").isEmpty())
             assertEquals("CONTENT_LIMIT", inbox.get(limit)?.reason)
             assertEquals("INVALID_CONTENT_ENCODING", inbox.get(malformed)?.reason)
@@ -104,7 +105,7 @@ class CaptureInboxTest {
             val inbox = db.captureInboxDao()
             val parsed = inbox.insert(observation())
             val ambiguous = inbox.insert(observation(time = 101))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             val pending = inbox.insert(observation(key = "unprocessed"))
             inbox.redactExpired(Long.MAX_VALUE)
             assertNull(inbox.get(parsed)?.text)
@@ -119,7 +120,7 @@ class CaptureInboxTest {
     @Test fun publicationDateUsesCaptureTimezoneEvenAfterSystemZoneChanges() = runBlocking {
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().withDatabase { db ->
             db.captureInboxDao().insert(observation().copy(zoneId = "America/Lima"))
-            NotificationInboxProcessor(db, NotificationParserDispatcher()).drain()
+            NotificationInboxProcessor(db, NotificationParserDispatcher(listOf(YapeNotificationParser()))).drain()
             assertEquals("1969-12-31T19:00:00.100", db.transactionDao().getUnsyncedTransactions("owner-a").single().transactionDate)
         }
     }

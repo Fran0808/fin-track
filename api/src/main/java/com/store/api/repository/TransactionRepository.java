@@ -24,6 +24,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long>,
 
     Optional<Transaction> findByTransactionHashAndUser(String transactionHash, User user);
     Optional<Transaction> findByIdAndUser(Long id, User user);
+    @Query("SELECT DISTINCT upper(t.channel) FROM Transaction t WHERE t.user.id = :userId ORDER BY upper(t.channel)")
+    List<String> findPaymentChannels(@Param("userId") Long userId);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM Transaction t WHERE t.id = :id AND t.user = :user")
     Optional<Transaction> findLockedByIdAndUser(@Param("id") Long id, @Param("user") User user);

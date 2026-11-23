@@ -1,6 +1,6 @@
 # Project progress
 
-Updated: November 21, 2026. This is the entry point for current work, not a release
+Updated: November 23, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -16,6 +16,25 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Android capture | FinTrack 1.3.9 (22): unused template/resource/config files removed; release HTTPS, redirect protection and credential-backup exclusions retained; 82 JVM tests per debug/captureTest/release variant passed and APK metadata verified. Prior reboot/Doze evidence is retained in the detailed record. | Hosted CI, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
+
+## Current checkpoint: bank and wallet extensions
+
+- November 23, scope: API, dashboard, and Android. The registered email readers
+  supply Gmail search terms, and a saved page token belongs to one search window
+  and page size. Android dispatches by explicitly authorized package and readers
+  supply their channel. The API publishes shared channel labels and kinds and
+  lists the current user's channels for movement filters. Existing channel codes
+  are preserved. See [provider extension](architecture/overview.md#provider-extension).
+- Verified locally: 369 backend tests with disposable PostgreSQL, SQL migration
+  regressions, the backend package, and 109 focused authentication cases after
+  adding coverage of the new endpoint. The dashboard passed 163 tests and its
+  production build; lint reported existing warnings. Android passed 83 JVM tests
+  in each of debug, captureTest and release. Android instrumentation tests compiled.
+  APK metadata confirmed 1.3.10 (23).
+- Publish the API and dashboard together. This change needs no database migration.
+  Hosted CI, live Gmail synchronization and physical Android acceptance remain.
+  New readers discover messages from the current mailbox cursor; historical
+  imports require controlled reprocessing.
 
 ## Current checkpoint: stable movement details
 

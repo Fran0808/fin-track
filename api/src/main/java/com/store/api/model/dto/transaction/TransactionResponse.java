@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.OperationType;
+import com.store.api.model.enums.ChannelType;
 
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class TransactionResponse {
     private OperationType operationType;
     private String contactName;
     private String channel;
+    private ChannelType.Presentation paymentChannel;
     private String cardLast4;
     private String category;
     private LocalDateTime transactionDate;

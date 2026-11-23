@@ -3,12 +3,16 @@ package com.store.api.service.email.parser;
 import com.store.api.model.dto.email.ParsedEmailTransaction;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Strategy interface for bank-specific email parsers
  * Implementations handle specific bank formats
  */
 public interface BankEmailParser {
+
+    /** Gmail search clauses for discovering candidate messages. supports still validates each sender. */
+    List<String> gmailSearchTerms();
 
     /**
      * Checks whether this parser supports the given email sender and subject.

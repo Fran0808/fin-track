@@ -401,7 +401,12 @@ private fun NavigationMark(index: Int, color: Color) {
 private fun movementLabel(row: LocalTransactionEntity) = if (row.isSynced) "Enviado" else if (row.ownerKey == null) "Necesita confirmar destino" else "Por enviar"
 private fun formatAmount(row: LocalTransactionEntity): String {
     val amount = row.amount.toBigDecimalOrNull()?.setScale(2, RoundingMode.HALF_UP)?.toPlainString() ?: row.amount
-    return "${if (row.flowType == "INCOME") "+" else "−"} S/ $amount"
+    val sign = when (row.flowType) {
+        "INCOME" -> "+ "
+        "EXPENSE" -> "− "
+        else -> ""
+    }
+    return "${sign}S/ $amount"
 }
 private fun formatTransactionDate(value: String, pattern: String): String = runCatching {
     LocalDateTime.parse(value).format(DateTimeFormatter.ofPattern(pattern, Locale.forLanguageTag("es-PE")))

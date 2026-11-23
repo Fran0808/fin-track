@@ -1,3 +1,5 @@
+import type { PaymentChannel } from '../types';
+
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-PE', {
     style: 'currency',
@@ -52,23 +54,16 @@ export function formatTransactionDateParts(isoString: string): { date: string; t
   };
 }
 
-export function getChannelLabel(channel: string): string {
+export function getChannelLabel(channel: string, paymentChannel?: PaymentChannel): string {
+  if (paymentChannel?.label) return paymentChannel.label;
   switch (channel) {
     case 'CASH': return 'Efectivo';
     case 'CARD': return 'Tarjeta';
     case 'BANK_TRANSFER': return 'Transferencia';
     case 'WALLET': return 'Billetera';
     case 'OTHER': return 'Otro';
-    case 'TARJETA_CREDITO_BCP':
-      return 'Crédito BCP';
-    case 'TARJETA_DEBITO_BCP':
-      return 'Débito BCP';
-    case 'YAPE':
-      return 'Yape';
-    case 'BCP_TRANSFERENCIA':
-      return 'Transferencia BCP';
-    case 'PLIN':
-      return 'Plin';
+    case 'OTRO': return 'Otro';
+    case 'UNKNOWN': return 'Desconocido';
     default:
       return channel.replace(/_/g, ' ');
   }

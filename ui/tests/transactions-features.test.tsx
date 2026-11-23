@@ -112,6 +112,7 @@ it('toggles advanced filters panel and emits multi-criteria filter updates', asy
     <TransactionFilters
       search=""
       flowType=""
+      paymentChannels={[{ code: 'SYNTHETIC_WALLET', label: 'Billetera de prueba' }]}
       onFilterChange={onFilterChange}
       onReset={onReset}
     />
@@ -128,8 +129,9 @@ it('toggles advanced filters panel and emits multi-criteria filter updates', asy
 
   // Channel select
   const channelSelect = screen.getByLabelText('Medio de pago');
-  fireEvent.change(channelSelect, { target: { value: 'YAPE' } });
-  expect(onFilterChange).toHaveBeenCalledWith({ channel: 'YAPE' });
+  expect(screen.getByRole('option', { name: 'Billetera de prueba' })).toBeTruthy();
+  fireEvent.change(channelSelect, { target: { value: 'SYNTHETIC_WALLET' } });
+  expect(onFilterChange).toHaveBeenCalledWith({ channel: 'SYNTHETIC_WALLET' });
 
   // Min amount
   const minInput = screen.getByPlaceholderText('Mín.');

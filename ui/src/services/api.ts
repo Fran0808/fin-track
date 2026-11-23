@@ -1,6 +1,7 @@
 import type {
   FinancialSummary,
   PeriodAnalytics,
+  PaymentChannel,
   Transaction,
   TransactionCorrectionRequest,
   TransactionCorrectionHistory,
@@ -216,6 +217,13 @@ export const api = {
 
     const response = await fetchWithAuth(`${BASE_URL}/analytics/period${qs}`);
     return handleResponse<PeriodAnalytics>(response);
+  },
+
+  async getPaymentChannels(): Promise<PaymentChannel[]> {
+    const response = await fetchWithAuth(`${BASE_URL}/transactions/channels`, { cache: 'no-store' });
+    const channels = await handleResponse<PaymentChannel[]>(response);
+    if (!Array.isArray(channels)) throw new Error('No se pudieron consultar los medios de pago.');
+    return channels;
   },
 
   async getTransactions(params: TransactionFilterParams = {}): Promise<TransactionPageResponse> {

@@ -33,7 +33,7 @@ class NotificationFormatTest {
     }
 
     @Test fun unsupportedPackagesAndNonFinancialAreExplicit() {
-        assertTrue(NotificationParserDispatcher().parseResult("com.android.shell", NotificationContent(text = "Persona te envió S/ 12")) is ParseResult.UnsupportedFormat)
+        assertTrue(NotificationParserDispatcher(listOf(YapeNotificationParser())).parseResult("com.android.shell", NotificationContent(text = "Persona te envió S/ 12")) is ParseResult.UnsupportedFormat)
         assertTrue(parser.parseResult(NotificationContent(text = "Descubre novedades y promociones")) is ParseResult.NonFinancial)
     }
 

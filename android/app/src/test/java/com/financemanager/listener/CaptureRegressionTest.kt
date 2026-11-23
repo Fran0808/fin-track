@@ -24,12 +24,12 @@ class CaptureRegressionTest {
     @Test fun screenshotReceiptFormatRoutesThroughAuthorizedDispatcher() {
         val title = "Confirmación de Pago"
         val body = "Persona Pr* te envió un pago por S/ 2. El cód. de seguridad es: 123"
-        val result = requireNotNull(NotificationParserDispatcher().parse("com.bcp.innovacxion.yapeapp", title, body))
+        val result = requireNotNull(NotificationParserDispatcher(listOf(YapeNotificationParser())).parse("com.bcp.innovacxion.yapeapp", title, body))
         assertEquals(BigDecimal("2"), result.amount)
         assertEquals(FlowType.INCOME, result.flowType)
         assertEquals("Persona Pr*", result.contactName)
         assertEquals("YAPE", result.channel)
-        assertNull(NotificationParserDispatcher().parse("com.android.shell", title, body))
+        assertNull(NotificationParserDispatcher(listOf(YapeNotificationParser())).parse("com.android.shell", title, body))
     }
 
     @Test fun promotionsAmbiguousAmountsAndZeroAreRejected() {
@@ -47,7 +47,7 @@ class CaptureRegressionTest {
     }
 
     @Test fun authorizedPackageOnly() {
-        val dispatcher = NotificationParserDispatcher()
+        val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser()))
         assertNull(dispatcher.parse("com.android.shell", "Yapeaste", "S/ 50 a Persona"))
         assertNull(dispatcher.parse("com.example.app", null, "Persona te envió S/ 50"))
     }

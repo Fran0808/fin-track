@@ -10,6 +10,9 @@ interface ChannelsMultiRingChartProps {
   loading?: boolean;
 }
 
+const channelKey = (channel: ChannelBreakdown) => `${channel.channel}:${channel.cardLast4 ?? ''}`;
+const channelLabel = (channel: ChannelBreakdown) => channel.displayName || getChannelLabel(channel.channel, channel.paymentChannel);
+
 export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
   channels,
   totalExpense,
@@ -25,40 +28,29 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
   const ringGap = 6;
 
   // Base configurations per channel
-  const getRingConfig = (channel: string) => {
-    const isYape = channel.includes('YAPE') || channel.includes('PLIN');
-    const isCredito = channel.includes('CREDITO');
-
-    if (isYape) {
+  const getRingConfig = (channel: ChannelBreakdown) => {
+    const kind = channel.paymentChannel?.kind ?? channel.channel;
+    if (kind === 'WALLET') {
       return {
-        label: 'Yape',
         color: '#9333ea', // Purple-600
         bgTrack: '#f3e8ff', // Purple-100
-        gradientId: 'yapeGradient',
-        fromColor: '#9333ea',
-        toColor: '#d946ef',
+        gradientId: 'walletGradient',
         icon: Smartphone,
       };
     }
-    if (isCredito) {
+    if (kind === 'CREDIT_CARD') {
       return {
-        label: 'Crédito BCP',
         color: '#1d4ed8', // Blue-700
         bgTrack: '#dbeafe', // Blue-100
         gradientId: 'creditoGradient',
-        fromColor: '#1d4ed8',
-        toColor: '#4f46e5',
         icon: CreditCard,
       };
     }
     return {
-      label: 'Débito BCP',
       color: '#0284c7', // Sky-600
       bgTrack: '#e0f2fe', // Sky-100
       gradientId: 'debitoGradient',
-      fromColor: '#0284c7',
-      toColor: '#38bdf8',
-      icon: CreditCard,
+      icon: kind === 'CARD' || kind === 'DEBIT_CARD' ? CreditCard : Layers,
     };
   };
 
@@ -69,6 +61,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
   const baseRadius = 74;
 
   const topChannel = channels?.[0];
+  const selectedChannel = channels?.find(channel => channelKey(channel) === hoveredChannel);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 flex flex-col justify-between">
@@ -100,7 +93,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
             <div className="relative shrink-0 flex items-center justify-center">
               <svg width={size} height={size} className="transform -rotate-90">
                 <defs>
-                  <linearGradient id="yapeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <linearGradient id="walletGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#9333ea" />
                     <stop offset="100%" stopColor="#d946ef" />
                   </linearGradient>
@@ -120,11 +113,12 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                   const circ = 2 * Math.PI * radius;
                   const percent = Math.min(100, Math.max(2, c.percentage));
                   const strokeDasharray = `${(percent / 100) * circ} ${circ}`;
-                  const config = getRingConfig(c.channel);
-                  const isHovered = hoveredChannel === c.channel;
+                  const config = getRingConfig(c);
+                  const key = channelKey(c);
+                  const isHovered = hoveredChannel === key;
 
                   return (
-                    <g key={c.channel}>
+                    <g key={key}>
                       {/* Inactive Track */}
                       <circle
                         cx={center}
@@ -146,7 +140,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                         strokeLinecap="round"
                         fill="none"
                         className="transition-all duration-300"
-                        onMouseEnter={() => setHoveredChannel(c.channel)}
+                        onMouseEnter={() => setHoveredChannel(key)}
                         onMouseLeave={() => setHoveredChannel(null)}
                       />
                     </g>
@@ -160,17 +154,11 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                   {hoveredChannel ? 'Canal' : 'Canal Líder'}
                 </span>
                 <span className="text-sm font-extrabold font-num text-slate-900 truncate max-w-[100px]">
-                  {hoveredChannel
-                    ? channels.find((c) => c.channel === hoveredChannel)?.displayName || 'Canal'
-                    : topChannel
-                    ? topChannel.channel.includes('YAPE')
-                      ? 'Yape'
-                      : topChannel.displayName || 'BCP'
-                    : 'Sin datos'}
+                  {selectedChannel ? channelLabel(selectedChannel) : topChannel ? channelLabel(topChannel) : 'Sin datos'}
                 </span>
                 <span className="text-[10px] font-bold text-blue-600 font-num">
-                  {hoveredChannel
-                    ? formatCurrency(channels.find((c) => c.channel === hoveredChannel)?.amount || 0)
+                  {selectedChannel
+                    ? formatCurrency(selectedChannel.amount)
                     : totalExpense !== undefined
                     ? formatCurrency(topChannel?.amount || totalExpense)
                     : `${topChannel?.percentage.toFixed(1) || 0}%`}
@@ -181,14 +169,15 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
             {/* 3. Channels Multi-Ring Legend */}
             <div className="flex-1 w-full space-y-2.5">
               {channels.map((c, index) => {
-                const config = getRingConfig(c.channel);
+                const config = getRingConfig(c);
+                const key = channelKey(c);
                 const Icon = config.icon;
-                const isHovered = hoveredChannel === c.channel;
+                const isHovered = hoveredChannel === key;
 
                 return (
                   <div
-                    key={c.channel}
-                    onMouseEnter={() => setHoveredChannel(c.channel)}
+                    key={key}
+                    onMouseEnter={() => setHoveredChannel(key)}
                     onMouseLeave={() => setHoveredChannel(null)}
                     className={`p-2.5 rounded-xl border transition-all ${
                       isHovered
@@ -204,7 +193,7 @@ export const ChannelsMultiRingChart: React.FC<ChannelsMultiRingChartProps> = ({
                         />
                         <Icon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span className="text-xs font-bold text-slate-800 truncate">
-                          {c.displayName || getChannelLabel(c.channel)}
+                          {channelLabel(c)}
                         </span>
                       </div>
 

@@ -151,12 +151,13 @@ public class AnalyticsService {
                     ? amount.divide(monthlyExpense, 4, RoundingMode.HALF_UP).doubleValue() * 100
                     : 0.0;
 
-            String displayName = ChannelType.formatDisplayName(channel, cardLast4);
+            var paymentChannel = ChannelType.describe(channel);
 
             breakdownList.add(PeriodAnalyticsResponse.ChannelBreakdownDto.builder()
                     .channel(channel)
+                    .paymentChannel(paymentChannel)
                     .cardLast4(cardLast4)
-                    .displayName(displayName)
+                    .displayName(paymentChannel.displayName(cardLast4))
                     .amount(amount)
                     .percentage(Math.round(percentage * 10.0) / 10.0)
                     .count(count)

@@ -1,5 +1,6 @@
 package com.store.api.model.dto.analytics;
 
+import com.store.api.model.enums.ChannelType;
 import lombok.Builder;
 import lombok.Data;
 
@@ -53,6 +54,7 @@ public class PeriodAnalyticsResponse {
     @Builder
     public static class ChannelBreakdownDto {
         private String channel;
+        private ChannelType.Presentation paymentChannel;
         private String cardLast4;
         private String displayName;
         private BigDecimal amount;

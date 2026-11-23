@@ -7,13 +7,11 @@ export interface TransactionOrigin {
   operationReference: string | null;
 }
 
-export type ChannelType =
-  | 'TARJETA_CREDITO_BCP'
-  | 'TARJETA_DEBITO_BCP'
-  | 'YAPE'
-  | 'BCP_TRANSFERENCIA'
-  | 'PLIN'
-  | 'UNKNOWN';
+export interface PaymentChannel {
+  code: string;
+  label: string;
+  kind: 'CREDIT_CARD' | 'DEBIT_CARD' | 'CARD' | 'WALLET' | 'TRANSFER' | 'CASH' | 'OTHER';
+}
 
 export interface Transaction {
   id: number;
@@ -23,7 +21,8 @@ export interface Transaction {
   flowType: FlowType;
   operationType?: OperationType | null;
   contactName: string;
-  channel: ChannelType | string;
+  channel: string;
+  paymentChannel?: PaymentChannel;
   cardLast4?: string;
   category?: string | null;
   transactionDate: string;
@@ -164,6 +163,7 @@ export interface FinancialSummary {
 
 export interface ChannelBreakdown {
   channel: string;
+  paymentChannel?: PaymentChannel;
   cardLast4?: string;
   displayName?: string;
   amount: number;

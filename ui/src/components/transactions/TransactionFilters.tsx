@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Search, SlidersHorizontal, X, ChevronDown, ChevronUp, CalendarDays, Filter } from 'lucide-react';
-import type { FlowType, PendingReason } from '../../types';
+import type { FlowType, PaymentChannel, PendingReason } from '../../types';
 import { STANDARD_CATEGORIES } from '../../types';
 import { useCategories } from '../../hooks';
 import type { TransactionFilterParams } from '../../services';
@@ -17,6 +17,9 @@ interface TransactionFiltersProps {
   flowType: FlowType | '';
   category?: string;
   channel?: string;
+  paymentChannels?: Pick<PaymentChannel, 'code' | 'label'>[];
+  channelError?: string | null;
+  onRetryChannels?: () => void;
   minAmount?: number;
   maxAmount?: number;
   startDate?: string;
@@ -41,11 +44,6 @@ const CHANNEL_OPTIONS = [
   { value: 'BANK_TRANSFER', label: 'Transferencia' },
   { value: 'WALLET', label: 'Billetera' },
   { value: 'OTHER', label: 'Otro' },
-  { value: 'YAPE', label: 'Yape' },
-  { value: 'PLIN', label: 'Plin' },
-  { value: 'TARJETA_DEBITO_BCP', label: 'Tarjeta Débito BCP' },
-  { value: 'TARJETA_CREDITO_BCP', label: 'Tarjeta Crédito BCP' },
-  { value: 'BCP_TRANSFERENCIA', label: 'Transferencia BCP' },
 ];
 
 export function TransactionFilters({
@@ -57,6 +55,9 @@ export function TransactionFilters({
   flowType,
   category = '',
   channel = '',
+  paymentChannels = [],
+  channelError,
+  onRetryChannels,
   minAmount,
   maxAmount,
   startDate,
@@ -71,6 +72,13 @@ export function TransactionFilters({
   const [localSearch, setLocalSearch] = useState(search);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(Boolean(pendingReason));
   const { options: categoryOptions, error: categoryError, refresh: refreshCategories } = useCategories(true);
+  const channelLabels = new Map(CHANNEL_OPTIONS.map(({ value, label }) => [value, label]));
+  for (const method of paymentChannels) channelLabels.set(method.code, method.label);
+  const selectedChannel = channel.trim().toUpperCase();
+  if (selectedChannel && !channelLabels.has(selectedChannel)) {
+    channelLabels.set(selectedChannel, getChannelLabel(channel));
+  }
+  const channelOptions = Array.from(channelLabels, ([value, label]) => ({ value, label }));
 
   useEffect(() => {
     setLocalSearch(search);
@@ -239,7 +247,7 @@ export function TransactionFilters({
   if (channel) {
     activeChips.push({
       id: 'channel',
-      label: `Medio: ${getChannelLabel(channel)}`,
+      label: `Medio: ${channelLabels.get(selectedChannel)}`,
       onRemove: () => onFilterChange({ channel: '' }),
       ariaLabel: 'Quitar filtro de medio de pago',
     });
@@ -461,12 +469,16 @@ export function TransactionFilters({
               <div className="mt-1.5">
                 <CustomSelect
                   id="filter-channel"
-                  value={channel}
+                  value={selectedChannel}
                   onChange={(val) => onFilterChange({ channel: val })}
-                  options={CHANNEL_OPTIONS}
+                  options={channelOptions}
                   className="text-xs py-1.5"
                 />
               </div>
+              {channelError && onRetryChannels && <p role="status" className="mt-1 text-xs text-muted">
+                Catálogo de medios no disponible.{' '}
+                <button type="button" onClick={onRetryChannels} className="underline">Reintentar</button>
+              </p>}
             </div>
 
             <div>

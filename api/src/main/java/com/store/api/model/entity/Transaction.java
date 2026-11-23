@@ -43,7 +43,7 @@ public class Transaction {
     private String contactName;
     @Column(name = "channel", nullable = false, length = 50)
     @Builder.Default
-    private String channel = "YAPE";
+    private String channel = "UNKNOWN";
     @Column(name = "card_last4", length = 10)
     private String cardLast4;
     @Column(name = "transaction_date", nullable = false)

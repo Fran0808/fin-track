@@ -47,7 +47,7 @@ class CaptureDatabaseTest {
     @Test fun authorizedReceiptIsStoredOfflineAndConfirmedBeforeMarkingSent() = runBlocking {
         Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build().withDatabase { db ->
             val dao = db.transactionDao()
-            val parsed = requireNotNull(NotificationParserDispatcher().parse("com.bcp.innovacxion.yapeapp",
+            val parsed = requireNotNull(NotificationParserDispatcher(listOf(YapeNotificationParser())).parse("com.bcp.innovacxion.yapeapp",
                 "Confirmación de Pago", "Persona Pr* te envió un pago por S/ 2. El cód. de seguridad es: 123"))
             val identified = NotificationIdentity.apply(parsed, NotificationMetadata("test-receipt", 1_750_000_000_000))
             val entity = LocalTransactionEntity(amount = identified.amount.toPlainString(), flowType = identified.flowType.name,

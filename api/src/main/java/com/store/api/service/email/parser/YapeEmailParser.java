@@ -84,6 +84,11 @@ public class YapeEmailParser implements BankEmailParser {
     );
 
     @Override
+    public java.util.List<String> gmailSearchTerms() {
+        return java.util.List.of("Yape", "notificaciones@yape.pe", "yape.pe");
+    }
+
+    @Override
     public boolean supports(String sender, String subject) {
         return BankEmailSenderPolicy.matchesDomain(sender, ALLOWED_DOMAINS);
     }

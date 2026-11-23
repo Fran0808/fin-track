@@ -13,6 +13,9 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Consumer;
 import java.util.HashSet;
+import java.util.HexFormat;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -21,6 +24,7 @@ import org.springframework.web.client.RestClientResponseException;
 import com.store.api.model.dto.email.EmailMessageDto;
 import com.store.api.model.enums.EmailSyncFailure;
 import com.store.api.service.email.EmailSyncException;
+import com.store.api.service.email.parser.BankEmailParserDispatcher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +48,7 @@ public class GmailApiClient {
             "PERMISSION_DENIED", "UNAUTHENTICATED", "ACCESS_TOKEN_SCOPE_INSUFFICIENT", "SERVICE_DISABLED");
 
     private final ObjectMapper objectMapper;
+    private final BankEmailParserDispatcher emailParsers;
     private final RestClient restClient = com.store.api.config.ExternalHttp.client();
 
     public List<EmailMessageDto> fetchFinancialEmails(String accessToken, int maxResults) {
@@ -73,22 +78,23 @@ public class GmailApiClient {
     public void visitFinancialEmails(String accessToken, int pageSize, Long lastSyncedEpochMs,
             Predicate<String> isProcessedFilter, Consumer<EmailMessageDto> consumer, Scan scan) {
         if (pageSize < 1 || pageSize > 500) throw new IllegalArgumentException("Gmail page size must be between 1 and 500");
-        String pageToken = scan.pageToken();
+        String pageToken = null;
         boolean listing = false;
+        String baseQuery = emailParsers.gmailSearchQuery();
+        if (baseQuery.isEmpty()) throw new IllegalStateException("No Gmail search terms were registered");
+        String query = "(" + baseQuery + ")";
+        if (lastSyncedEpochMs != null && lastSyncedEpochMs > 120_000) {
+            // Look back 120 seconds before the cursor to absorb network delays or clock skew.
+            query += " after:" + (lastSyncedEpochMs / 1000 - 120);
+        }
+        if (scan.windowEnd() != null) query += " before:" + (scan.windowEnd() / 1000);
+        final String searchQuery = query;
+        String cursorScope = queryScope(searchQuery, pageSize);
+        if (scan.pageToken() != null) {
+            if (!scan.pageToken().startsWith(cursorScope)) throw new InvalidPageToken();
+            pageToken = scan.pageToken().substring(cursorScope.length());
+        }
         try {
-            String baseQuery = "BCP OR Yape OR constancia OR consumo OR notificacionesbcp.com.pe OR notificaciones@yape.pe OR yape.pe";
-            String query = "(" + baseQuery + ")";
-
-            if (lastSyncedEpochMs != null && lastSyncedEpochMs > 0) {
-                // Look back 120 seconds before the cursor to absorb network delays or clock skew
-                long afterSeconds = (lastSyncedEpochMs / 1000) - 120;
-                if (afterSeconds > 0) {
-                    query += " after:" + afterSeconds;
-                }
-            }
-
-            if (scan.windowEnd() != null) query += " before:" + (scan.windowEnd() / 1000);
-            final String searchQuery = query;
             Set<String> seenPages = new HashSet<>();
             if (pageToken != null) seenPages.add(pageToken);
             do {
@@ -121,7 +127,7 @@ public class GmailApiClient {
             pageToken = listJson.path("nextPageToken").asText(null);
             if (pageToken != null && pageToken.isBlank()) pageToken = null;
             if (pageToken != null && !seenPages.add(pageToken)) throw new IllegalStateException("Gmail repeated a page token");
-            if (!scan.pageComplete().test(pageToken)) return;
+            if (!scan.pageComplete().test(pageToken == null ? null : cursorScope + pageToken)) return;
             } while (pageToken != null);
         } catch (RestClientResponseException ex) {
             int status = ex.getStatusCode().value();
@@ -135,6 +141,15 @@ public class GmailApiClient {
             EmailSyncFailure failure = EmailSyncException.classify(ex);
             log.warn("Gmail synchronization could not finish: failure={}", failure);
             throw new EmailSyncException(failure);
+        }
+    }
+
+    private String queryScope(String query, int pageSize) {
+        try {
+            byte[] input = (pageSize + ":" + query).getBytes(StandardCharsets.UTF_8);
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input)) + ":";
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 

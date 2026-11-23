@@ -12,9 +12,9 @@ data class LocalTransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val amount: String,
-    val flowType: String, // INCOME or EXPENSE
+    val flowType: String,
     val contactName: String,
-    val channel: String = "YAPE",
+    val channel: String = "UNKNOWN",
     val transactionDate: String,
     val transactionHash: String,
     val rawText: String,

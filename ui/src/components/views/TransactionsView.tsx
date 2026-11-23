@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Download, Loader2, Plus } from 'lucide-react';
-import type { TransactionPageResponse, Transaction } from '../../types';
+import type { PaymentChannel, TransactionPageResponse, Transaction } from '../../types';
 import type { TransactionFilterParams } from '../../services';
 import { api } from '../../services/api';
-import { formatExportFilename } from '../../utils';
+import { formatExportFilename, getChannelLabel } from '../../utils';
 import { ManualTransactionModal } from '../transactions/ManualTransactionModal';
 import { TransactionTable, TransactionFilters } from '../transactions';
+import { useQueryResource } from '../../hooks/useQueryResource';
+
+const loadPaymentChannels = () => api.getPaymentChannels();
 
 interface TransactionsViewProps {
   selectedTransactionId?: number;
@@ -38,6 +41,19 @@ export function TransactionsView({
   const [created, setCreated] = useState<Transaction | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const { data: paymentChannels, error: channelError, refresh: refreshChannels } = useQueryResource(
+    loadPaymentChannels, 'No se pudieron consultar los medios de pago.',
+  );
+  const availableChannels = new Map<string, Pick<PaymentChannel, 'code' | 'label'>>();
+  for (const channel of paymentChannels ?? []) availableChannels.set(channel.code, channel);
+  for (const transaction of pageData?.content ?? []) {
+    const method = transaction.paymentChannel;
+    const code = transaction.channel.trim().toUpperCase();
+    if (method) availableChannels.set(method.code, method);
+    else if (code && !availableChannels.has(code)) {
+      availableChannels.set(code, { code, label: getChannelLabel(transaction.channel) });
+    }
+  }
 
   const month = periodName?.match(/^(\d{1,2})\/(\d{4})$/);
   const selectedMonth = month ? new Date(Number(month[2]), Number(month[1]) - 1, 1).toLocaleDateString('es-PE', { month: 'long', year: 'numeric' }) : periodName || 'Mes seleccionado';
@@ -101,6 +117,9 @@ export function TransactionsView({
             flowType={filters.flowType || ''}
             category={filters.category || ''}
             channel={filters.channel || ''}
+            paymentChannels={[...availableChannels.values()]}
+            channelError={channelError}
+            onRetryChannels={() => void refreshChannels()}
             minAmount={filters.minAmount}
             maxAmount={filters.maxAmount}
             startDate={filters.startDate}

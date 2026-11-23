@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Dispatcher component that selects the appropriate BankEmailParser
@@ -19,6 +20,12 @@ import java.util.Optional;
 public class BankEmailParserDispatcher {
 
     private final List<BankEmailParser> parsers;
+
+    public String gmailSearchQuery() {
+        return parsers.stream().flatMap(parser -> parser.gmailSearchTerms().stream())
+                .map(String::trim).filter(term -> !term.isEmpty()).distinct().sorted()
+                .collect(Collectors.joining(" OR "));
+    }
 
     public Optional<ParsedEmailTransaction> dispatchAndParse(String sender, String subject, String body, LocalDateTime receivedDate) {
         for (BankEmailParser parser : parsers) {

@@ -204,11 +204,13 @@ it('navigates to movements when clicking a payment channel in HomeView', () => {
     periodName: 'Octubre 2026', monthlyExpense: 100, monthlyIncome: 0, internalTransfersAmount: 0,
     previousPeriodExpense: null, comparisonThroughDay: null, dailyExpenses: [], totalMovements: 1,
     lastExpenseMerchant: 'Synthetic', lastExpenseAmount: 10, lastExpenseDate: '2026-10-01T12:00:00',
-    topChannel: 'YAPE', topChannelAmount: 100, topChannelPercentage: 100,
-    channelBreakdown: [{ channel: 'YAPE', amount: 100, percentage: 100, count: 1 }],
+    topChannel: 'SYNTHETIC_WALLET', topChannelAmount: 100, topChannelPercentage: 100,
+    channelBreakdown: [{ channel: 'SYNTHETIC_WALLET',
+      paymentChannel: { code: 'SYNTHETIC_WALLET', label: 'Billetera de prueba', kind: 'WALLET' },
+      amount: 100, percentage: 100, count: 1 }],
     topMerchants: [], categoryBreakdown: [],
   };
   render(<HomeView analytics={analytics} recentTransactions={[]} loading={false} onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} onSelectChannel={onSelectChannel} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de Yape' }));
-  expect(onSelectChannel).toHaveBeenCalledWith('YAPE');
+  fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de Billetera de prueba' }));
+  expect(onSelectChannel).toHaveBeenCalledWith('SYNTHETIC_WALLET');
 });

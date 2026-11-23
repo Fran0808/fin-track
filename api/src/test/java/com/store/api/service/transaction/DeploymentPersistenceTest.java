@@ -52,6 +52,32 @@ class DeploymentPersistenceTest {
     @Autowired com.store.api.repository.ClassificationRuleRepository rules;
     @Autowired com.store.api.service.category.RuleHistoryService ruleHistory;
 
+    @Test void listsOnlyTheOwnersPaymentChannelsAndUsesTheirMetadataInTheLedger() {
+        User owner = user(), other = user();
+        try {
+            UserContext.setCurrentUser(owner);
+            var credit = request("owner-card");
+            credit.setChannel("TARJETA_CREDITO_INTERBANK");
+            var movement = service.processAndSave(credit);
+            assertEquals("Crédito Interbank", movement.getPaymentChannel().label());
+            var wallet = request("owner-wallet");
+            wallet.setChannel("USUARIO_BILLETERA_SINTETICA");
+            service.processAndSave(wallet);
+
+            UserContext.setCurrentUser(other);
+            var otherCard = request("other-card");
+            otherCard.setChannel("TARJETA_DEBITO_BBVA");
+            service.processAndSave(otherCard);
+            assertEquals(List.of("TARJETA_DEBITO_BBVA"), service.getPaymentChannels().stream()
+                    .map(com.store.api.model.enums.ChannelType.Presentation::code).toList());
+
+            UserContext.setCurrentUser(owner);
+            assertEquals(List.of("TARJETA_CREDITO_INTERBANK", "USUARIO_BILLETERA_SINTETICA"),
+                    service.getPaymentChannels().stream()
+                            .map(com.store.api.model.enums.ChannelType.Presentation::code).toList());
+        } finally { UserContext.clear(); }
+    }
+
     @Test void correctionsPreserveOriginalEvidenceAndUpdateAllLedgerReadsAcrossPeriods() {
         User owner=user(), other=user(); UserContext.setCurrentUser(owner);
         try {

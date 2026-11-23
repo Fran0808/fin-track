@@ -9,7 +9,7 @@ function Evidence({ transaction }: { transaction: Transaction }) {
     <div><dt className="inline text-muted">Concepto: </dt><dd className="inline break-words">{transaction.contactName}</dd></div>
     <div><dt className="inline text-muted">Movimiento: </dt><dd className="inline">{getTransactionFlowLabel(transaction)} · {formatCurrency(transaction.amount)}</dd></div>
     <div><dt className="inline text-muted">Fecha: </dt><dd className="inline">{formatDate(transaction.transactionDate)}</dd></div>
-    <div><dt className="inline text-muted">Medio: </dt><dd className="inline">{getChannelLabel(transaction.channel)}</dd></div>
+    <div><dt className="inline text-muted">Medio: </dt><dd className="inline">{getChannelLabel(transaction.channel, transaction.paymentChannel)}</dd></div>
     <div><dt className="inline text-muted">Categoría: </dt><dd className="inline">{transaction.category || 'Sin categoría'}</dd></div>
   </dl>;
 }

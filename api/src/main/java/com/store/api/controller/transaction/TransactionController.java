@@ -4,6 +4,7 @@ import com.store.api.model.dto.transaction.TransactionClassificationRequest;
 import com.store.api.model.dto.transaction.TransactionResponse;
 import com.store.api.model.dto.transaction.TransactionSyncRequest;
 import com.store.api.model.enums.FlowType;
+import com.store.api.model.enums.ChannelType;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.service.transaction.TransactionService;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,11 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+
+    @GetMapping("/channels")
+    public ResponseEntity<List<ChannelType.Presentation>> paymentChannels() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(transactionService.getPaymentChannels());
+    }
 
     @GetMapping("/pending")
     public Page<TransactionResponse> pending(

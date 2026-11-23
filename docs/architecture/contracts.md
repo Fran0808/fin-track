@@ -34,6 +34,7 @@ Paths below are relative to `/api/v1`.
 | --- | --- | --- |
 | `POST /transactions/sync`, `POST /transactions/sync/batch` | Single or batch ingestion | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions` | Paginated list with dates, flow, contact/category search, category, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
+| `GET /transactions/channels` | Distinct payment channel metadata for the authenticated user's history, with `Cache-Control: no-store` | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
 | `PATCH /transactions/{id}/classification` | Update transaction category | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
@@ -43,6 +44,12 @@ Paths below are relative to `/api/v1`.
 | `GET /emails/test-connection`, `POST /emails/sync` | Connection check or actual ingestion | [EmailSyncController](../../api/src/main/java/com/store/api/controller/email/EmailSyncController.java) |
 | `GET /user/pairing-info`, `POST /user/pairing-info/regenerate`, `POST /user/pairing-info/verify` | Pairing information, rotation and verification | [DevicePairingController](../../api/src/main/java/com/store/api/controller/auth/DevicePairingController.java) |
 | `GET /auth/google/url`, `GET /auth/google/callback`, `GET /auth/google/me`, `GET /auth/google/status`, `POST /auth/google/disconnect` | OAuth and session operations | [GoogleAuthController](../../api/src/main/java/com/store/api/controller/auth/GoogleAuthController.java) |
+
+The `paymentChannel` object in transaction responses and the analytics channel
+breakdown is additive. It contains `code`, `label` and `kind`; ingestion and
+filters continue to use the existing channel string. An unrecognized code uses
+kind `OTHER` and a display label derived from the code. Cashflow continues to
+use `flowType`. Android clients send and receive their existing payload fields.
 
 ## Manual registration and reconciliation
 

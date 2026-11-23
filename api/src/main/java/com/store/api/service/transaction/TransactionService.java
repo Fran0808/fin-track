@@ -12,6 +12,7 @@ import com.store.api.model.enums.FlowType;
 import com.store.api.model.enums.OperationType;
 import com.store.api.model.enums.PendingReason;
 import com.store.api.model.enums.CaptureOrigin;
+import com.store.api.model.enums.ChannelType;
 import com.store.api.service.category.ClassificationRuleService;
 import com.store.api.repository.RawNotificationRepository;
 import com.store.api.repository.TransactionRepository;
@@ -348,6 +349,12 @@ public class TransactionService {
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
+    @Transactional(readOnly = true)
+    public List<ChannelType.Presentation> getPaymentChannels() {
+        return transactionRepository.findPaymentChannels(UserContext.requireCurrentUser().getId()).stream()
+                .map(ChannelType::describe).toList();
+    }
+
     public static TransactionResponse mapToResponse(Transaction t) {
         return TransactionResponse.builder()
                 .id(t.getId())
@@ -358,6 +365,7 @@ public class TransactionService {
                 .operationType(t.getOperationType())
                 .contactName(t.getContactName())
                 .channel(t.getChannel())
+                .paymentChannel(ChannelType.describe(t.getChannel()))
                 .cardLast4(t.getCardLast4())
                 .category(t.getCategory())
                 .transactionDate(t.getTransactionDate())

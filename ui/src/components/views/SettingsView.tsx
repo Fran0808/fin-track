@@ -241,7 +241,7 @@ export function SettingsView({
           <div className="border-b border-line px-5 py-5 sm:px-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-yape/10 text-yape">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-accent/10 text-violet-accent">
                   <Smartphone className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
@@ -261,7 +261,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={onOpenPairing}
-                className="inline-flex items-center gap-2 rounded-xl bg-yape px-4 py-2.5 text-sm font-semibold text-white hover:bg-yape/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-accent/90"
               >
                 <Smartphone className="h-4 w-4" aria-hidden="true" />
                 Vincular teléfono

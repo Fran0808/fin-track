@@ -260,7 +260,7 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
         <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-y border-line py-3.5 text-sm">
           <div>
             <dt className="text-xs text-muted">Medio</dt>
-            <dd className="mt-0.5 font-medium">{getChannelLabel(transaction.channel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd>
+            <dd className="mt-0.5 font-medium">{getChannelLabel(transaction.channel, transaction.paymentChannel)}{transaction.cardLast4 ? ` ··${transaction.cardLast4}` : ''}</dd>
           </div>
           <div>
             <dt className="text-xs text-muted">Fecha y hora</dt>

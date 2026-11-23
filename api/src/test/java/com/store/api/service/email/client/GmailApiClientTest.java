@@ -1,6 +1,10 @@
 package com.store.api.service.email.client;
 
 import com.store.api.model.dto.email.EmailMessageDto;
+import com.store.api.service.email.parser.BankEmailParser;
+import com.store.api.service.email.parser.BankEmailParserDispatcher;
+import com.store.api.service.email.parser.BcpEmailParser;
+import com.store.api.service.email.parser.YapeEmailParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -13,6 +17,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,7 +36,8 @@ class GmailApiClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new GmailApiClient(new ObjectMapper());
+        client = new GmailApiClient(new ObjectMapper(),
+                new BankEmailParserDispatcher(List.of(new YapeEmailParser(), new BcpEmailParser())));
         ReflectionTestUtils.setField(client, "restClient", builder.build());
     }
 
@@ -127,18 +133,40 @@ class GmailApiClientTest {
     @Test
     void resumesTheSameBoundedSearchAndStopsAtTheCheckpoint() {
         String endpoint = "https://gmail.googleapis.com/gmail/v1/users/me/messages";
+        server.expect(requestTo(startsWith(endpoint + "?")))
+                .andRespond(withSuccess("{\"nextPageToken\":\"saved-page\"}", MediaType.APPLICATION_JSON));
         server.expect(requestTo(org.hamcrest.Matchers.allOf(startsWith(endpoint + "?"),
                         org.hamcrest.Matchers.containsString("pageToken=saved-page"),
                         org.hamcrest.Matchers.containsString("maxResults=20"),
                         org.hamcrest.Matchers.containsString("before:1790876400"))))
                 .andRespond(withSuccess("{\"nextPageToken\":\"following-page\"}", MediaType.APPLICATION_JSON));
-        client.visitFinancialEmails("synthetic-token", 20, null, id -> false,
-                message -> org.junit.jupiter.api.Assertions.fail("No message was listed"),
-                new GmailApiClient.Scan(1790876400000L, "saved-page", next -> {
-                    assertEquals("following-page", next);
+        AtomicReference<String> cursor = new AtomicReference<>();
+        client.visitFinancialEmails("synthetic-token", 20, null, id -> false, message -> {},
+                new GmailApiClient.Scan(1790876400000L, null, next -> {
+                    cursor.set(next);
                     return false;
                 }));
+        client.visitFinancialEmails("synthetic-token", 20, null, id -> false, message -> {},
+                new GmailApiClient.Scan(1790876400000L, cursor.get(), next -> false));
+        assertThrows(GmailApiClient.InvalidPageToken.class, () ->
+                client.visitFinancialEmails("synthetic-token", 20, null, id -> false, message -> {},
+                        new GmailApiClient.Scan(1790876500000L, cursor.get(), next -> false)));
         server.verify();
+    }
+
+    @Test
+    void discoversEmailFromAnAdditionalRegisteredReader() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer additionalServer = MockRestServiceServer.bindTo(builder).build();
+        BankEmailParser extraReader = org.mockito.Mockito.mock(BankEmailParser.class);
+        org.mockito.Mockito.when(extraReader.gmailSearchTerms()).thenReturn(List.of("from:receipts.example.test"));
+        GmailApiClient configuredClient = new GmailApiClient(new ObjectMapper(),
+                new BankEmailParserDispatcher(List.of(new BcpEmailParser(), extraReader)));
+        ReflectionTestUtils.setField(configuredClient, "restClient", builder.build());
+        additionalServer.expect(requestTo(org.hamcrest.Matchers.containsString("from:receipts.example.test")))
+                .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
+        assertEquals(List.of(), configuredClient.fetchFinancialEmails("synthetic-token", 20));
+        additionalServer.verify();
     }
 
     @Test

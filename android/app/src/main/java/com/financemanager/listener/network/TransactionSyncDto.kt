@@ -6,7 +6,7 @@ data class TransactionSyncDto(
     val amount: BigDecimal,
     val flowType: String,
     val contactName: String,
-    val channel: String = "YAPE",
+    val channel: String,
     val transactionDate: String,
     val transactionHash: String,
     val rawNotificationText: String? = null,
