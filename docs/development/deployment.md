@@ -60,9 +60,10 @@ the repository tests.
 
 The phone pairing dialog offers a direct APK download when the dashboard is
 built with `VITE_ANDROID_APK_URL`. Point it at a stable HTTPS URL for the signed
-release APK, such as a release asset accessible to its intended users. The URL
-is public build configuration. Keep credentials and temporary access tokens out
-of it, and keep the APK and signing key out of Git.
+release APK. The [Android release workflow](../android/releases.md) publishes
+`fintrack.apk` to GitHub Releases. The path `/releases/latest/download/fintrack.apk`
+follows the latest published release of the public repository. This URL is public
+build configuration. Keep credentials and temporary access tokens out of it.
 
 Set the variable in **Environment** on the Render service that builds the
 dashboard and choose **Save, rebuild, and deploy** after publishing the code.

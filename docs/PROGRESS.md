@@ -17,6 +17,19 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android release publishing
+
+- November 23, scope: GitHub Actions and installer delivery. The Android Release
+  workflow tests, packages, signs and verifies one `fintrack.apk` per Android
+  version on `main`. It publishes each new version as latest and checks the
+  previous certificate and version code. See [Android releases](android/releases.md).
+- Verified locally: 83 release tests, the unsigned 1.3.10 build (23), and a
+  signed APK with a disposable certificate. A simulated GitHub API covered the
+  first publication, missing secrets, an existing release, retrying a draft,
+  a valid version increase, and rejection of a reused version code or new key.
+- First publication remains pending the production signing secrets and pushing
+  the workflow to `main`. No APK has been published in GitHub Releases.
+
 ## Current checkpoint: Android onboarding in the dashboard
 
 - November 23, scope: dashboard. The pairing dialog presents the Android

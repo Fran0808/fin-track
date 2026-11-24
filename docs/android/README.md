@@ -10,6 +10,7 @@ Read [Android instructions](../../android/AGENTS.md) before editing.
 | Pairing and payload compatibility | [Contracts](../architecture/contracts.md) |
 | SDK/build prerequisites and verification | [Development](../development/local.md#dashboard-and-android-verification) |
 | APK delivery and capture-test commands | [Script catalogue](../../scripts/README.md) |
+| Signed APKs and automatic GitHub Releases | [Android releases](releases.md) |
 
 The capture runner lives only in
 [scripts/android/run-capture-tests.ps1](../../scripts/android/run-capture-tests.ps1).
