@@ -88,7 +88,7 @@ if [[ "$release" == null ]]; then
         exit 1
     fi
     gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft \
-        --title "FinTrack para Android $version" --notes "APK de FinTrack para Android $version (código $version_code)."
+        --title "FinTrack Android" --notes "APK FinTrack Android $version (código $version_code)."
 elif [[ "$(jq -r '.target_commitish' <<< "$release")" != "$GITHUB_SHA" ]]; then
     echo '::error::Retry the workflow run that created the draft for this Android version.'
     exit 1

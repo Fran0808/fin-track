@@ -3,7 +3,8 @@
 [Android Release](../../.github/workflows/android-release.yml) runs for Android
 changes pushed to `main` and can also be run manually on `main` from **Actions**.
 It runs the release unit tests and builds the APK before signing. A new version
-gets a release named `android-v<versionName>` with the file `fintrack.apk`.
+gets a release titled **FinTrack Android**, tagged `android-v<versionName>`,
+with the file `fintrack.apk`.
 Published versions are skipped on subsequent runs. Increase both `versionName`
 and `versionCode` in [app/build.gradle.kts](../../android/app/build.gradle.kts)
 when changing the app for a new release.

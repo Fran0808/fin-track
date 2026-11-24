@@ -27,8 +27,10 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   signed APK with a disposable certificate. A simulated GitHub API covered the
   first publication, missing secrets, an existing release, retrying a draft,
   a valid version increase, and rejection of a reused version code or new key.
-- First publication remains pending the production signing secrets and pushing
-  the workflow to `main`. No APK has been published in GitHub Releases.
+- GitHub published [Android 1.3.10](https://github.com/Fran0808/fin-track/releases/tag/android-v1.3.10).
+  The stable download returned HTTP 200 with `fintrack.apk`. The published
+  release and future releases use the title **FinTrack Android**. Configure the
+  stable download URL in the dashboard at build time to show the download button.
 
 ## Current checkpoint: Android onboarding in the dashboard
 
