@@ -70,8 +70,9 @@ export function useFinance(userId: number) {
   const recentQuery = useCallback(() => userId ? api.getTransactions({
     ...getPeriodDateRange(selectedPeriod.year, selectedPeriod.month), page: 0, size: 5,
   }) : Promise.reject(new Error('Sesión no disponible')), [selectedPeriod, userId]);
+  const periodCacheKey = userId ? { userId, period: `${selectedPeriod.year}-${selectedPeriod.month}` } : undefined;
   const summaryResource = useQueryResource<FinancialSummary>(summaryQuery, 'Error al cargar el resumen');
-  const analyticsResource = useQueryResource<PeriodAnalytics>(analyticsQuery, 'Error al cargar analítica financiera');
+  const analyticsResource = useQueryResource<PeriodAnalytics>(analyticsQuery, 'Error al cargar analítica financiera', periodCacheKey);
   const transactionResource = useQueryResource<TransactionPageResponse>(transactionsQuery, 'Error al cargar transacciones');
   useEffect(() => {
     const page = transactionResource.data;
@@ -79,11 +80,15 @@ export function useFinance(userId: number) {
       setFilters(current => ({ ...current, page: Math.max(0, page.totalPages - 1) }));
     }
   }, [transactionResource.data]);
-  const recentResource = useQueryResource<PageResponse<Transaction>>(recentQuery, 'Error al cargar movimientos recientes');
+  const recentResource = useQueryResource<PageResponse<Transaction>>(recentQuery, 'Error al cargar movimientos recientes', periodCacheKey);
   const { refresh: loadSummary } = summaryResource;
-  const { refresh: loadAnalytics } = analyticsResource;
+  const { refresh: loadAnalytics, clearCache: clearAnalyticsCache } = analyticsResource;
   const { refresh: loadTransactions } = transactionResource;
-  const { refresh: loadRecent } = recentResource;
+  const { refresh: loadRecent, clearCache: clearRecentCache } = recentResource;
+  const clearPeriodCache = useCallback(() => {
+    clearAnalyticsCache();
+    clearRecentCache();
+  }, [clearAnalyticsCache, clearRecentCache]);
   const error = [syncError, summaryResource.error, analyticsResource.error, transactionResource.error, recentResource.error]
     .filter((message, index, messages) => message && messages.indexOf(message) === index).join(' · ') || null;
 
@@ -141,6 +146,7 @@ export function useFinance(userId: number) {
           setIsSyncing(true);
           await api.syncEmails(controller.signal);
           if (!cancelled) {
+            clearPeriodCache();
             await Promise.all([loadSummary(true), loadAnalytics(true), loadTransactions(true), loadRecent(true)]);
           }
         } catch {
@@ -160,7 +166,7 @@ export function useFinance(userId: number) {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [userId, loadSyncStatus, loadSummary, loadAnalytics, loadTransactions, loadRecent]);
+  }, [userId, loadSyncStatus, loadSummary, loadAnalytics, loadTransactions, loadRecent, clearPeriodCache]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -207,6 +213,7 @@ export function useFinance(userId: number) {
       throw err;
     } finally {
       if (!signal.aborted) {
+        clearPeriodCache();
         await Promise.all([loadSyncStatus(), loadSummary(true), loadAnalytics(true), loadTransactions(true), loadRecent(true)]);
       }
       if (activeEmailSync.current === controller) {
@@ -249,6 +256,7 @@ export function useFinance(userId: number) {
     periodAnalytics: analyticsResource.data,
     transactionsPage: transactionResource.data,
     recentTransactions: recentResource.data?.content ?? [],
+    recentUnavailable: Boolean(recentResource.error && !recentResource.data),
     loadingRecent: recentResource.loading,
     loadingSummary: analyticsResource.loading,
     loadingTransactions: transactionResource.loading,
@@ -272,6 +280,7 @@ export function useFinance(userId: number) {
       await loadSyncStatus();
     },
     refreshAll: async () => {
+      clearPeriodCache();
       await Promise.all([loadSummary(), loadAnalytics(), loadTransactions(), loadRecent()]);
     },
   };

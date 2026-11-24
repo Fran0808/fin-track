@@ -17,6 +17,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: monthly overview loading
+
+- November 23, scope: dashboard. Inicio loads monthly totals and payment channels
+  independently of recent movements. Placeholders reserve card space on the first
+  visit. Each query keeps up to six periods per signed-in user and refreshes saved
+  responses in the background on revisit. Movement changes and web Gmail sync
+  invalidate the period cache. See the [dashboard guide](../ui/README.md#monthly-overview-loading).
+- Verified locally: 175 dashboard tests, the production build and lint with
+  existing warnings. Chrome at 1440, 390 and 320 pixels verified both response
+  orders, stable card heights and cached month navigation using simulated data.
+  Publishing and verification on Render remain pending.
+
 ## Current checkpoint: Android release publishing
 
 - November 23, scope: GitHub Actions and installer delivery. The Android Release

@@ -51,6 +51,94 @@ it('does not show old month data or stop loading when its response arrives', asy
   expect(result.current.loadingSummary).toBe(false);
 });
 
+it('reuses the visited month for both Home queries while requesting a fresh copy', async () => {
+  const newAnalytics = deferred<PeriodAnalytics>();
+  const newRecent = deferred<TransactionPageResponse>();
+  const october = { ...analytics, monthlyExpense: 42, periodName: '10/2024' };
+  const november = { ...analytics, monthlyExpense: 60, periodName: '11/2024' };
+  let revisiting = false;
+  vi.mocked(api.getPeriodAnalytics).mockImplementation((_year, month) => (
+    month === 10 ? revisiting ? newAnalytics.promise : Promise.resolve(october) : Promise.resolve(november)
+  ));
+  vi.mocked(api.getTransactions).mockImplementation(params => {
+    if (params?.size !== 5) return Promise.resolve(page);
+    if (params.startDate?.startsWith('2024-10')) return revisiting ? newRecent.promise : Promise.resolve(page);
+    return Promise.resolve({ ...page, content: [] });
+  });
+  const { result } = renderHook(() => useFinance(1));
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 10 }));
+  await waitFor(() => {
+    expect(result.current.periodAnalytics).toEqual(october);
+    expect(result.current.recentTransactions).toEqual([transaction]);
+  });
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 11 }));
+  await waitFor(() => {
+    expect(result.current.periodAnalytics).toEqual(november);
+    expect(result.current.recentTransactions).toEqual([]);
+    expect(result.current.loadingRecent).toBe(false);
+  });
+
+  revisiting = true;
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 10 }));
+  expect(result.current.periodAnalytics).toEqual(october);
+  expect(result.current.recentTransactions).toEqual([transaction]);
+  expect(result.current.loadingSummary).toBe(false);
+  expect(result.current.loadingRecent).toBe(false);
+  expect(api.getPeriodAnalytics).toHaveBeenLastCalledWith(2024, 10);
+
+  const corrected = { ...transaction, amount: 43 };
+  await act(async () => {
+    newAnalytics.resolve({ ...october, monthlyExpense: 43 });
+    newRecent.resolve({ ...page, content: [corrected] });
+  });
+  expect(result.current.periodAnalytics?.monthlyExpense).toBe(43);
+  expect(result.current.recentTransactions).toEqual([corrected]);
+});
+
+it('discards cached months when a movement mutation refreshes the dashboard', async () => {
+  const { result } = renderHook(() => useFinance(1));
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 10 }));
+  await waitFor(() => expect(result.current.loadingSummary || result.current.loadingRecent).toBe(false));
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 11 }));
+  await waitFor(() => expect(result.current.loadingSummary || result.current.loadingRecent).toBe(false));
+  await act(async () => result.current.refreshAll());
+
+  const newAnalytics = deferred<PeriodAnalytics>();
+  const newRecent = deferred<TransactionPageResponse>();
+  vi.mocked(api.getPeriodAnalytics).mockReturnValue(newAnalytics.promise);
+  vi.mocked(api.getTransactions).mockImplementation(params => params?.size === 5 ? newRecent.promise : Promise.resolve(page));
+  act(() => result.current.setSelectedPeriod({ year: 2024, month: 10 }));
+  expect(result.current.periodAnalytics).toBeNull();
+  expect(result.current.recentTransactions).toEqual([]);
+  expect(result.current.loadingSummary).toBe(true);
+  expect(result.current.loadingRecent).toBe(true);
+  await act(async () => {
+    newAnalytics.resolve({ ...analytics, monthlyExpense: 43 });
+    newRecent.resolve(page);
+  });
+  expect(result.current.periodAnalytics?.monthlyExpense).toBe(43);
+});
+
+it('does not show cached monthly data to a different authenticated user', async () => {
+  const { result, rerender } = renderHook(({ user }) => useFinance(user), { initialProps: { user: 1 } });
+  await waitFor(() => expect(result.current.loadingSummary || result.current.loadingRecent).toBe(false));
+  const incoming = deferred<PeriodAnalytics>();
+  const incomingMovements = deferred<TransactionPageResponse>();
+  vi.mocked(api.getPeriodAnalytics).mockReturnValue(incoming.promise);
+  vi.mocked(api.getTransactions).mockImplementation(params => params?.size === 5 ? incomingMovements.promise : Promise.resolve(page));
+  rerender({ user: 2 });
+
+  expect(result.current.periodAnalytics).toBeNull();
+  expect(result.current.recentTransactions).toEqual([]);
+  expect(result.current.loadingSummary).toBe(true);
+  await act(async () => {
+    incoming.resolve({ ...analytics, monthlyExpense: 61 });
+    incomingMovements.resolve({ ...page, content: [] });
+  });
+  expect(result.current.periodAnalytics?.monthlyExpense).toBe(61);
+  expect(result.current.recentTransactions).toEqual([]);
+});
+
 it('ignores an error from a superseded request', async () => {
   const old = deferred<PageResponse<Transaction>>();
   vi.mocked(api.getTransactions).mockImplementation(params => params?.size === 5 || params?.search === 'new' ? Promise.resolve(page) : old.promise);

@@ -45,6 +45,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     periodAnalytics,
     transactionsPage,
     recentTransactions,
+    recentUnavailable,
     loadingRecent,
     loadingSummary,
     loadingTransactions,
@@ -167,7 +168,9 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
             <HomeView
               analytics={periodAnalytics}
               recentTransactions={recentTransactions}
-              loading={loadingSummary || loadingRecent}
+              loadingSummary={loadingSummary}
+              loadingRecent={loadingRecent}
+              recentUnavailable={recentUnavailable}
               onNavigateToTransactions={() => setActiveView('movimientos')}
               onSelectTransaction={setSelectedTransaction}
               onSelectChannel={(channel) => {

@@ -13,6 +13,18 @@ backend configuration, startup commands and module checks. The development serve
 runs on port 5173 and proxies `/api` to `localhost:8080` through
 [vite.config.ts](vite.config.ts). Keep the proxy and OAuth URLs aligned when changing ports.
 
+## Monthly overview loading
+
+Inicio shows totals and payment channels when the period summary arrives.
+Recent movements have their own loading state. Placeholders reserve space for
+the overview cards while requests are pending.
+
+The browser keeps up to six loaded periods per query for the current user in
+memory. On revisit, the dashboard displays cached data for that period and
+requests a fresh copy in the background. After a movement change or a manual
+Gmail sync, it discards saved period data and reloads the selected month. A
+reload or logout clears the cache.
+
 ## Searching movements by date
 
 Movement detail integrates category selection directly below the evidence grid.

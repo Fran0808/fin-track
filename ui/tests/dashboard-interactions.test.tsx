@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { useState } from 'react';
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { TransactionDetailModal } from '../src/components/transactions/TransactionDetailModal';
 import { HomeView } from '../src/components/views/HomeView';
@@ -79,9 +79,38 @@ it('omits the internal transfers note under Medios de pago in HomeView', () => {
     channelBreakdown: [{ channel: 'TARJETA_CREDITO_BCP', cardLast4: '3127', displayName: 'BCP Crédito ··3127', amount: 1114.66, percentage: 84.3, count: 3 }],
     topMerchants: [], categoryBreakdown: [],
   };
-  render(<HomeView analytics={analytics} recentTransactions={[tx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} />);
+  render(<HomeView analytics={analytics} recentTransactions={[tx]} loadingSummary={false} loadingRecent={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} />);
   expect(screen.getByText('BCP Crédito ··3127')).toBeTruthy();
   expect(screen.queryByText(/en transferencias propias, excluidas de gastos/i)).toBeNull();
+});
+
+it('shows the monthly amounts and enables payment channels while recent movements are still loading', () => {
+  const analytics: PeriodAnalytics = {
+    categoryBreakdown: [], periodName: '10/2026', monthlyExpense: 42.75, monthlyIncome: 100,
+    internalTransfersAmount: 0, previousPeriodExpense: null, comparisonThroughDay: null,
+    dailyExpenses: [], totalMovements: 1, lastExpenseMerchant: '', lastExpenseAmount: 0,
+    lastExpenseDate: null, topChannel: '', topChannelAmount: 0, topChannelPercentage: 0, topMerchants: [],
+    channelBreakdown: [{ channel: 'WALLET', displayName: 'Billetera de prueba', amount: 42.75, count: 1, percentage: 100 }],
+  };
+  render(<HomeView analytics={analytics} recentTransactions={[]} loadingSummary={false} loadingRecent
+    onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} onSelectChannel={vi.fn()}
+    selectedYear={2026} selectedMonth={10} />);
+
+  const summary = screen.getByRole('region', { name: 'Resumen financiero mensual' });
+  const recent = screen.getByRole('region', { name: 'Movimientos recientes' });
+  expect(summary.getAttribute('aria-busy')).toBe('false');
+  expect(within(summary).getByText(/42\.75/)).toBeDefined();
+  expect(recent.getAttribute('aria-busy')).toBe('true');
+  expect(screen.getByRole('button', { name: 'Ver movimientos de Billetera de prueba' })).toHaveProperty('disabled', false);
+});
+
+it('keeps recent movements actionable while the monthly numbers are still loading', () => {
+  render(<HomeView analytics={null} recentTransactions={[tx]} loadingSummary loadingRecent={false}
+    onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} selectedYear={2026} selectedMonth={10} />);
+
+  expect(screen.getByRole('region', { name: 'Resumen financiero mensual' }).getAttribute('aria-busy')).toBe('true');
+  expect(screen.getByRole('region', { name: 'Medios de pago' }).getAttribute('aria-busy')).toBe('true');
+  expect(screen.getByRole('button', { name: /Synthetic merchant/ })).toHaveProperty('disabled', false);
 });
 
 it('displays Gastos del mes first and Entradas del mes second with previous-month variations and relevant context in HomeView', () => {
@@ -95,7 +124,7 @@ it('displays Gastos del mes first and Entradas del mes second with previous-mont
     channelBreakdown: [], topMerchants: [],
     categoryBreakdown: [{ category: 'Comida y bebidas', amount: 1200, percentage: 42.1, count: 3 }],
   };
-  render(<HomeView analytics={analytics} recentTransactions={[tx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />);
+  render(<HomeView analytics={analytics} recentTransactions={[tx]} loadingSummary={false} loadingRecent={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />);
   const headings = screen.getAllByText(/Gastos del mes|Entradas del mes/).map((el) => el.textContent);
   expect(headings).toEqual(['Gastos del mes', 'Entradas del mes']);
   expect(screen.getByText('+12.0% vs. mes ant.')).toBeTruthy();
@@ -157,7 +186,7 @@ it('displays Balance neto with surplus or deficit and exact decimal difference i
     channelBreakdown: [], topMerchants: [], categoryBreakdown: [],
   };
   const { rerender } = render(
-    <HomeView analytics={analytics} recentTransactions={[]} loading={false}
+    <HomeView analytics={analytics} recentTransactions={[]} loadingSummary={false} loadingRecent={false}
       onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()}
       selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />
   );
@@ -169,7 +198,7 @@ it('displays Balance neto with surplus or deficit and exact decimal difference i
 
   // Test deficit
   rerender(
-    <HomeView analytics={{ ...analytics, monthlyExpense: 2500, monthlyIncome: 2000 }} recentTransactions={[]} loading={false}
+    <HomeView analytics={{ ...analytics, monthlyExpense: 2500, monthlyIncome: 2000 }} recentTransactions={[]} loadingSummary={false} loadingRecent={false}
       onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()}
       selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />
   );
@@ -190,7 +219,7 @@ it('renders semantic category color chips in HomeView recent movements and Trans
   };
   render(
     <>
-      <HomeView analytics={analytics} recentTransactions={[categorizedTx]} loading={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />
+      <HomeView analytics={analytics} recentTransactions={[categorizedTx]} loadingSummary={false} loadingRecent={false} onNavigateToTransactions={() => {}} onSelectTransaction={() => {}} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={() => {}} />
       <TransactionsView pageData={{ ...page, content: [categorizedTx, uncategorizedTx] }} loading={false} filters={{}} onFilterChange={() => {}} onPageChange={() => {}} onSelectTransaction={() => {}} />
     </>
   );
@@ -210,7 +239,7 @@ it('navigates to movements when clicking a payment channel in HomeView', () => {
       amount: 100, percentage: 100, count: 1 }],
     topMerchants: [], categoryBreakdown: [],
   };
-  render(<HomeView analytics={analytics} recentTransactions={[]} loading={false} onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} onSelectChannel={onSelectChannel} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />);
+  render(<HomeView analytics={analytics} recentTransactions={[]} loadingSummary={false} loadingRecent={false} onNavigateToTransactions={vi.fn()} onSelectTransaction={vi.fn()} onSelectChannel={onSelectChannel} selectedYear={2026} selectedMonth={10} animateIntro={false} onIntroComplete={vi.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: 'Ver movimientos de Billetera de prueba' }));
   expect(onSelectChannel).toHaveBeenCalledWith('SYNTHETIC_WALLET');
 });
