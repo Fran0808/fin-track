@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useId, useRef } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { AlertCircle, ChevronDown, Copy, Download, Loader2, RefreshCw, Smartphone, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Smartphone, Copy, Check, RefreshCw, X, AlertTriangle, Globe } from 'lucide-react';
+import { useQueryResource } from '../../hooks/useQueryResource';
 import { api } from '../../services';
 import type { DevicePairingInfo } from '../../types';
 
@@ -9,251 +10,226 @@ interface PairDeviceModalProps {
   onClose: () => void;
 }
 
-export const PairDeviceModal: React.FC<PairDeviceModalProps> = ({ isOpen, onClose }) => {
-  const [pairingInfo, setPairingInfo] = useState<DevicePairingInfo | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [serverUrl, setServerUrl] = useState<string>('');
-  const [copiedToken, setCopiedToken] = useState<boolean>(false);
-  const [regenerating, setRegenerating] = useState<boolean>(false);
-  const titleId = useId();
-  const serverUrlId = useId();
+const loadPairingInfo = () => api.getPairingInfo();
+
+function getAndroidDownloadUrl() {
+  try {
+    const url = new URL(import.meta.env.VITE_ANDROID_APK_URL ?? '');
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+export function PairDeviceModal({ isOpen, onClose }: PairDeviceModalProps) {
+  return isOpen ? <PairDeviceDialog onClose={onClose} /> : null;
+}
+
+function PairDeviceDialog({ onClose }: Pick<PairDeviceModalProps, 'onClose'>) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-
-    api.getPairingInfo()
-      .then((info) => {
-        if (!mounted) return;
-        setPairingInfo(info);
-        setServerUrl(info.serverUrl || window.location.origin);
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err instanceof Error ? err.message : 'Error al obtener código de vinculación');
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [isOpen]);
+  const titleId = useId();
+  const descriptionId = useId();
+  const apkUrl = getAndroidDownloadUrl();
+  const { data, error, loading, refresh } = useQueryResource(
+    loadPairingInfo, 'No pudimos obtener tu código de vinculación.',
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (isOpen && !dialog.open) dialog.showModal();
-    if (!isOpen && dialog.open) dialog.close();
-  }, [isOpen]);
+    if (dialog && !dialog.open) dialog.showModal();
+  }, []);
 
-  if (!isOpen) return null;
-
-  const handleCopyToken = async () => {
-    if (!pairingInfo?.pairingToken) return;
-    try {
-      await navigator.clipboard.writeText(pairingInfo.pairingToken);
-      setCopiedToken(true);
-      setTimeout(() => setCopiedToken(false), 2000);
-    } catch {
-      // Fallback
-    }
-  };
-
-  const handleRegenerate = async () => {
-    if (!window.confirm('¿Deseas generar un nuevo código de vinculación? Los teléfonos vinculados con el código anterior deberán conectarse de nuevo.')) {
-      return;
-    }
-
-    try {
-      setRegenerating(true);
-      const newInfo = await api.regeneratePairingToken();
-      setPairingInfo(newInfo);
-      setServerUrl(newInfo.serverUrl || window.location.origin);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al regenerar código');
-    } finally {
-      setRegenerating(false);
-    }
-  };
-
-  // Re-encode JSON payload with current customized serverUrl
-  const dynamicQrPayload = pairingInfo
-    ? JSON.stringify({
-        token: pairingInfo.pairingToken,
-        serverUrl: serverUrl.trim(),
-        userEmail: pairingInfo.userEmail,
-      })
-    : '';
+  const close = () => dialogRef.current?.close();
 
   return (
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      onCancel={onClose}
       aria-labelledby={titleId}
-      className="modal-animate m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-transparent p-0 text-ink backdrop:bg-ink/40"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      aria-describedby={descriptionId}
+      className="modal-animate m-auto w-[calc(100%-1.5rem)] max-w-xl max-h-[calc(100dvh-1.5rem)] overflow-hidden rounded-2xl border border-line bg-surface p-0 text-ink shadow-2xl backdrop:bg-ink/40"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) close();
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-2xs">
-              <Smartphone className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 id={titleId} className="text-base font-bold text-slate-900 tracking-tight">
-                Vincular teléfono
-              </h2>
-              <p className="text-xs text-slate-500">
-                Conecta la app FinTrack con tu cuenta.
-              </p>
-            </div>
+      <div className="flex max-h-[inherit] flex-col">
+        <header className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
+            <Smartphone size={20} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id={titleId} className="text-lg font-semibold leading-tight">Vincular teléfono</h2>
+            <p id={descriptionId} className="mt-0.5 text-sm text-muted">Conecta FinTrack en tu Android con tu cuenta.</p>
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-            title="Cerrar modal"
+            onClick={close}
             aria-label="Cerrar vinculación"
+            className="grid size-10 shrink-0 place-items-center rounded-lg text-muted hover:bg-canvas hover:text-ink"
           >
-            <X className="w-5 h-5" />
+            <X size={20} aria-hidden="true" />
           </button>
-        </div>
+        </header>
 
-        {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-5">
-          {loading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
-              <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-medium">Cargando código de vinculación...</span>
-            </div>
-          ) : error ? (
-            <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          ) : pairingInfo ? (
-            <>
-              {/* QR Code Presentation Box */}
-              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200/80 shadow-inner">
-                <div className="p-3 bg-white rounded-xl shadow-xs border border-slate-200">
-                  <QRCodeSVG
-                    value={dynamicQrPayload}
-                    size={200}
-                    level="M"
-                    includeMargin={false}
-                    className="w-44 h-44 sm:w-52 sm:h-52"
-                  />
-                </div>
-                <div className="mt-3 text-center">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    Cuenta: {pairingInfo.userEmail}
-                  </span>
-                </div>
-              </div>
-
-              {/* Instructions Guide */}
-              <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3.5 space-y-2">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Cómo vincular tu teléfono
-                </h4>
-                <ol className="text-xs text-slate-600 space-y-1.5 list-decimal list-inside font-medium">
-                  <li>Abre la aplicación <strong>FinTrack</strong> en tu teléfono Android.</li>
-                  <li>Abre la opción de conexión con QR.</li>
-                  <li>Escanea este código desde la app para vincular tu cuenta.</li>
-                </ol>
-              </div>
-
-              {/* Server URL Input (Editable in case WiFi IP changed) */}
-              <div className="space-y-1.5">
-                <label htmlFor={serverUrlId} className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Dirección del servidor</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    id={serverUrlId}
-                    type="url"
-                    value={serverUrl}
-                    onChange={(e) => setServerUrl(e.target.value)}
-                    placeholder="http://192.168.1.50:8080"
-                    className="flex-1 px-3 py-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Usa una dirección accesible desde el teléfono. Si es una IP local, ambos equipos deben estar en la misma red Wi-Fi. No uses localhost: apunta al propio teléfono.
-                </p>
-              </div>
-
-              {/* Manual Token Copy Field */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
-                  Código de vinculación manual
-                </label>
-                <p className="text-[11px] text-slate-400">Si no puedes escanear el QR, ingresa este código y la dirección del servidor en la app.</p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={pairingInfo.pairingToken}
-                    className="flex-1 px-3 py-2 text-xs font-mono bg-slate-100 border border-slate-200 rounded-xl text-slate-800 select-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleCopyToken}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 shadow-2xs transition-all active:scale-[0.98]"
-                    title="Copiar código de vinculación"
+        <ol className="min-h-0 space-y-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
+          <li className="flex items-start gap-3">
+            <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-semibold text-brand">1</span>
+            <section className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold leading-7">Instala FinTrack en tu Android</h3>
+              {apkUrl ? (
+                <>
+                  <p className="mt-0.5 text-sm leading-snug text-muted">Abre esta página en tu teléfono y descarga la app. Si ya la tienes, pasa al paso 2.</p>
+                  <a
+                    href={apkUrl}
+                    referrerPolicy="no-referrer"
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 sm:w-auto"
                   >
-                    {copiedToken ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600">¡Copiado!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Copiar</span>
-                      </>
-                    )}
+                    <Download size={17} aria-hidden="true" />
+                    Descargar para Android
+                  </a>
+                </>
+              ) : (
+                <p className="mt-0.5 text-sm leading-snug text-muted">La descarga aún no está disponible aquí. Si ya tienes la app, pasa al paso 2.</p>
+              )}
+            </section>
+          </li>
+
+          <li className="flex items-start gap-3 border-t border-line pt-5">
+            <span aria-hidden="true" className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-semibold text-brand">2</span>
+            <section className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold leading-7">Escanea el código desde la app</h3>
+              <p className="mt-0.5 text-sm leading-snug text-muted">Abre FinTrack en tu teléfono, toca <strong className="font-semibold text-ink">Escanear QR</strong> y apunta la cámara a este código.</p>
+              {loading ? (
+                <div role="status" className="mt-3 flex items-center gap-2 rounded-xl bg-canvas p-3 text-sm text-muted">
+                  <Loader2 size={16} className="motion-safe:animate-spin" aria-hidden="true" />
+                  Cargando tu código…
+                </div>
+              ) : error ? (
+                <div className="mt-3 space-y-2 rounded-xl bg-negative/10 p-3">
+                  <p role="alert" className="flex items-center gap-2 text-sm text-ink">
+                    <AlertCircle size={16} className="shrink-0 text-negative" aria-hidden="true" />
+                    No pudimos cargar tu código de vinculación.
+                  </p>
+                  <button type="button" onClick={() => void refresh()} className="min-h-9 rounded font-semibold text-brand underline underline-offset-2">
+                    Reintentar
                   </button>
                 </div>
-              </div>
-            </>
-          ) : null}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleRegenerate}
-            disabled={regenerating || loading || !pairingInfo}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-rose-600 transition-colors disabled:opacity-50"
-            title="Revocar el código actual y generar uno nuevo"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${regenerating ? 'animate-spin' : ''}`} />
-            <span>Regenerar código</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition-all active:scale-[0.98]"
-          >
-            Entendido
-          </button>
-        </div>
+              ) : data && <PairingCode initialInfo={data} />}
+            </section>
+          </li>
+        </ol>
       </div>
     </dialog>
   );
-};
+}
+
+function PairingCode({ initialInfo }: { initialInfo: DevicePairingInfo }) {
+  const [pairingInfo, setPairingInfo] = useState(initialInfo);
+  const [serverUrl, setServerUrl] = useState(initialInfo.serverUrl || window.location.origin);
+  const [copyStatus, setCopyStatus] = useState('');
+  const [regenerateError, setRegenerateError] = useState('');
+  const [regenerating, setRegenerating] = useState(false);
+  const serverInputRef = useRef<HTMLInputElement>(null);
+  const tokenInputRef = useRef<HTMLInputElement>(null);
+  const serverUrlId = useId();
+  const tokenId = useId();
+
+  async function copyField(input: HTMLInputElement | null, label: string) {
+    if (!input) return;
+
+    try {
+      await navigator.clipboard.writeText(input.value.trim());
+      setCopyStatus(label + ' copiado.');
+    } catch {
+      input.focus();
+      input.select();
+      setCopyStatus('El texto está seleccionado. Cópialo para pegarlo en la app.');
+    }
+  }
+
+  async function regenerateCode() {
+    if (!window.confirm('¿Generar un código nuevo? Tendrás que volver a vincular los teléfonos que usaban el código anterior.')) return;
+
+    setRegenerating(true);
+    setRegenerateError('');
+    try {
+      const newInfo = await api.regeneratePairingToken();
+      setPairingInfo(newInfo);
+      setServerUrl(newInfo.serverUrl || window.location.origin);
+      setCopyStatus('Nuevo código listo para vincular.');
+    } catch {
+      setRegenerateError('No pudimos generar un código nuevo. Inténtalo otra vez.');
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  const qrPayload = JSON.stringify({
+    token: pairingInfo.pairingToken,
+    serverUrl: serverUrl.trim(),
+    userEmail: pairingInfo.userEmail,
+  });
+
+  return (
+    <>
+      <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-line bg-canvas p-3">
+        <QRCodeSVG
+          value={qrPayload}
+          size={208}
+          level="M"
+          marginSize={4}
+          title="Código QR para vincular FinTrack"
+          className="h-auto w-full max-w-52 rounded-lg border border-line bg-white"
+        />
+        <p className="max-w-full break-all text-center text-xs text-muted">{pairingInfo.userEmail}</p>
+      </div>
+
+      <details className="group mt-3 rounded-xl border border-line">
+        <summary className="flex min-h-11 list-none items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-brand hover:bg-canvas [&::-webkit-details-marker]:hidden">
+          ¿No puedes escanear el QR?
+          <ChevronDown size={17} className="shrink-0 group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="space-y-3 border-t border-line p-3 text-sm">
+          <p className="text-muted">En la app, toca <strong className="font-semibold text-ink">Configuración manual</strong> y pega estos dos datos. Puedes hacerlo desde el mismo teléfono.</p>
+
+          <div>
+            <label htmlFor={serverUrlId} className="font-medium">Dirección del servidor</label>
+            <div className="mt-1 flex items-stretch gap-2">
+              <input
+                ref={serverInputRef}
+                id={serverUrlId}
+                type="url"
+                value={serverUrl}
+                onChange={(event) => {
+                  setServerUrl(event.target.value);
+                  setCopyStatus('');
+                }}
+                className="min-w-0 flex-1 rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm"
+              />
+              <button type="button" aria-label="Copiar dirección del servidor" onClick={() => void copyField(serverInputRef.current, 'Enlace')} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-line px-2 text-xs font-semibold text-brand hover:bg-canvas">
+                <Copy size={14} aria-hidden="true" /> Copiar
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor={tokenId} className="font-medium">Código de vinculación</label>
+            <div className="mt-1 flex items-stretch gap-2">
+              <input ref={tokenInputRef} id={tokenId} type="text" readOnly value={pairingInfo.pairingToken} className="min-w-0 flex-1 select-all rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm" />
+              <button type="button" aria-label="Copiar código de vinculación" onClick={() => void copyField(tokenInputRef.current, 'Código')} className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-line px-2 text-xs font-semibold text-brand hover:bg-canvas">
+                <Copy size={14} aria-hidden="true" /> Copiar
+              </button>
+            </div>
+          </div>
+
+          <p role="status" className="empty:hidden text-xs text-muted">{copyStatus}</p>
+          {regenerateError && <p role="alert" className="text-xs text-negative">{regenerateError}</p>}
+          <button type="button" onClick={() => void regenerateCode()} disabled={regenerating} className="inline-flex min-h-10 items-center gap-2 rounded-md text-sm font-medium text-brand hover:underline underline-offset-4 disabled:opacity-60">
+            <RefreshCw size={14} aria-hidden="true" />
+            {regenerating ? 'Generando código…' : 'Generar un código nuevo'}
+          </button>
+        </div>
+      </details>
+    </>
+  );
+}

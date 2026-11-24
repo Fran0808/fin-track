@@ -25,6 +25,9 @@ excluded from expenses. Listen Service is the repository name.
 - **CSV export:** export transactions matching the selected filters.
 - **User-scoped access:** Google OAuth and JWT for the dashboard, with separate
   device credentials and QR pairing for Android synchronization.
+- **Android setup:** the pairing dialog guides users through installation and QR
+  scanning, with manual pairing available on the same phone. See
+  [installer configuration](docs/development/deployment.md#android-installer-download).
 - **Per-user deduplication:** repeated transaction hashes do not create another
   movement for the same user. Cross-source deduplication has limitations described below.
 

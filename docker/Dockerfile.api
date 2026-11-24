@@ -5,6 +5,7 @@ WORKDIR /dashboard
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
 COPY ui/ ./
+ARG VITE_ANDROID_APK_URL
 RUN npm run build
 
 # Stage 1: Build JAR artifact with Maven

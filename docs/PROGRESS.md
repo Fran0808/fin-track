@@ -17,6 +17,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android onboarding in the dashboard
+
+- November 23, scope: dashboard. The pairing dialog presents the Android
+  installer and QR instructions first. Manual setup exposes separately copyable
+  fields, and replacing a code still requires confirmation. The download uses
+  a configured HTTPS link to a signed APK. See [installer configuration](development/deployment.md#android-installer-download).
+- Verified locally: 170 UI tests, production build with and without a synthetic
+  URL, and lint with existing warnings. Chrome verified the dialog at 1440,
+  390 and 320 pixels wide with synthetic data, including the disclosure, scroll,
+  Escape dismissal and focus return. A signed APK URL and the Render deployment
+  are still needed to offer and verify the real download.
+
 ## Current checkpoint: bank and wallet extensions
 
 - November 23, scope: API, dashboard, and Android. The registered email readers

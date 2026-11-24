@@ -56,6 +56,20 @@ interrupt pending logins. Multiple replicas need shared sessions or sticky routi
 before enabling them. No cloud deployment or real Google sign-in is performed by
 the repository tests.
 
+## Android installer download
+
+The phone pairing dialog offers a direct APK download when the dashboard is
+built with `VITE_ANDROID_APK_URL`. Point it at a stable HTTPS URL for the signed
+release APK, such as a release asset accessible to its intended users. The URL
+is public build configuration. Keep credentials and temporary access tokens out
+of it, and keep the APK and signing key out of Git.
+
+Set the variable in **Environment** on the Render service that builds the
+dashboard and choose **Save, rebuild, and deploy** after publishing the code.
+The Dockerfile passes it to the Vite build. For local development, set it in
+`ui/.env.local` and restart Vite. When the URL is missing or invalid, the dialog
+shows that downloads are unavailable and allows users to pair an installed app.
+
 ## Database preparation
 
 Production validates the schema and never alters it automatically. Back up an
