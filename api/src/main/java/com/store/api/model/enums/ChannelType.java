@@ -10,6 +10,7 @@ public enum ChannelType {
     BCP_TRANSFERENCIA("Transferencia BCP", Kind.TRANSFER),
     TARJETA_CREDITO_INTERBANK("Crédito Interbank", Kind.CREDIT_CARD),
     TARJETA_DEBITO_INTERBANK("Débito Interbank", Kind.DEBIT_CARD),
+    INTERBANK_TRANSFERENCIA("Transferencia Interbank", Kind.TRANSFER),
     TARJETA_CREDITO_BBVA("Crédito BBVA", Kind.CREDIT_CARD),
     TARJETA_DEBITO_BBVA("Débito BBVA", Kind.DEBIT_CARD),
     CASH("Efectivo", Kind.CASH),
