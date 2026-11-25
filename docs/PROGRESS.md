@@ -17,6 +17,22 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Interbank and Plin provider support
+
+- November 24, scope: API and Android (Phase 1). Added `InterbankEmailParser`
+  with strict `from:` Gmail discovery clauses (`interbank.pe`, `interbank.com.pe`,
+  `netinterbank.com.pe`), transactional subdomain allowlist (excluding `novedades`
+  and `eecc`), `INTERBANK_`-prefixed hash seeds, `INTERBANK_TRANSFERENCIA` in
+  `ChannelType`, and support for Interbank credit/debit cards, transfers, own-card
+  repayments (`OWN_CARD_PAYMENT`) and `PLIN`. Added `InterbankNotificationParser`
+  for `pe.com.interbank.mobilebanking` in `standard` Android builds (`1.4.0 (24)`),
+  scoped to incoming Plin push notifications so card/transfer emails from Gmail are
+  not duplicated. No database migration required.
+- Verified locally: 347 database-free backend tests (`verify-all.ps1 -SkipUi -SkipAndroid`),
+  175 UI tests, UI lint and production build, and Android debug unit tests/APK assembly.
+  Remaining acceptance: live Gmail/push format validation with real Interbank receipts,
+  hosted CI and Render/APK deployment.
+
 ## Current checkpoint: monthly overview loading
 
 - November 23, scope: dashboard. Inicio loads monthly totals and payment channels
