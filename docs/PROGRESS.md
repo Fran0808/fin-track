@@ -17,6 +17,21 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: BBVA Peru and Plin provider support
+
+- November 24, scope: API and Android (Phase 2). Added `BbvaEmailParser` with strict
+  `from:` Gmail discovery clauses (`bbva.com`, `bbva.pe`, `bbvacontinental.pe`),
+  official domain allowlist, `BBVA_`-prefixed hash seeds, `BBVA_TRANSFERENCIA` in
+  `ChannelType`, and support for BBVA credit/debit cards, transfers, own-card
+  repayments (`OWN_CARD_PAYMENT`) and `PLIN`. Added `BbvaNotificationParser` for
+  `com.bbva.nxt_peru` in `standard` Android builds (`1.5.0 (25)`), scoped to
+  incoming Plin push notifications so card/transfer emails from Gmail are not
+  duplicated. No database migration required.
+- Verified locally: 354 database-free backend tests (`verify-all.ps1`), 175 UI tests,
+  UI lint and production build, Android unit tests (`debug`, `release`, `captureTest`)
+  and APK assemblies (`debug`, `release`). Remaining acceptance: live Gmail/push format
+  validation with real BBVA receipts, hosted CI and Render/APK deployment.
+
 ## Current checkpoint: Interbank and Plin provider support
 
 - November 24, scope: API and Android (Phase 1). Added `InterbankEmailParser`
