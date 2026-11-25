@@ -4,6 +4,7 @@ package com.financemanager.listener.parser
 internal object CaptureSourceRegistry {
     fun parsers(): List<NotificationParser> = listOf(
         YapeNotificationParser(),
-        InterbankNotificationParser()
+        InterbankNotificationParser(),
+        BbvaNotificationParser()
     )
 }

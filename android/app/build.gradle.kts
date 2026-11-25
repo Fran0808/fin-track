@@ -36,8 +36,8 @@ android {
         applicationId = "com.financemanager.listener"
         minSdk = 26
         targetSdk = 37
-        versionCode = 24
-        versionName = "1.4.0"
+        versionCode = 25
+        versionName = "1.5.0"
         manifestPlaceholders["allowCleartextTraffic"] = "false"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

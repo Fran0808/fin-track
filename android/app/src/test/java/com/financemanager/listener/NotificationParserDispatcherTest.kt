@@ -1,5 +1,6 @@
 package com.financemanager.listener
 
+import com.financemanager.listener.parser.BbvaNotificationParser
 import com.financemanager.listener.parser.FlowType
 import com.financemanager.listener.parser.InterbankNotificationParser
 import com.financemanager.listener.parser.NotificationParserDispatcher
@@ -16,7 +17,16 @@ import java.math.BigDecimal
 
 class NotificationParserDispatcherTest {
 
-    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser(), InterbankNotificationParser()))
+    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser(), InterbankNotificationParser(), BbvaNotificationParser()))
+
+    @Test
+    fun parsesSupportedBbvaPlinPackageOnly() {
+        assertTrue(dispatcher.isSupportedPackage("com.bbva.nxt_peru"))
+        val parsed = dispatcher.parse("com.bbva.nxt_peru", "¡Te plinearon!", "María Rojas te plineó S/ 20.00")
+        assertNotNull(parsed)
+        assertEquals("PLIN", parsed?.channel)
+        assertNull(dispatcher.parse("com.bbva.nxt_peru.fake", "¡Te plinearon!", "María Rojas te plineó S/ 20.00"))
+    }
 
     @Test
     fun parsesSupportedInterbankPlinPackageOnly() {
