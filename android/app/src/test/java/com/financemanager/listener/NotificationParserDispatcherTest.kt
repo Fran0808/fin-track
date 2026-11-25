@@ -6,6 +6,7 @@ import com.financemanager.listener.parser.InterbankNotificationParser
 import com.financemanager.listener.parser.NotificationParserDispatcher
 import com.financemanager.listener.parser.NotificationParser
 import com.financemanager.listener.parser.ParsedTransaction
+import com.financemanager.listener.parser.ScotiabankNotificationParser
 import com.financemanager.listener.parser.YapeNotificationParser
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,7 +18,16 @@ import java.math.BigDecimal
 
 class NotificationParserDispatcherTest {
 
-    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser(), InterbankNotificationParser(), BbvaNotificationParser()))
+    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser(), InterbankNotificationParser(), BbvaNotificationParser(), ScotiabankNotificationParser()))
+
+    @Test
+    fun parsesSupportedScotiabankPlinPackageOnly() {
+        assertTrue(dispatcher.isSupportedPackage("com.scotiabank.peru"))
+        val parsed = dispatcher.parse("com.scotiabank.peru", "¡Te plinearon!", "Diego León te plineó S/ 25.00")
+        assertNotNull(parsed)
+        assertEquals("PLIN", parsed?.channel)
+        assertNull(dispatcher.parse("com.scotiabank.peru.fake", "¡Te plinearon!", "Diego León te plineó S/ 25.00"))
+    }
 
     @Test
     fun parsesSupportedBbvaPlinPackageOnly() {

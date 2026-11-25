@@ -6,7 +6,7 @@ Their sources and review triggers are in the [instruction register](../docs/deve
 ## Boundaries
 
 - Kotlin, Jetpack Compose, Room, WorkManager and Retrofit are the established stack. Versions and SDK levels live in Gradle files.
-- Filter packages through `NotificationParserDispatcher` before inspecting notification contents. The currently authorized packages are `com.bcp.innovacxion.yapeapp`, `pe.com.interbank.mobilebanking` and `com.bbva.nxt_peru`.
+- Filter packages through `NotificationParserDispatcher` before inspecting notification contents. The currently authorized packages are `com.bcp.innovacxion.yapeapp`, `pe.com.interbank.mobilebanking`, `com.bbva.nxt_peru` and `com.scotiabank.peru`.
 - Keep notification parsing separate from Room persistence and network synchronization.
 - Use decimal amounts and preserve the transaction hash across retries.
 - Persist captured transactions before synchronization. Mark entries synced only after a successful server response.
