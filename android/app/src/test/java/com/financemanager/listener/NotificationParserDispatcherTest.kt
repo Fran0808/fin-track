@@ -1,6 +1,7 @@
 package com.financemanager.listener
 
 import com.financemanager.listener.parser.FlowType
+import com.financemanager.listener.parser.InterbankNotificationParser
 import com.financemanager.listener.parser.NotificationParserDispatcher
 import com.financemanager.listener.parser.NotificationParser
 import com.financemanager.listener.parser.ParsedTransaction
@@ -15,7 +16,16 @@ import java.math.BigDecimal
 
 class NotificationParserDispatcherTest {
 
-    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser()))
+    private val dispatcher = NotificationParserDispatcher(listOf(YapeNotificationParser(), InterbankNotificationParser()))
+
+    @Test
+    fun parsesSupportedInterbankPlinPackageOnly() {
+        assertTrue(dispatcher.isSupportedPackage("pe.com.interbank.mobilebanking"))
+        val parsed = dispatcher.parse("pe.com.interbank.mobilebanking", "¡Te plinearon!", "Ana Torres te plineó S/ 15.00")
+        assertNotNull(parsed)
+        assertEquals("PLIN", parsed?.channel)
+        assertNull(dispatcher.parse("pe.com.interbank.mobilebanking.fake", "¡Te plinearon!", "Ana Torres te plineó S/ 15.00"))
+    }
 
     @Test
     fun additionalParserRoutesOnlyItsRegisteredPackage() {
