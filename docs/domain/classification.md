@@ -31,7 +31,7 @@ rule with an active category assigns the category name.
 
 The shared ingestion service applies rules to new email and Android movements
 before persistence. Existing hashes return the existing movement without reapplying
-rules. A rule never changes amounts, direction, instruments or hashes,
+rules. A rule never changes amounts, direction or hashes,
 never overwrites a nonblank category, and never classifies internal transfers.
 It can classify either income or expenses. Editing a rule does not update history.
 
@@ -49,7 +49,7 @@ batch after confirming. Cancelling or pressing Escape makes no financial writes.
 Explicit confirmation assigns only the displayed category to reviewed movements
 still without a category. Existing classifications, including changes made while
 reviewing, are skipped; incoming movements are not added to the confirmed batch.
-Amounts, dates, flow, instrument, ingestion identity and history are preserved.
+Amounts, dates, flow, ingestion identity and history are preserved.
 
 The signed preview expires after ten minutes and is bound to the user, selected
 rule, active-rule order/category metadata and reviewed movement identities/data.

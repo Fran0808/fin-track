@@ -54,8 +54,8 @@ persisted transaction contract. Multi-currency accounting is therefore not an
 implemented capability; fixing transport and display requires an explicit contract
 change. Do not add currency conversion or claim currency-aware totals incidentally.
 
-[Cards and accounts](financial-instruments.md) are registered in soles only.
-Assigning a movement to a product organizes its history without changing amounts,
+The `Tarjetas y cuentas` (`FinancialInstrument`) catalog is [retired](financial-instruments.md);
+automatic `channel` and `cardLast4` detection remains active without changing amounts,
 flows, identity or aggregate totals.
 
 ## Identity, tenancy and deduplication
@@ -64,7 +64,7 @@ flows, identity or aggregate totals.
 fingerprint for retry idempotency. A manual and an email/phone capture count
 separately until an explicit signed review links them. The original manual then
 remains as evidence but leaves the active ledger and all financial aggregates.
-The capture's original date/category/product are retained; cross-month effects
+The capture's original date and category are retained; cross-month effects
 are previewed. Undo restores manual counting and invalidates earlier reviews.
 This does not provide automatic deduplication between email and phone captures.
 

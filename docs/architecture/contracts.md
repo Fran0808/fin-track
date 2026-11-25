@@ -24,7 +24,7 @@ see [correction contract and concurrency](../domain/transaction-corrections.md).
 - CORS allows explicit configured origins; wildcard credentialed access is rejected.
 - `POST /user/pairing-info/verify` is a public verification route, but needs a valid candidate token in the header or request body to return a valid result.
 - CORS preflight and app-update access have special handling in [JwtAuthFilter](../../api/src/main/java/com/store/api/config/security/JwtAuthFilter.java). Do not infer general permissions from an endpoint prefix.
-- [CorsConfig](../../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification and instrument assignment updates. Actual protected requests still require authentication.
+- [CorsConfig](../../api/src/main/java/com/store/api/config/CorsConfig.java) allows `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, and `OPTIONS`, including classification updates. Actual protected requests still require authentication.
 
 ## Client endpoints
 
@@ -36,7 +36,7 @@ Paths below are relative to `/api/v1`.
 | `GET /transactions` | Paginated list with dates, flow, contact/category search, category, channel, amount and optional review filters | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/channels` | Distinct payment channel metadata for the authenticated user's history, with `Cache-Control: no-store` | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/export` | Full CSV export of filtered transactions with UTF-8 BOM | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
-| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, subcategories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
+| `GET /categories`, `POST /categories`, `PUT /categories/{id}`, `PATCH /categories/{id}/toggle`, `DELETE /categories/{id}` | Category catalog management, user categories, and system category toggling | [CategoryController](../../api/src/main/java/com/store/api/controller/category/CategoryController.java) |
 | `PATCH /transactions/{id}/classification` | Update transaction category | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /transactions/pending` | All-history pending movements; reason `ALL` (default) or `CATEGORY`, page ≥ 0 and size 1–100 (default 10), newest date then ID first | [TransactionController](../../api/src/main/java/com/store/api/controller/transaction/TransactionController.java) |
 | `GET /classification-rules`, `POST /classification-rules`, `PUT /classification-rules/{id}`, `DELETE /classification-rules/{id}` | User-owned automatic category rules | [ClassificationRuleController](../../api/src/main/java/com/store/api/controller/category/ClassificationRuleController.java) |
@@ -55,7 +55,7 @@ use `flowType`. Android clients send and receive their existing payload fields.
 
 Web-only `POST /transactions/manual` accepts a UUID `requestId`, decimal `amount`,
 expense/income flow, concept, local operation date/time, generic `paymentMethod`
-and optional owned active category/product IDs. It derives source/hash on the
+and optional owned active category ID. It derives source/hash on the
 server, binds an idempotent intent to its payload and returns 201 for identical
 replay; another payload with that intent returns 409. Responses add `captureOrigin`
 and nullable `reconciledToId` without changing existing ingestion request fields.
@@ -214,7 +214,7 @@ before API deployment. See [origin behavior and rollout](../domain/transaction-o
 `GET /transactions` preserves its existing pagination fields and adds `summary`:
 decimal `totalExpense`, `totalIncome` and `internalTransfersAmount` across all
 matching movements, without a page-size or CSV-export cap. All date, flow, search,
-instrument, category, channel, amount, pending-review, exact-merchant and
+category, channel, amount, pending-review, exact-merchant and
 category-group restrictions apply under the authenticated user's ownership.
 Amounts are aggregated in PostgreSQL using the same specification as the page;
 the dashboard listing reads both in one repeatable-read transaction. Internal

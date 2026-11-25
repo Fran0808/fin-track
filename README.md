@@ -3,7 +3,7 @@
 Personal cashflow tracking from authorized wallet notifications and bank emails.
 
 FinTrack brings incoming money, expenses and internal transfers into one dashboard.
-Classify movements, associate them with cards or accounts, and explore where your
+Classify movements, track payment channels, and explore where your
 money goes. It tracks money moved, not live bank balances; internal transfers are
 excluded from expenses. Listen Service is the repository name.
 
@@ -16,12 +16,10 @@ excluded from expenses. Listen Service is the repository name.
 - **Provider extensions:** add [bank and wallet readers](docs/architecture/overview.md#provider-extension)
   through Gmail or Android. The dashboard uses shared payment channel metadata for labels and filters.
 - **Cashflow dashboard:** period summaries, expense charts and transaction filters
-  for dates, amounts, category, tags, payment channel and financial instrument.
-- **Classification:** system and custom categories, subcategories, tags and personal notes.
-- **Pending inbox:** complete uncategorized movements and unassigned payment instruments across the entire history.
+  for dates, amounts, category, payment channel and movement review.
+- **Classification:** system and custom categories.
+- **Pending inbox:** complete uncategorized movements across the entire history.
 - **Classification rules:** categorize new movements by merchant/contact text, with ordered priorities and pause controls.
-- **Cards and accounts:** register financial instruments, associate movements and
-  review assignment suggestions before confirming them.
 - **CSV export:** export transactions matching the selected filters.
 - **User-scoped access:** Google OAuth and JWT for the dashboard, with separate
   device credentials and QR pairing for Android synchronization.
@@ -161,7 +159,7 @@ Start with the [documentation index](docs/README.md). Detailed references:
 - [Development](docs/development/local.md): local setup, module checks and test isolation precautions.
 - [API contracts](docs/architecture/contracts.md): authentication, endpoints and client coordination.
 - [Cashflow rules](docs/domain/cashflow.md): financial interpretation and deduplication.
-- [Cards and accounts](docs/domain/financial-instruments.md): registration and assignment behavior.
+- [Cards and accounts retirement](docs/domain/financial-instruments.md): retired product catalog and schema migration.
 - [CI configuration](.github/workflows/ci.yml): checks currently run in GitHub Actions.
 - [Agent working agreements](AGENTS.md): repository and module instructions.
 

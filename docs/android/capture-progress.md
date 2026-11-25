@@ -1,8 +1,12 @@
-# Android capture progress — FinTrack 1.3.9 (22)
+# Android capture progress — FinTrack 1.3.10 (23)
 
-Updated: October 25, 2026. This record tracks Android notification capture
-implementation, validation and remaining work. The historical runtime evidence below
-belongs to FinTrack 1.3.2 (15); the current build is FinTrack 1.3.9 (22).
+Updated: November 24, 2026. This record tracks Android notification capture
+implementation, validation and remaining work. The current build is FinTrack 1.3.10 (23)
+(with provider-extension dispatch, 83 JVM tests per variant and signed GitHub Release
+[android-v1.3.10](https://github.com/Fran0808/fin-track/releases/tag/android-v1.3.10);
+see [PROGRESS.md](../PROGRESS.md#current-checkpoint-android-release-publishing)).
+The historical runtime evidence below belongs to FinTrack 1.3.2 (15) and the
+October 25 cleanup belongs to FinTrack 1.3.9 (22).
 
 ## Android template and unused-file cleanup — October 25
 

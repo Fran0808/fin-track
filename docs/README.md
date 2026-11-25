@@ -35,7 +35,7 @@ Link the owning document instead of copying rules into multiple guides.
 | [Android capture progress](android/capture-progress.md) | Implementation status, decisions, verification evidence and remaining acceptance work. |
 | [Contracts](architecture/contracts.md) | Authentication, transaction payloads and changes affecting multiple modules. |
 | [Cashflow rules](domain/cashflow.md) | Financial interpretation, internal transfers, currencies and deduplication. |
-| [Cards and accounts](domain/financial-instruments.md) | Product lifecycle, assignment, suggestions, API and isolated schema verification. |
+| [Cards and accounts retirement](domain/financial-instruments.md) | Retired product catalog, automatic channel retention and isolated schema verification. |
 | [Pending movements and rules](domain/classification.md) | Inbox criteria, automatic classification, category lifecycle and schema preparation. |
 | [Docker guide](../docker/README.md) | Compose configuration, existing volumes and container operations. |
 

@@ -25,9 +25,9 @@ grouped by feature inside those layers to make related files easier to find:
 
 ```text
 com/store/api/
-├── controller/{analytics,auth,category,email,instrument,transaction}/
-├── service/{analytics,auth,category,email,instrument,transaction}/
-├── model/dto/{analytics,auth,category,email,instrument,transaction}/
+├── controller/{analytics,auth,category,email,transaction}/
+├── service/{analytics,auth,category,email,transaction}/
+├── model/dto/{analytics,auth,category,email,transaction}/
 ├── model/entity/
 ├── model/enums/
 ├── repository/
@@ -37,12 +37,11 @@ com/store/api/
 
 Create only feature folders that contain files. Entities, enums, repositories
 and configuration retain their existing packages. Services for movement
-classification and product assignment belong to `service/transaction`.
+classification belong to `service/transaction`.
 Email keeps its `client`, `parser` and `scheduler` subpackages.
 
 Tests mirror the corresponding production packages. Parser tests belong to
-`service/email/parser`; the product persistence workflow test lives in
-`service/instrument` and imports the transaction services explicitly.
+`service/email/parser`.
 Keep `App` at `com.store.api` so Spring can discover all child packages.
 Package organization does not change HTTP routes, DTO fields or table names.
 
