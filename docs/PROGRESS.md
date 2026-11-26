@@ -1,6 +1,6 @@
 ﻿# Project progress
 
-Updated: November 24, 2026. This is the entry point for current work, not a release
+Updated: November 25, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -17,6 +17,20 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: LoginView copy and layout refinement
+
+- November 25, scope: dashboard (`LoginView`). Replaced generic landing copy with
+  FinTrack-specific, provider-independent messaging (`Tus gastos al día, sin
+  anotarlos a mano.`), structured the three core value pillars with icons and
+  concise descriptions (automatic/manual capture, own-transfer separation,
+  classification rules), added the Google mark to the sign-in button, and
+  expanded the login card with concise privacy/trust notes (read-only bank
+  receipts, no bank passwords, optional Android pairing).
+- Verified locally: 175 UI tests, UI lint (0 errors, existing warnings in other
+  files) and production build (`vite build`) passed. Visual browser inspection
+  was not performed in this session; reload the UI (`npm run dev` in `ui`) to
+  review desktop and mobile layouts.
+
 ## Current checkpoint: Scotiabank Peru and Plin provider support
 
 - November 24, scope: API and Android (Phase 3). Added `ScotiabankEmailParser` with
@@ -32,6 +46,16 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   UI lint and production build, Android unit tests (`debug`, `release`, `captureTest`)
   and APK assemblies (`debug`, `release`). Remaining acceptance: live Gmail/push format
   validation with real Scotiabank receipts, hosted CI and Render/APK deployment.
+
+## Current checkpoint: GitHub repository overview
+
+- November 25, scope: public description, topics and documentation. GitHub
+  highlights the Peruvian cash flow workflow and supported receipt sources. The
+  README opens with the dashboard and APK links, then covers provider support,
+  architecture, and local setup. The interactive Archify overview links to the
+  current source snapshot and is generated in the local `.archify` directory.
+- Verified the live metadata, dashboard and APK links, README references,
+  Mermaid syntax and Archify gates. The README update awaits a Git push.
 
 ## Current checkpoint: BBVA Peru and Plin provider support
 
