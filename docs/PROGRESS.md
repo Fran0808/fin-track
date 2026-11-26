@@ -17,6 +17,21 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android UI/UX refresh and reliability controls (1.7.0)
+
+- November 25, scope: Android (`1.7.0 (27)`). Aligned Android theme palette with
+  the web dashboard (`Canvas #F5F6F8`, `BrandBlue #2C4F99`, `Ink`, `Muted`,
+  `Line` and semantic soft status tones), upgraded bottom `NavigationBar` icons
+  with selected pill and filled states, unified Home capture/sync status into a
+  compact status card with 2-step setup checklist, added `ChannelDisplay`
+  human-readable channel formatting (`ChannelDisplayTest`), semantic movement
+  status badges, `ModalBottomSheet` movement details, `PullToRefreshBox` on
+  Home/Movements, battery optimization status + settings shortcut in Ajustes,
+  and batch confirmation (`assignAllReviewedEntries`) for unassigned movements.
+- Verified locally: `./gradlew.bat testDebugUnitTest assembleDebug` (pending
+  result). Visual/device inspection and release APK signing/deployment remain
+  pending.
+
 ## Current checkpoint: dashboard UI consistency and Rules visual polish
 
 - November 25, scope: dashboard (`App`, `SyncStatus`, `HomeView`, `MyMoneyView`,
