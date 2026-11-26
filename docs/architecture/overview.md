@@ -59,8 +59,10 @@ Capture, queuing and successful synchronization are distinct states. A payment
 visible on the phone is not proof that the backend received it.
 
 `CaptureSourceRegistry` selects the runtime parser set at build time. The normal
-`debug` and `release` builds accept only the authorized Yape package. The separate
-`captureTest` build uses application ID `com.financemanager.listener.capturetest`,
+`debug` and `release` builds accept the packages for Yape, Interbank, BBVA Perú,
+and Scotiabank Perú. The bank app parsers handle incoming Plin notifications.
+The separate `captureTest` build uses the application ID
+`com.financemanager.listener.capturetest`,
 accepts only `com.fintrack.capture.emitter`, disables backup and has no Internet
 permission. It uses its own app-private database and preferences. No runtime
 setting can enable synthetic sources in the normal app.

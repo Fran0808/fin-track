@@ -1,184 +1,115 @@
+<img align="right" src="ui/src/assets/fintrack-mark.png" width="80" alt="FinTrack logo">
+
 # FinTrack
 
-Personal cashflow tracking from authorized wallet notifications and bank emails.
+Track personal cash flow in Peru from bank emails and Android payment
+notifications. FinTrack brings expenses, income, and transfers into one
+Spanish-language web dashboard.
 
-FinTrack brings incoming money, expenses and internal transfers into one dashboard.
-Classify movements, track payment channels, and explore where your
-money goes. It tracks money moved, not live bank balances; internal transfers are
-excluded from expenses. Listen Service is the repository name.
+[**Open FinTrack**](https://fintrack-api-txh9.onrender.com/) ·
+[**Download for Android**](https://github.com/Fran0808/fin-track/releases/latest/download/fintrack.apk) ·
+[Run locally](#run-locally)
 
-## Features
+## Get started
 
-- **Notification capture:** Android processes payment notifications from explicitly
-  supported packages, stores movements locally and synchronizes them with the API.
-- **Bank email ingestion:** parse supported transaction confirmations through the
-  email ingestion pipeline. Automatic synchronization is disabled in the environment template.
-- **Provider extensions:** add [bank and wallet readers](docs/architecture/overview.md#provider-extension)
-  through Gmail or Android. The dashboard uses shared payment channel metadata for labels and filters.
-- **Cashflow dashboard:** period summaries, expense charts and transaction filters
-  for dates, amounts, category, payment channel and movement review.
-- **Classification:** system and custom categories.
-- **Pending inbox:** complete uncategorized movements across the entire history.
-- **Classification rules:** categorize new movements by merchant/contact text, with ordered priorities and pause controls.
-- **CSV export:** export transactions matching the selected filters.
-- **User-scoped access:** Google OAuth and JWT for the dashboard, with separate
-  device credentials and QR pairing for Android synchronization.
-- **Android setup:** the pairing dialog guides users through installation and QR
-  scanning, with manual pairing available on the same phone. See
-  [installer configuration](docs/development/deployment.md#android-installer-download).
-- **Per-user deduplication:** repeated transaction hashes do not create another
-  movement for the same user. Cross-source deduplication has limitations described below.
+1. **Sign in with Google.** Use **Sincronizar ahora** on the dashboard to import
+   supported receipts from the Gmail account you authorized.
+2. **Connect Android.** Install FinTrack, open **Vinculación móvil** on the web
+   dashboard, and tap **Escanear QR** in the app. Grant notification access to
+   capture supported payments. If the dashboard is open on your phone, use the
+   manual pairing option.
 
-## Quickstart
+## What you can do
 
-The local Docker setup runs PostgreSQL 17 and the API. The React dashboard runs
-separately with Vite. Commands below use PowerShell from the repository root.
-For native API execution, see the [development guide](docs/development/local.md).
-For hosting, use the [production deployment guide](docs/development/deployment.md); the local
-Compose defaults are intended for development.
+- Review monthly income, spending, net cash flow, and payment methods.
+- Categorize transactions manually or create rules based on merchant names.
+- Review uncategorized movements, add missing ones, and correct recorded details.
+- Filter your transaction history by date, category, or payment method and export it to CSV.
 
-### 1. Prerequisites
+FinTrack reports recorded movements in Peruvian soles (PEN). Transfers between
+your own accounts are excluded from spending.
 
-- Docker Desktop with Linux containers, or Docker Engine with Compose v2 or later.
-- Node.js 24 and npm for the dashboard.
-- Google OAuth credentials for dashboard sign-in.
-- For Android development: Java 21, the Android SDK and a device or emulator
-  supporting Android API 26 or later. See [Android instructions](android/AGENTS.md).
+## Supported sources
 
-### 2. Configure the environment
+| Source | Providers | What FinTrack reads |
+| --- | --- | --- |
+| Gmail | BCP, BBVA Perú, Interbank, Scotiabank Perú, and Yape | Supported transaction confirmation emails |
+| Android | Yape | Supported payment notifications |
+| Android | BBVA Perú, Interbank, and Scotiabank Perú | Incoming Plin notifications |
 
-From the repository root, `./scripts/setup/initialize-local.ps1 -Plan` previews
-local preparation; run it without `-Plan` to check prerequisites and create `.env`
-only when absent. It preserves existing settings and reports missing names without
-printing secrets. It never starts services. See the [script catalogue](scripts/README.md)
-for native mode and optional UI dependency installation.
+Capture depends on the receipt or notification format. Retries are deduplicated
+per user. The same payment may appear twice if Gmail and Android both capture it.
+See the [cash flow rules](docs/domain/cashflow.md) for details.
 
-Create `.env` only if it does not already exist:
+## Architecture
 
-```powershell
-if (-not (Test-Path -LiteralPath .env)) {
-    Copy-Item -LiteralPath .env.example -Destination .env
-}
+```mermaid
+flowchart TD
+    Gmail["Gmail receipts"] -->|OAuth import| API["Spring Boot API on Render"]
+    Alerts["Supported payment notifications"] --> Android["FinTrack Android"]
+    Android -->|Stores pending captures| Room[("Room on the phone")]
+    Android -->|Syncs over HTTPS| API
+    Browser["React dashboard"] -->|Calls API| API
+    API <-->|Reads and writes| Database[("PostgreSQL on Supabase")]
 ```
 
-Edit the values using [.env.example](.env.example) as the reference:
+Render serves the dashboard and API from the same HTTPS origin. Android stores
+pending captures on the device before syncing. The API validates and classifies
+movements and scopes them to the signed-in user.
+See the [architecture overview](docs/architecture/overview.md), the
+[provider extension guide](docs/architecture/overview.md#provider-extension), and
+the [API contracts](docs/architecture/contracts.md).
 
-| Variable | Local setup |
-| --- | --- |
-| `DB_PASSWORD` | Required by Compose. Preserve the existing password when reusing an initialized database. |
-| `JWT_SECRET` | Required by the API in every environment. Use a private random value of at least 32 bytes. |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Required by the current Compose configuration and Google sign-in. |
-| `GOOGLE_REDIRECT_URI` | Register the exact callback URL in Google; the default is `http://localhost:8080/api/v1/auth/google/callback`. |
-| `APP_SERVER_PUBLIC_URL` | Required by Compose. Use the API address reachable from Android; a physical phone needs your computer's LAN address. |
-| `API_PORT` | Keep `8080` unless you also update the Vite proxy and callback URLs. |
-| `GMAIL_SYNC_ENABLED` | Leave `false` until email access is configured and automatic ingestion is intended. |
+## Run locally
 
-Keep `.env`, tokens and financial data private. For OAuth return URLs, port mapping
-and existing Docker volumes, see the [Docker setup guide](docker/README.md#setup).
+**Requirements** include PowerShell, Docker with Compose, Node.js 24 with npm,
+and Google OAuth credentials. Android and native backend development also use
+Java 21. The [development guide](docs/development/local.md) lists module-specific
+prerequisites.
 
-### 3. Start the database and API
-
-If you have an existing database, read [existing database volumes](docker/README.md#existing-database-volumes)
-before starting a different Compose stack or changing its project name.
+1. From the repository root, run `./scripts/setup/initialize-local.ps1 -Plan`
+   to preview setup, then run it without `-Plan` to check prerequisites
+   and create `.env` if needed.
+2. Fill in local database, JWT, and Google OAuth settings using
+   [`.env.example`](.env.example). Register
+   `http://localhost:8080/api/v1/auth/google/callback` as the local Google callback.
+   The [Docker guide](docker/README.md#setup) covers environment values and
+   [existing database volumes](docker/README.md#existing-database-volumes).
 
 ```powershell
 docker compose config --quiet
 docker compose up -d --build
-docker compose ps
+npm ci --prefix ui
+npm run dev --prefix ui
 ```
 
-`config --quiet` validates configuration without printing resolved credentials.
-Rebuild the API image after backend source changes.
+Open the [local dashboard](http://localhost:5173). Vite forwards API requests to
+port 8080. On a physical Android device, use a backend address reachable from
+the phone. See [local Android setup](docs/development/local.md#dashboard-and-android-verification)
+and [production deployment](docs/development/deployment.md).
 
-### 4. Start the dashboard
+## Repository guide
 
-In a separate terminal, from the repository root:
-
-```powershell
-cd ui
-npm ci
-npm run dev
-```
-
-Open [the dashboard](http://localhost:5173) and sign in with Google. Vite forwards
-`/api` requests to the API at `localhost:8080`.
-
-Adminer is optional: run `docker compose --profile tools up -d adminer` and open
-[the database viewer](http://localhost:8081). Connection details are in the
-[Docker guide](docker/README.md#optional-database-viewer).
-
-### 5. Connect Android
-
-Build the Android app using the [development guide](docs/development/local.md#dashboard-and-android-verification),
-install it on your intended device, pair it using the dashboard's QR code and enable
-notification access. For a physical phone, check that the configured API URL is
-reachable from the device. See [notification capture and recovery](docs/android/notification-recovery.md)
-for synchronization behavior and device verification.
-
-## Updating an existing installation
-
-Back up the intended database before schema changes. Older databases can retain a
-fixed category constraint that rejects current catalog names; follow the
-[transaction category migration](docs/development/local.md#transaction-category-migration).
-Hibernate schema updates alone do not remove that legacy constraint.
-
-For Docker deployments, rebuild the API with `docker compose up -d --build api`
-after backend changes. For native execution, restart the API with the updated code.
-The [Docker guide](docker/README.md) explains volume reuse and shutdown. Removing
-volumes with `docker compose down -v` deletes the stored database.
-
-## Project structure
-
-| Path | Responsibility |
+| Directory | Role |
 | --- | --- |
-| `api/` | Java 21 / Spring Boot 4 API: authentication, ingestion, classification and analytics. |
-| `android/` | Kotlin / Jetpack Compose app: notification capture, local storage and device pairing. |
-| `ui/` | React / TypeScript / Vite dashboard. |
-| `docker/` | Container builds and local deployment guide. |
-| `scripts/` | PowerShell tools and manual SQL migrations. |
-| `docs/` | Architecture, contracts, development and financial domain rules. |
-| `.github/` | CI workflows and contribution templates. |
+| [`api/`](api/) | Java 21 and Spring Boot API for authentication, ingestion, classification, and analytics |
+| [`ui/`](ui/) | React and TypeScript dashboard |
+| [`android/`](android/) | Kotlin and Jetpack Compose app with Room and WorkManager |
+| [`docker/`](docker/) | Local Compose setup and production API image |
+| [`scripts/`](scripts/) | PowerShell tools and SQL migrations |
+| [`docs/`](docs/README.md) | Architecture, development, and domain documentation |
 
-## Documentation and verification
-
-For current priorities, checkpoints and remaining acceptance work, read
-[PROGRESS.md](docs/PROGRESS.md). Developer tools are catalogued in
-[scripts/README.md](scripts/README.md). PowerShell is the supported task runner;
-no Make installation is required.
+## Verification and releases
 
 ```powershell
-# Preview checks without running them:
 .\scripts\checks\verify-all.ps1 -Plan
-# Run database-free backend tests, UI tests/lint/build and Android tests/APK assembly:
 .\scripts\checks\verify-all.ps1
 ```
 
-Start with the [documentation index](docs/README.md). Detailed references:
+The default verifier runs database-free API tests, dashboard tests and build,
+and Android checks. Use a disposable database for
+[backend persistence tests](docs/development/local.md#backend-verification).
 
-- [Architecture](docs/architecture/overview.md): service boundaries and ingestion flow.
-- [Development](docs/development/local.md): local setup, module checks and test isolation precautions.
-- [API contracts](docs/architecture/contracts.md): authentication, endpoints and client coordination.
-- [Cashflow rules](docs/domain/cashflow.md): financial interpretation and deduplication.
-- [Cards and accounts retirement](docs/domain/financial-instruments.md): retired product catalog and schema migration.
-- [CI configuration](.github/workflows/ci.yml): checks currently run in GitHub Actions.
-- [Agent working agreements](AGENTS.md): repository and module instructions.
-
-For dashboard changes, run `npm test`, `npm run lint` and `npm run build` from `ui/`.
-Before backend context tests, select an isolated test database and disable email
-scheduling as described in [backend verification](docs/development/local.md#backend-verification).
-
-Review the [script catalogue](scripts/README.md) before running developer automation.
-The default verifier excludes database integration and device installation.
-API probes do not insert movements. Email ingestion and device installation are
-explicit operational options requiring task authorization.
-
-## Current limitations
-
-- Capture depends on supported notification packages and bank email formats.
-- Email and Android use different hashes; the same payment captured through both
-  sources is not guaranteed to deduplicate.
-- Registered products currently use PEN. Transactions do not carry a currency
-  field, and no currency conversion is performed.
-- Local backend context tests are not isolated by default; use a disposable database.
-- The Compose setup is for local development. Public deployment requires HTTPS,
-  public OAuth URLs and separate frontend hosting configuration.
+GitHub Actions runs [CI](.github/workflows/ci.yml) and publishes versioned,
+signed [Android releases](docs/android/releases.md). See
+[project progress](docs/PROGRESS.md) for verification and pending work.
