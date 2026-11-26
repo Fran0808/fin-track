@@ -28,9 +28,9 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   status badges, `ModalBottomSheet` movement details, `PullToRefreshBox` on
   Home/Movements, battery optimization status + settings shortcut in Ajustes,
   and batch confirmation (`assignAllReviewedEntries`) for unassigned movements.
-- Verified locally: `./gradlew.bat testDebugUnitTest assembleDebug` (pending
-  result). Visual/device inspection and release APK signing/deployment remain
-  pending.
+- Verified locally: `./gradlew.bat testDebugUnitTest assembleDebug` passed
+  (`app-debug.apk`, version `1.7.0 (27)`). Visual/device inspection and release
+  APK signing/deployment remain pending.
 
 ## Current checkpoint: dashboard UI consistency and Rules visual polish
 

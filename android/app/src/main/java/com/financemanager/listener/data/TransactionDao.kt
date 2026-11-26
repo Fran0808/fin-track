@@ -37,6 +37,9 @@ abstract class TransactionDao {
     @Query("UPDATE local_transactions SET ownerKey = :owner WHERE id = :id AND ownerKey IS NULL AND isSynced = 0")
     abstract fun assignReviewedEntry(id: Long, owner: String): Int
 
+    @Query("UPDATE local_transactions SET ownerKey = :owner WHERE ownerKey IS NULL AND isSynced = 0")
+    abstract fun assignAllReviewedEntries(owner: String): Int
+
     @Query("UPDATE local_transactions SET ownerKey = :verifiedOwner WHERE ownerKey = :credentialOwner")
     abstract fun upgradeVerifiedOwner(credentialOwner: String, verifiedOwner: String)
 
