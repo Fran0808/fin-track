@@ -26,8 +26,8 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   `violet-accent` color on the phone card/button with FinTrack's `brand` palette,
   moved Gmail status refresh to an accessible icon button beside the status badge,
   and aligned the `PhoneReceptionPanel` block with the Gmail details panel.
-- Verified locally: UI tests, lint and production build. Visual browser
-  inspection pending via `npm run dev` in `ui`.
+- Verified locally: 175 UI tests, lint (0 errors) and production build (`vite build`).
+  Visual browser inspection pending via `npm run dev` in `ui`.
 
 ## Current checkpoint: LoginView copy and layout refinement
 
