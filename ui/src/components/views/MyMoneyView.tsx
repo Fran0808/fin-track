@@ -25,7 +25,7 @@ export function MyMoneyView({ analytics, loading, selectedYear, selectedMonth, o
     <div className="space-y-6">
       <div>
         <p className="eyebrow">{period}</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Análisis</h1>
+        <h1 className="font-display mt-1.5 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Análisis</h1>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -45,9 +45,13 @@ export function SyncStatus({ status, unavailable, syncing, completedBatches = 0,
   const lastBatch = pending && !status?.lastSyncFailed ? status?.lastSyncAttemptAt : null;
 
   return (
-    <div className="flex items-center gap-2.5" role="status" aria-live="polite">
+    <div
+      className="flex items-center gap-2.5 rounded-xl border border-line/80 bg-canvas/50 px-3 py-1.5"
+      role="status"
+      aria-live="polite"
+    >
       <Icon aria-hidden="true" className={`h-4 w-4 shrink-0 ${color} ${syncing ? 'animate-spin' : ''}`} />
-      <div className="min-w-0 max-w-64">
+      <div className="min-w-0 max-w-64 space-y-0.5 leading-tight">
         <p className="text-xs font-medium text-ink">{syncing ? 'Sincronizando correos...' : label}</p>
         {syncing && completedBatches > 0 && (
           <p className="text-[11px] text-muted">{completedBatches} {completedBatches === 1 ? 'tanda completada' : 'tandas completadas'}</p>
@@ -63,8 +67,15 @@ export function SyncStatus({ status, unavailable, syncing, completedBatches = 0,
         )}
       </div>
       {connected && (
-        <button type="button" onClick={onSync} disabled={syncing || paused} aria-label="Sincronizar correos ahora" title="Sincronizar ahora" className="rounded-lg border border-line p-2 text-brand hover:bg-canvas disabled:opacity-50">
-          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+        <button
+          type="button"
+          onClick={onSync}
+          disabled={syncing || paused}
+          aria-label="Sincronizar correos ahora"
+          title="Sincronizar ahora"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-brand transition-colors hover:bg-canvas disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
         </button>
       )}
     </div>

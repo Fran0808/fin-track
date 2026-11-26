@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle2, History, Pause, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import type { Category, ClassificationRule } from '../../types';
 import { api } from '../../services/api';
+import { getCategoryColor } from '../../utils/categoryColors';
 import { RuleHistoryModal } from '../transactions/RuleHistoryModal';
 
 const fieldClass = 'mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink focus:border-brand focus:outline-none';
@@ -56,50 +57,160 @@ export function ClassificationRulesView({ onHistoryApplied }: { onHistoryApplied
     <div className="space-y-6">
       <div>
         <p className="eyebrow">Clasificación automática</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Reglas</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted">Asigna una categoría cuando el comercio o contacto contenga el texto que elijas. Se aplican a nuevas entradas y gastos. Para los anteriores sin categoría, revisa y confirma una aplicación al historial.</p>
+        <h1 className="font-display mt-1.5 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Reglas</h1>
+        <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted">Asigna una categoría cuando el comercio o contacto contenga el texto que elijas. Se aplican a nuevas entradas y gastos. Para los anteriores sin categoría, revisa y confirma una aplicación al historial.</p>
       </div>
-      {message && <p role="status" className="text-sm font-medium text-positive">{message}</p>}
-      {mutationError && <p role="alert" className="text-sm text-negative">{mutationError}</p>}
-      {loadError && <div className="surface p-5"><p role="alert" className="text-sm text-negative">{loadError}</p><button type="button" onClick={() => setRevision(value => value + 1)} className="mt-3 text-sm font-semibold text-brand">Reintentar</button></div>}
+      {message && (
+        <div role="status" className="flex items-start gap-2.5 rounded-xl border border-positive/20 bg-positive/5 px-4 py-3 text-sm font-medium text-positive">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{message}</span>
+        </div>
+      )}
+      {mutationError && (
+        <div role="alert" className="flex items-start gap-2.5 rounded-xl border border-negative/20 bg-negative/5 px-4 py-3 text-sm text-negative">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{mutationError}</span>
+        </div>
+      )}
+      {loadError && (
+        <div className="surface p-5">
+          <p role="alert" className="text-sm text-negative">{loadError}</p>
+          <button type="button" onClick={() => setRevision(value => value + 1)} className="mt-3 rounded-lg border border-line bg-white px-3 py-1.5 text-sm font-semibold text-brand hover:bg-canvas">Reintentar</button>
+        </div>
+      )}
       {loading && <p role="status" className="text-sm text-muted">Cargando reglas...</p>}
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="surface overflow-hidden" aria-labelledby="rules-heading">
-          <div className="border-b border-line p-5 sm:px-6">
-            <h2 id="rules-heading" className="font-display text-lg font-semibold">Orden de aplicación</h2>
-            <p className="mt-1 text-sm text-muted">La prioridad menor va primero. Si empatan, se usa la más antigua. Solo se aplica la primera coincidencia activa.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line p-5 sm:px-6">
+            <div>
+              <h2 id="rules-heading" className="font-display text-lg font-semibold text-ink">Orden de aplicación</h2>
+              <p className="mt-1 text-sm text-muted">La prioridad menor va primero. Si empatan, se usa la más antigua. Solo se aplica la primera coincidencia activa.</p>
+            </div>
+            {!loading && !loadError && (
+              <span className="font-num rounded-full bg-brand/8 px-2.5 py-1 text-xs font-semibold text-brand">
+                {rules.length} {rules.length === 1 ? 'regla' : 'reglas'}
+              </span>
+            )}
           </div>
-          {!loading && !loadError && rules.length === 0 && <div className="p-6 text-sm text-muted">Aún no tienes reglas. Crea una con un comercio que se repita, por ejemplo CINEMARK.</div>}
+          {!loading && !loadError && rules.length === 0 && (
+            <div className="p-6 text-sm text-muted">Aún no tienes reglas. Crea una con un comercio que se repita, por ejemplo CINEMARK.</div>
+          )}
           <ol className="divide-y divide-line">
-            {rules.map(rule => <li key={rule.id} className="px-5 py-5 sm:px-6">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-                <span>Prioridad {rule.priority}</span>
-                <span>{!rule.enabled ? 'Pausada' : rule.categoryActive ? 'Activa' : 'Sin aplicar: categoría inactiva'}</span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-                <span>Contiene <strong className="break-all">«{rule.matchText}»</strong></span>
-                <ArrowRight className="h-4 w-4 text-brand" aria-hidden="true" />
-                <span className="break-words font-semibold text-brand">{rule.categoryName}</span>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-brand">
-                <button type="button" disabled={busy || loading || !rule.enabled || !rule.categoryActive}
-                  onClick={() => { setMessage(null); setHistoryRule(rule); }} aria-label={`Aplicar regla ${rule.matchText} al historial`}
-                  className="disabled:opacity-40">Aplicar al historial</button>
-                <button type="button" disabled={busy || loading} onClick={() => edit(rule)} aria-label={`Editar regla ${rule.matchText}`} className="inline-flex items-center gap-1.5 disabled:opacity-40"><Pencil className="h-3.5 w-3.5" />Editar</button>
-                <button type="button" disabled={busy || loading || (!rule.enabled && !rule.categoryActive)}
-                  onClick={() => { void mutate(() => api.saveClassificationRule({ matchText: rule.matchText, categoryId: rule.categoryId, priority: rule.priority, enabled: !rule.enabled }, rule.id), rule.enabled ? 'Regla pausada.' : 'Regla activada.'); }}
-                  aria-label={`${rule.enabled ? 'Pausar' : 'Activar'} regla ${rule.matchText}`} className="disabled:opacity-40">{rule.enabled ? 'Pausar' : 'Activar'}</button>
-                <button type="button" disabled={busy || loading} onClick={() => setDeleteId(rule.id)} aria-label={`Eliminar regla ${rule.matchText}`} className="inline-flex items-center gap-1.5 text-negative disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" />Eliminar</button>
-              </div>
-              {deleteId === rule.id && <div className="mt-3 rounded-xl bg-canvas p-3 text-sm">
-                <p>¿Eliminar esta regla? Los movimientos ya clasificados conservarán su categoría.</p>
-                <div className="mt-2 flex gap-4">
-                  <button type="button" disabled={busy} onClick={() => { void mutate(() => api.deleteClassificationRule(rule.id), 'Regla eliminada.'); }} className="font-semibold text-negative">Confirmar eliminación</button>
-                  <button type="button" disabled={busy} onClick={() => setDeleteId(null)} className="text-muted">Cancelar</button>
-                </div>
-              </div>}
-            </li>)}
+            {rules.map(rule => {
+              const catColor = getCategoryColor(rule.categoryName);
+              const statusTone = !rule.enabled
+                ? 'bg-canvas text-muted'
+                : rule.categoryActive
+                  ? 'bg-positive/10 text-positive'
+                  : 'bg-negative/8 text-negative';
+              const statusLabel = !rule.enabled
+                ? 'Pausada'
+                : rule.categoryActive
+                  ? 'Activa'
+                  : 'Sin aplicar: categoría inactiva';
+
+              return (
+                <li key={rule.id} className="px-5 py-5 transition-colors hover:bg-canvas/40 sm:px-6">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-num rounded-md border border-line bg-canvas/70 px-2 py-0.5 text-xs font-medium text-muted">
+                      Prioridad {rule.priority}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusTone}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                      {statusLabel}
+                    </span>
+                  </div>
+
+                  <div className="mt-3.5 flex flex-wrap items-center gap-2.5 text-sm">
+                    <span className="text-muted">Contiene</span>
+                    <strong className="break-all rounded-lg border border-line bg-white px-2.5 py-1 font-semibold text-ink">
+                      «{rule.matchText}»
+                    </strong>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={{
+                        backgroundColor: `${catColor}18`,
+                        color: catColor,
+                      }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: catColor }} aria-hidden="true" />
+                      <span className="break-words">{rule.categoryName}</span>
+                    </span>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line/60 pt-3.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={busy || loading || !rule.enabled || !rule.categoryActive}
+                        onClick={() => { setMessage(null); setHistoryRule(rule); }}
+                        aria-label={`Aplicar regla ${rule.matchText} al historial`}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-brand/8 px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand/15 disabled:opacity-40"
+                      >
+                        <History className="h-3.5 w-3.5" aria-hidden="true" />
+                        Aplicar al historial
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || loading}
+                        onClick={() => edit(rule)}
+                        aria-label={`Editar regla ${rule.matchText}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-canvas disabled:opacity-40"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || loading || (!rule.enabled && !rule.categoryActive)}
+                        onClick={() => { void mutate(() => api.saveClassificationRule({ matchText: rule.matchText, categoryId: rule.categoryId, priority: rule.priority, enabled: !rule.enabled }, rule.id), rule.enabled ? 'Regla pausada.' : 'Regla activada.'); }}
+                        aria-label={`${rule.enabled ? 'Pausar' : 'Activar'} regla ${rule.matchText}`}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:bg-canvas hover:text-ink disabled:opacity-40"
+                      >
+                        {rule.enabled ? <Pause className="h-3.5 w-3.5" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
+                        {rule.enabled ? 'Pausar' : 'Activar'}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={busy || loading}
+                      onClick={() => setDeleteId(rule.id)}
+                      aria-label={`Eliminar regla ${rule.matchText}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-negative transition-colors hover:border-negative/30 hover:bg-negative/5 disabled:opacity-40"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      Eliminar
+                    </button>
+                  </div>
+
+                  {deleteId === rule.id && (
+                    <div className="mt-3 rounded-xl border border-negative/20 bg-negative/5 p-3.5 text-sm">
+                      <p className="text-ink">¿Eliminar esta regla? Los movimientos ya clasificados conservarán su categoría.</p>
+                      <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => { void mutate(() => api.deleteClassificationRule(rule.id), 'Regla eliminada.'); }}
+                          className="rounded-lg bg-negative px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-negative/90 disabled:opacity-50"
+                        >
+                          Confirmar eliminación
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setDeleteId(null)}
+                          className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-muted hover:text-ink"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </section>
 

@@ -79,8 +79,8 @@ export function HomeView({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Resumen mensual</h1>
-        <p className="mt-2 text-sm capitalize text-muted">{period}</p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Resumen mensual</h1>
+        <p className="mt-1.5 text-sm capitalize text-muted">{period}</p>
       </div>
 
       <section
@@ -326,13 +326,13 @@ export function HomeView({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-ink group-hover:text-brand">
-                        <Icon className={`h-4 w-4 shrink-0 ${isWallet ? 'text-violet-accent' : 'text-brand'}`} />
+                        <Icon className={`h-4 w-4 shrink-0 ${isWallet ? 'text-positive' : 'text-brand'}`} />
                         <span className="truncate">{label}</span>
                       </span>
                       <span className="font-num shrink-0 text-sm font-semibold">{formatCurrency(channel.amount)}</span>
                     </div>
                     <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-canvas group-hover:bg-line/60">
-                      <div className={`h-full rounded-full ${isWallet ? 'bg-violet-accent' : 'bg-brand'}`} style={{ width: `${Math.min(100, Math.max(0, channel.percentage))}%` }} />
+                      <div className={`h-full rounded-full ${isWallet ? 'bg-positive' : 'bg-brand'}`} style={{ width: `${Math.min(100, Math.max(0, channel.percentage))}%` }} />
                     </div>
                     <p className="font-num mt-1 text-right text-xs text-muted">{channel.percentage.toFixed(1)}%</p>
                   </button>

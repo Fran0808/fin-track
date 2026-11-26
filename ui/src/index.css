@@ -9,11 +9,29 @@
   --color-brand: #2c4f99;
   --color-positive: #2f866d;
   --color-negative: #b6535f;
-  --color-violet-accent: #7754a8;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
 }
 
 ::-webkit-scrollbar {
-  display: none; /* o width: 0; height: 0; */
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--color-muted) 55%, transparent);
 }
 
 @layer base {

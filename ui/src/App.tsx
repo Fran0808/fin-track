@@ -115,18 +115,20 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <p className="font-display text-lg font-semibold leading-tight">{VIEW_LABELS[activeView]}</p>
+              <p className="font-display text-lg font-semibold leading-tight lg:hidden">{VIEW_LABELS[activeView]}</p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setPairingOpen(true)}
                 aria-haspopup="dialog"
-                className="inline-flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                aria-label="Vinculación móvil"
+                title="Vinculación móvil"
+                className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-2.5 py-2 text-xs font-medium text-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <Smartphone className="h-4 w-4 text-brand" aria-hidden="true" />
-                Vinculación móvil
+                <span className="hidden xl:inline">Vinculación móvil</span>
               </button>
               <SyncStatus status={syncStatus} unavailable={syncStatusUnavailable} syncing={isSyncing} completedBatches={syncBatches}
                 onSync={() => { void triggerEmailSync().catch(() => {}); }} />

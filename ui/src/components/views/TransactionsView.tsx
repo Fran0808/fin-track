@@ -93,7 +93,7 @@ export function TransactionsView({
             renderHeader={searchField => (
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Movimientos</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Movimientos</h1>
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
           {searchField}

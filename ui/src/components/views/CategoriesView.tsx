@@ -204,7 +204,7 @@ export function CategoriesView() {
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">Categorías</h1>
+                <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Categorías</h1>
                 <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-semibold text-brand">
                   {categories.length} en total
                 </span>

@@ -17,6 +17,21 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: dashboard UI consistency and Rules visual polish
+
+- November 25, scope: dashboard (`App`, `SyncStatus`, `HomeView`, `MyMoneyView`,
+  `TransactionsView`, `CategoriesView`, `ClassificationRulesView`, `index.css`).
+  Hid the duplicated desktop section title in the sticky header (retained on
+  mobile), compacted the header mobile-pairing action, grouped `SyncStatus` into
+  a clean pill with tighter line spacing, unified the `<h1>` scale across all
+  views (`text-2xl font-semibold sm:text-3xl`), replaced the remaining legacy
+  `violet-accent` wallet color in `HomeView` with `positive` (removing the
+  unused token), modernized `ClassificationRulesView` with semantic status pills,
+  priority badges, colored category chips and structured action buttons, and
+  replaced hidden scrollbars with subtle thin scrollbars in `index.css`.
+- Verified locally: UI tests, lint and production build. Visual browser
+  inspection pending via `npm run dev` in `ui`.
+
 ## Current checkpoint: SettingsView layout and provider-neutral styling
 
 - November 25, scope: dashboard (`SettingsView`, `PhoneReceptionPanel`). Replaced
