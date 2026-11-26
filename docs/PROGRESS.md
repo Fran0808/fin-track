@@ -17,6 +17,18 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: SettingsView layout and provider-neutral styling
+
+- November 25, scope: dashboard (`SettingsView`, `PhoneReceptionPanel`). Replaced
+  the duplicated `Configuración` heading with `Fuentes de movimientos`, arranged
+  the Gmail and Android phone source cards in a responsive 2-column desktop grid
+  (`lg:grid-cols-2 lg:items-start`), replaced the legacy Yape-associated
+  `violet-accent` color on the phone card/button with FinTrack's `brand` palette,
+  moved Gmail status refresh to an accessible icon button beside the status badge,
+  and aligned the `PhoneReceptionPanel` block with the Gmail details panel.
+- Verified locally: UI tests, lint and production build. Visual browser
+  inspection pending via `npm run dev` in `ui`.
+
 ## Current checkpoint: LoginView copy and layout refinement
 
 - November 25, scope: dashboard (`LoginView`). Replaced generic landing copy with

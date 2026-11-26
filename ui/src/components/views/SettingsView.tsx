@@ -114,92 +114,133 @@ export function SettingsView({
   return (
     <div className="space-y-6">
       <div>
-        <p className="eyebrow">Captura de movimientos</p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Configuración</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-          Administra las fuentes que envían movimientos a FinTrack y revisa si están listas para sincronizar.
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          Fuentes de movimientos
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted">
+          Administra los canales que envían movimientos a FinTrack y revisa su estado de sincronización.
         </p>
       </div>
 
-      <div className="mx-auto grid w-full max-w-2xl gap-6">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         <section className="surface flex flex-col overflow-hidden" aria-labelledby="email-source-title">
-          <div className="border-b border-line px-5 py-5 sm:px-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/8 text-brand">
-                  <Mail className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="eyebrow">Fuente de movimientos</p>
-                  <h2 id="email-source-title" className="font-display mt-1 text-xl font-semibold">Correos de Gmail</h2>
-                </div>
-              </div>
-              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                statusUnavailable || gmailFailed
-                  ? 'bg-negative/8 text-negative'
-                  : gmailPaused || gmailPending
-                    ? 'bg-brand/8 text-brand'
-                    : gmailConnected
-                      ? 'bg-positive/10 text-positive'
-                      : 'bg-canvas text-muted'
-              }`}>
-                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                {checkingStatus ? 'Comprobando...' : statusUnavailable ? 'No disponible' : gmailFailed ? 'Requiere atención' : gmailPaused ? 'En pausa' : gmailPending ? 'Revisión pendiente' : gmailConnected ? 'Conectado' : 'Sin conectar'}
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/8 text-brand">
+                <Mail className="h-5 w-5" aria-hidden="true" />
               </span>
+              <div>
+                <h2 id="email-source-title" className="font-display text-lg font-semibold text-ink">
+                  Correos de Gmail
+                </h2>
+                <p className="mt-0.5 text-xs text-muted">Comprobantes bancarios por correo</p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  statusUnavailable || gmailFailed
+                    ? 'bg-negative/8 text-negative'
+                    : gmailPaused || gmailPending
+                      ? 'bg-brand/8 text-brand'
+                      : gmailConnected
+                        ? 'bg-positive/10 text-positive'
+                        : 'bg-canvas text-muted'
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
+                {checkingStatus
+                  ? 'Comprobando...'
+                  : statusUnavailable
+                    ? 'No disponible'
+                    : gmailFailed
+                      ? 'Requiere atención'
+                      : gmailPaused
+                        ? 'En pausa'
+                        : gmailPending
+                          ? 'Revisión pendiente'
+                          : gmailConnected
+                            ? 'Conectado'
+                            : 'Sin conectar'}
+              </span>
+              <button
+                type="button"
+                onClick={() => void onStatusRefresh()}
+                aria-label="Actualizar estado de correo"
+                title="Actualizar estado de correo"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-canvas hover:text-ink"
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
             </div>
           </div>
 
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <p className="text-sm leading-6 text-muted">
-              FinTrack lee comprobantes bancarios compatibles y registra sus movimientos. No utiliza esta conexión para calcular saldos.
+              FinTrack lee comprobantes bancarios compatibles para registrar tus movimientos. No utiliza esta conexión para calcular saldos.
             </p>
-            <dl className="mt-6 divide-y divide-line border-y border-line text-sm">
+
+            <dl className="mt-5 divide-y divide-line rounded-xl border border-line bg-canvas/50 px-4 text-sm">
               <div className="flex items-center justify-between gap-4 py-3">
                 <dt className="text-muted">Cuenta</dt>
                 <dd className="max-w-[65%] truncate font-medium text-ink" title={googleStatus?.email ?? undefined}>
                   {googleStatus?.email ?? 'Ninguna cuenta vinculada'}
                 </dd>
               </div>
-              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
+              <div className="flex flex-col gap-0.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <dt className="text-muted">Última sincronización correcta</dt>
-                <dd className="font-medium text-ink sm:text-right">{statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSuccessfulSyncAt ?? null)}</dd>
+                <dd className="font-num font-medium text-ink sm:text-right">
+                  {statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSuccessfulSyncAt ?? null)}
+                </dd>
               </div>
-              <div className="flex flex-col gap-1 py-3 sm:flex-row sm:justify-between sm:gap-4">
+              <div className="flex flex-col gap-0.5 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <dt className="text-muted">Último intento completado</dt>
-                <dd className="font-medium text-ink sm:text-right">{statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSyncAttemptAt ?? null)}</dd>
+                <dd className="font-num font-medium text-ink sm:text-right">
+                  {statusUnavailable ? 'No disponible' : checkingStatus ? 'Consultando...' : formatSyncDate(googleStatus?.lastSyncAttemptAt ?? null)}
+                </dd>
               </div>
             </dl>
 
             {gmailFailed && (
-              <p className="mt-4 flex gap-2 rounded-xl bg-negative/5 px-3 py-2.5 text-sm text-negative">
+              <p className="mt-4 flex gap-2 rounded-xl border border-negative/20 bg-negative/5 px-3.5 py-2.5 text-sm text-negative">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 {emailFailureAdvice(googleStatus)}
               </p>
             )}
-            {gmailPaused && <p className="mt-4 text-sm text-muted">Puedes reintentar desde {formatSyncDate(googleStatus?.syncRetryAt ?? null)}.</p>}
+            {gmailPaused && (
+              <p className="mt-4 text-sm text-muted">
+                Puedes reintentar desde <span className="font-num font-medium text-ink">{formatSyncDate(googleStatus?.syncRetryAt ?? null)}</span>.
+              </p>
+            )}
 
-            <p className="mt-4 text-xs leading-5 text-muted">Este estado corresponde solo al correo. Una sincronización correcta no garantiza que todos tus gastos tengan un comprobante compatible.</p>
-            <button type="button" onClick={() => void onStatusRefresh()} className="mt-3 self-start text-sm font-semibold text-brand underline">Actualizar estado de correo</button>
-            <div className="mt-auto flex flex-wrap gap-3 pt-6">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               {gmailConnected ? (
                 <>
                   <button
                     type="button"
                     onClick={() => void handleSync()}
                     disabled={syncing || statusUnavailable || gmailPaused}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 disabled:cursor-wait disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:cursor-wait disabled:opacity-50"
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} aria-hidden="true" />
                     {syncing ? 'Sincronizando...' : gmailPending ? 'Continuar sincronización' : 'Sincronizar ahora'}
                   </button>
                   {gmailFailed && ['AUTH_REQUIRED', 'ACCESS_DENIED'].includes(googleStatus.lastSyncFailureCode ?? '') && (
-                    <button type="button" disabled={connecting} onClick={() => void handleConnect()} className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-brand disabled:opacity-50">{connecting ? 'Abriendo Google...' : 'Volver a conectar Gmail'}</button>
+                    <button
+                      type="button"
+                      disabled={connecting}
+                      onClick={() => void handleConnect()}
+                      className="rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-brand transition-colors hover:bg-canvas disabled:opacity-50"
+                    >
+                      {connecting ? 'Abriendo Google...' : 'Volver a conectar Gmail'}
+                    </button>
                   )}
                   <button
                     type="button"
                     onClick={() => void handleDisconnect()}
                     disabled={disconnecting}
-                    className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-negative hover:border-negative/30 hover:bg-negative/5 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-semibold text-negative transition-colors hover:border-negative/30 hover:bg-negative/5 disabled:opacity-50"
                   >
                     <Unplug className="h-4 w-4" aria-hidden="true" />
                     {disconnecting ? 'Desvinculando...' : 'Desvincular Gmail'}
@@ -210,7 +251,7 @@ export function SettingsView({
                   type="button"
                   onClick={() => void handleConnect()}
                   disabled={connecting || checkingStatus}
-                  className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90 disabled:opacity-50"
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   {connecting ? 'Abriendo Google...' : 'Conectar Gmail'}
@@ -218,11 +259,15 @@ export function SettingsView({
               )}
             </div>
 
-            {syncing && <p className="mt-3 text-sm text-muted">Mantén FinTrack abierto para continuar con las tandas pendientes.</p>}
+            {syncing && (
+              <p className="mt-3 text-xs text-muted">
+                Mantén FinTrack abierto para continuar con las tandas pendientes.
+              </p>
+            )}
             {feedback && (
               <div
                 role={feedback.type === 'error' ? 'alert' : 'status'}
-                className={`flex items-start gap-3 rounded-xl border px-4 py-3 text-sm mt-3 ${
+                className={`mt-4 flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-sm ${
                   feedback.type === 'error'
                     ? 'border-negative/20 bg-negative/5 text-negative'
                     : 'border-positive/20 bg-positive/5 text-positive'
@@ -234,34 +279,40 @@ export function SettingsView({
                 <span>{feedback.message}</span>
               </div>
             )}
+
+            <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-muted">
+              Este estado corresponde solo al correo. Una sincronización correcta no garantiza que todos tus gastos tengan un comprobante compatible.
+            </p>
           </div>
         </section>
 
         <section className="surface flex flex-col overflow-hidden" aria-labelledby="mobile-source-title">
-          <div className="border-b border-line px-5 py-5 sm:px-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-accent/10 text-violet-accent">
-                  <Smartphone className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="eyebrow">Dispositivo móvil</p>
-                  <h2 id="mobile-source-title" className="font-display mt-1 text-xl font-semibold">Teléfono</h2>
-                </div>
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-5 sm:px-6">
+            <div className="flex items-start gap-3.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand/8 text-brand">
+                <Smartphone className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id="mobile-source-title" className="font-display text-lg font-semibold text-ink">
+                  Teléfono Android
+                </h2>
+                <p className="mt-0.5 text-xs text-muted">Notificaciones móviles autorizadas</p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-1 flex-col p-5 sm:p-6">
             <p className="text-sm leading-6 text-muted">
-              Recibe movimientos desde las notificaciones autorizadas.
+              Recibe movimientos automáticamente desde las notificaciones de las apps financieras que autorices en tu teléfono.
             </p>
+
             <PhoneReceptionPanel />
-            <div className="mt-auto pt-6">
+
+            <div className="mt-5">
               <button
                 type="button"
                 onClick={onOpenPairing}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-accent/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90"
               >
                 <Smartphone className="h-4 w-4" aria-hidden="true" />
                 Vincular teléfono
