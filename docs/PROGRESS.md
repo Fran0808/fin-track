@@ -81,8 +81,10 @@ See [README](../README.md), [architecture](architecture/overview.md) and
   README opens with the dashboard and APK links, then covers provider support,
   architecture, and local setup. The interactive Archify overview links to the
   current source snapshot and is generated in the local `.archify` directory.
-- Verified the live metadata, dashboard and APK links, README references,
-  Mermaid syntax and Archify gates. The README update awaits a Git push.
+- The README embeds the Archify SVG in the architecture section and starts
+  with the project heading. Verified the live metadata, dashboard and APK links,
+  README references, Archify gates, and embedded SVG loading in light and dark
+  browser modes. The SVG and README update await a Git push.
 
 ## Current checkpoint: BBVA Peru and Plin provider support
 

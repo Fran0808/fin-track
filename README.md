@@ -1,5 +1,3 @@
-<img align="right" src="ui/src/assets/fintrack-mark.png" width="80" alt="FinTrack logo">
-
 # FinTrack
 
 Track personal cash flow in Peru from bank emails and Android payment
@@ -43,15 +41,7 @@ See the [cash flow rules](docs/domain/cashflow.md) for details.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    Gmail["Gmail receipts"] -->|OAuth import| API["Spring Boot API on Render"]
-    Alerts["Supported payment notifications"] --> Android["FinTrack Android"]
-    Android -->|Stores pending captures| Room[("Room on the phone")]
-    Android -->|Syncs over HTTPS| API
-    Browser["React dashboard"] -->|Calls API| API
-    API <-->|Reads and writes| Database[("PostgreSQL on Supabase")]
-```
+![FinTrack architecture showing Gmail and Android capture, the React dashboard, the API on Render, and PostgreSQL on Supabase](docs/architecture/fintrack-architecture.svg)
 
 Render serves the dashboard and API from the same HTTPS origin. Android stores
 pending captures on the device before syncing. The API validates and classifies
