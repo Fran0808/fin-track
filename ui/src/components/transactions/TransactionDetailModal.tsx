@@ -132,6 +132,9 @@ function TransactionDetailContent({
           translateX: '0%',
           duration: 150,
           ease: 'outCubic',
+          onComplete: () => {
+            dialog.style.transform = '';
+          },
         });
       }
     }
@@ -204,6 +207,9 @@ function TransactionDetailContent({
             translateX: ['100%', '0%'],
             duration: 250,
             ease: 'outCubic',
+            onComplete: () => {
+              dialog.style.transform = '';
+            },
           });
         } else {
           animate(dialog, {
@@ -211,6 +217,10 @@ function TransactionDetailContent({
             opacity: [0, 1],
             duration: 200,
             ease: 'outCubic',
+            onComplete: () => {
+              dialog.style.transform = '';
+              dialog.style.opacity = '';
+            },
           });
         }
       }
@@ -276,8 +286,8 @@ function TransactionDetailContent({
       }}
       aria-labelledby="transaction-dialog-title"
       className={presentation === 'sidebar'
-        ? 'fixed inset-y-0 right-0 left-auto z-40 m-0 h-dvh max-h-none w-[min(100%,420px)] max-w-none overflow-y-auto border-0 border-l border-line bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30 will-change-transform'
-        : 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40 will-change-transform'}
+        ? 'fixed inset-y-0 right-0 left-auto z-40 m-0 h-dvh max-h-none w-[min(100%,420px)] max-w-none overflow-y-auto border-0 border-l border-line bg-white p-0 text-ink shadow-2xl backdrop:bg-ink/30'
+        : 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-[20px] border border-line bg-white p-0 text-ink shadow-xl backdrop:bg-ink/40'}
     >
       <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
         <div>
