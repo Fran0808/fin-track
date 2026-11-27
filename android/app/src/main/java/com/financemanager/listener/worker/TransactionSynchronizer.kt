@@ -5,6 +5,7 @@ import com.financemanager.listener.data.AppDatabase
 import com.financemanager.listener.data.PairingPreferences
 import com.financemanager.listener.data.PairingSession
 import com.financemanager.listener.network.ApiClient
+import com.financemanager.listener.network.ManualTransactionDto
 import com.financemanager.listener.network.TransactionSyncDto
 import com.financemanager.listener.service.CaptureStatus
 import com.financemanager.listener.service.CaptureEvent
@@ -32,14 +33,27 @@ class TransactionSynchronizer(
             val outcome = SyncEngine.run(entries, session.ownerKey,
                 isCurrentSession = { PairingPreferences.session(applicationContext) == session },
                 send = { entity ->
-                    val dto = TransactionSyncDto(
-                        amount = BigDecimal(entity.amount), flowType = entity.flowType,
-                        contactName = entity.contactName, channel = entity.channel,
-                        transactionDate = entity.transactionDate, transactionHash = entity.transactionHash,
-                        rawNotificationText = entity.rawText
-                    )
-                    val response = service.syncBatch(session.token, listOf(dto))
-                    SyncReply(response.code(), response.body()?.map { it.transactionHash }.orEmpty())
+                    if (entity.transactionHash.startsWith("manual:")) {
+                        val dto = ManualTransactionDto(
+                            requestId = entity.transactionHash.removePrefix("manual:"),
+                            amount = BigDecimal(entity.amount),
+                            flowType = entity.flowType,
+                            contactName = entity.contactName,
+                            transactionDate = entity.transactionDate,
+                            paymentMethod = entity.channel
+                        )
+                        val response = service.createManual(session.token, dto)
+                        SyncReply(response.code(), listOfNotNull(response.body()?.transactionHash))
+                    } else {
+                        val dto = TransactionSyncDto(
+                            amount = BigDecimal(entity.amount), flowType = entity.flowType,
+                            contactName = entity.contactName, channel = entity.channel,
+                            transactionDate = entity.transactionDate, transactionHash = entity.transactionHash,
+                            rawNotificationText = entity.rawText
+                        )
+                        val response = service.syncBatch(session.token, listOf(dto))
+                        SyncReply(response.code(), response.body()?.map { it.transactionHash }.orEmpty())
+                    }
                 },
                 acknowledge = {
                     dao.markAsSynced(it.transactionHash, session.ownerKey)

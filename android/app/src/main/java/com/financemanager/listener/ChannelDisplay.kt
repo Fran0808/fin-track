@@ -7,6 +7,11 @@ fun formatChannelLabel(channel: String): String {
     return when (normalized) {
         "YAPE" -> "Yape"
         "PLIN" -> "Plin"
+        "CASH" -> "Efectivo"
+        "CARD" -> "Tarjeta"
+        "WALLET" -> "Billetera"
+        "BANK_TRANSFER" -> "Transferencia"
+        "OTHER" -> "Otro"
         "TARJETA_CREDITO_BCP",
         "TARJETA_CREDITO_INTERBANK",
         "TARJETA_CREDITO_BBVA",

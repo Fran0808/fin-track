@@ -15,6 +15,12 @@ interface ApiService {
     suspend fun syncBatch(@Header("X-Device-Token") token: String,
                          @Body requests: List<TransactionSyncDto>): Response<List<SyncReceipt>>
 
+    @POST("api/v1/transactions/manual")
+    suspend fun createManual(
+        @Header("X-Device-Token") token: String,
+        @Body request: ManualTransactionDto
+    ): Response<SyncReceipt>
+
     @POST("api/v1/user/pairing-info/verify")
     suspend fun verifyPairing(
         @Header("X-Device-Token") token: String

@@ -72,7 +72,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
                 boolean isTransactionSync = "POST".equals(request.getMethod())
                         && ("/api/v1/transactions/sync".equals(path)
-                        || "/api/v1/transactions/sync/batch".equals(path));
+                        || "/api/v1/transactions/sync/batch".equals(path)
+                        || "/api/v1/transactions/manual".equals(path));
                 if (!isTransactionSync && !isAppUpdateEndpoint) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");

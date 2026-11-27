@@ -150,7 +150,7 @@ class JwtAuthFilterTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/v1/transactions/sync", "/api/v1/transactions/sync/batch"})
+    @ValueSource(strings = {"/api/v1/transactions/sync", "/api/v1/transactions/sync/batch", "/api/v1/transactions/manual"})
     void authenticatesWithValidDevicePairingToken(String path) throws Exception {
         when(users.findByDevicePairingToken("wp_dev_valid_token_123")).thenReturn(Optional.of(user));
         MockHttpServletRequest request = new MockHttpServletRequest("POST", path);
@@ -185,7 +185,7 @@ class JwtAuthFilterTest {
 
     @ParameterizedTest
     @CsvSource({
-            "GET,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/manual", "GET,/api/v1/transactions/manual/1/reconciliation-preview", "POST,/api/v1/transactions/manual/1/reconcile", "DELETE,/api/v1/transactions/manual/1/reconciliation/2", "GET,/api/v1/transactions/1/manual-reconciliation", "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
+            "GET,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/1/corrections", "GET,/api/v1/transactions/manual/1/reconciliation-preview", "POST,/api/v1/transactions/manual/1/reconcile", "DELETE,/api/v1/transactions/manual/1/reconciliation/2", "GET,/api/v1/transactions/1/manual-reconciliation", "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
             "POST,/api/v1/auth/google/disconnect", "POST,/api/v1/emails/sync",
             "GET,/api/v1/user/phone-status", "GET,/api/v1/user/pairing-info", "POST,/api/v1/user/pairing-info/regenerate",
             "GET,/api/v1/transactions/sync", "GET,/api/v1/transactions/sync/batch",
@@ -210,7 +210,7 @@ class JwtAuthFilterTest {
 
     @ParameterizedTest
     @CsvSource({
-            "GET,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/manual", "GET,/api/v1/transactions/manual/1/reconciliation-preview", "POST,/api/v1/transactions/manual/1/reconcile", "DELETE,/api/v1/transactions/manual/1/reconciliation/2", "GET,/api/v1/transactions/1/manual-reconciliation", "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
+            "GET,/api/v1/transactions/1/corrections", "POST,/api/v1/transactions/1/corrections", "GET,/api/v1/transactions/manual/1/reconciliation-preview", "POST,/api/v1/transactions/manual/1/reconcile", "DELETE,/api/v1/transactions/manual/1/reconciliation/2", "GET,/api/v1/transactions/1/manual-reconciliation", "GET,/api/v1/transactions", "GET,/api/v1/analytics/summary",
             "POST,/api/v1/auth/google/disconnect", "GET,/api/v1/user/phone-status", "GET,/api/v1/user/pairing-info",
             "POST,/api/v1/user/pairing-info/regenerate",
             "PATCH,/api/v1/transactions/1/classification", "GET,/api/v1/transactions/pending", "GET,/api/v1/transactions/1/origin",

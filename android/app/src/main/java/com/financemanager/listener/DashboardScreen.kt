@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,6 +81,7 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var selected by remember { mutableStateOf<LocalTransactionEntity?>(null) }
     var assignment by remember { mutableStateOf<LocalTransactionEntity?>(null) }
     var confirmAllDialog by remember { mutableStateOf(false) }
+    var manualSheet by rememberSaveable { mutableStateOf(false) }
     var assigning by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
     val capture by CaptureStatus.state.collectAsState()
@@ -143,6 +146,18 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     Scaffold(
         modifier = modifier,
         containerColor = Canvas,
+        floatingActionButton = {
+            if (tab == 0 || tab == 1) {
+                FloatingActionButton(
+                    onClick = { manualSheet = true },
+                    containerColor = BrandBlue,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("+", fontSize = 24.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        },
         bottomBar = {
             NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
                 listOf("Inicio", "Movimientos", "Ajustes").forEachIndexed { index, label ->
@@ -886,6 +901,30 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
         )
     }
 
+    if (manualSheet) {
+        ManualEntryBottomSheet(
+            paired = session != null,
+            onDismiss = { manualSheet = false },
+            onSave = { amount, flowType, contactName, paymentMethod ->
+                val currentSession = PairingPreferences.session(context)
+                val entity = buildManualTransactionEntity(
+                    amount = amount,
+                    flowType = flowType,
+                    contactName = contactName,
+                    paymentMethod = paymentMethod,
+                    ownerKey = currentSession?.ownerKey
+                )
+                withContext(Dispatchers.IO) {
+                    dao.insert(entity)
+                }
+                if (currentSession != null) {
+                    TransactionSyncWorker.enqueue(context, manual = true)
+                }
+                manualSheet = false
+            }
+        )
+    }
+
     if (pairing) {
         PairingDialog(onDismiss = { pairing = false }, onSuccess = {
             email = it; session = PairingPreferences.session(context); pairing = false
@@ -1011,6 +1050,7 @@ private fun DetailRow(label: String, value: String) {
 
 @Composable
 private fun TransactionRow(row: LocalTransactionEntity, showDivider: Boolean = true, onClick: () -> Unit) {
+    val isManual = row.transactionHash.startsWith("manual:")
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier.padding(vertical = 13.dp),
@@ -1019,7 +1059,16 @@ private fun TransactionRow(row: LocalTransactionEntity, showDivider: Boolean = t
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.contactName, fontWeight = FontWeight.Medium, color = Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text("${formatChannelLabel(row.channel)} · ${formatTransactionDate(row.transactionDate, "HH:mm")}", color = Muted, fontSize = 12.sp)
+                Text(
+                    buildString {
+                        append(formatChannelLabel(row.channel))
+                        if (isManual) append(" · Manual")
+                        append(" · ")
+                        append(formatTransactionDate(row.transactionDate, "HH:mm"))
+                    },
+                    color = Muted,
+                    fontSize = 12.sp
+                )
             }
             Column(Modifier.widthIn(max = 160.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(formatAmount(row), color = if (row.flowType == "INCOME") Positive else Ink, fontWeight = FontWeight.SemiBold)
@@ -1027,6 +1076,141 @@ private fun TransactionRow(row: LocalTransactionEntity, showDivider: Boolean = t
             }
         }
         if (showDivider) HorizontalDivider(color = Line)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ManualEntryBottomSheet(
+    paired: Boolean,
+    onDismiss: () -> Unit,
+    onSave: suspend (java.math.BigDecimal, String, String, MobilePaymentMethod) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var flowType by remember { mutableStateOf("EXPENSE") }
+    var amountText by remember { mutableStateOf("") }
+    var contactName by remember { mutableStateOf("") }
+    var paymentMethod by remember { mutableStateOf(MobilePaymentMethod.CASH) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(
+        onDismissRequest = { if (!saving) onDismiss() },
+        sheetState = sheetState,
+        containerColor = Color.White
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                "Registrar movimiento",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                listOf("EXPENSE" to "Gasto", "INCOME" to "Entrada").forEach { (code, label) ->
+                    val selected = flowType == code
+                    FilterChip(
+                        selected = selected,
+                        onClick = { if (!saving) flowType = code },
+                        label = { Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { amountText = it; error = null },
+                label = { Text("Importe (S/)") },
+                placeholder = { Text("0.00") },
+                singleLine = true,
+                enabled = !saving,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = contactName,
+                onValueChange = { if (it.length <= 150) { contactName = it; error = null } },
+                label = { Text(if (flowType == "INCOME") "Origen o concepto" else "Comercio o concepto") },
+                placeholder = { Text(if (flowType == "INCOME") "Ej. Pago cliente" else "Ej. Almuerzo, Taxi") },
+                singleLine = true,
+                enabled = !saving,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Medio de pago", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Muted)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MobilePaymentMethod.entries.forEach { method ->
+                        FilterChip(
+                            selected = paymentMethod == method,
+                            onClick = { if (!saving) paymentMethod = method },
+                            label = { Text(method.label) }
+                        )
+                    }
+                }
+            }
+
+            if (!paired) {
+                Text(
+                    "Se guardará en este teléfono. Cuando conectes la web podrás confirmar su destino y enviarlo.",
+                    fontSize = 12.sp,
+                    color = Muted
+                )
+            }
+
+            error?.let {
+                Text(it, color = Negative, fontSize = 13.sp)
+            }
+
+            Button(
+                onClick = {
+                    val parsedAmount = parseManualAmount(amountText)
+                    if (parsedAmount == null) {
+                        error = "Ingresa un importe válido (entre 0.01 y 99,999,999.99, máx. 2 decimales)."
+                        return@Button
+                    }
+                    if (contactName.trim().isEmpty()) {
+                        error = "Ingresa un comercio o concepto."
+                        return@Button
+                    }
+                    saving = true
+                    error = null
+                    scope.launch {
+                        try {
+                            onSave(parsedAmount, flowType, contactName.trim(), paymentMethod)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            error = "No se pudo guardar el movimiento. Inténtalo de nuevo."
+                            saving = false
+                        }
+                    }
+                },
+                enabled = !saving,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (saving) "Guardando…" else "Guardar movimiento")
+            }
+        }
     }
 }
 

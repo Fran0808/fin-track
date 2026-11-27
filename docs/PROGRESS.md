@@ -17,6 +17,21 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android quick manual movement entry (1.8.0)
+
+- November 27, scope: API (`JwtAuthFilter`) and Android (`1.8.0 (28)`). Allowed
+  `X-Device-Token` on `POST /api/v1/transactions/manual` (write-only, keeping
+  reconciliation/read endpoints web-only; covered in `JwtAuthFilterTest`). Added
+  offline-first manual entry in Android (`ManualEntry`, `ManualEntryTest`,
+  `ManualTransactionDto`, `ApiClient.createManual`, `TransactionSynchronizer`
+  routing `manual:<uuid>` hashes to `/manual` with idempotent `requestId`),
+  floating `+` button and `ManualEntryBottomSheet` on `Inicio`/`Movimientos`,
+  and human payment-method labels in `ChannelDisplay`.
+- Verified locally: backend `JwtAuthFilterTest` and Android
+  `.\gradlew.bat testDebugUnitTest assembleDebug` passed (`app-debug.apk`,
+  version `1.8.0 (28)`). Physical device and release APK acceptance remain
+  pending.
+
 ## Current checkpoint: Movements table sorting by amount and date
 
 - November 27, scope: API and dashboard (`TransactionController`, `api.ts`,
