@@ -171,3 +171,37 @@ it('focuses search input on slash key and clears or blurs on Escape', () => {
   fireEvent.keyDown(searchInput, { key: 'Escape' });
   expect(document.activeElement).not.toBe(searchInput);
 });
+
+it('toggles date and amount column sorting in TransactionTable', () => {
+  const onSortChange = vi.fn();
+  const pageData = { content: [sampleTx], totalElements: 1, totalPages: 1, size: 10, number: 0, first: true, last: true, empty: false };
+  const view = render(
+    <TransactionTable
+      pageData={pageData}
+      loading={false}
+      sort="transactionDate,desc"
+      onSortChange={onSortChange}
+      onPageChange={vi.fn()}
+      onSelectTransaction={vi.fn()}
+    />
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: /Importe/i }));
+  expect(onSortChange).toHaveBeenLastCalledWith('amount,desc');
+
+  view.rerender(
+    <TransactionTable
+      pageData={pageData}
+      loading={false}
+      sort="amount,desc"
+      onSortChange={onSortChange}
+      onPageChange={vi.fn()}
+      onSelectTransaction={vi.fn()}
+    />
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Importe/i }));
+  expect(onSortChange).toHaveBeenLastCalledWith('amount,asc');
+
+  fireEvent.click(screen.getByRole('button', { name: /Fecha/i }));
+  expect(onSortChange).toHaveBeenLastCalledWith('transactionDate,desc');
+});

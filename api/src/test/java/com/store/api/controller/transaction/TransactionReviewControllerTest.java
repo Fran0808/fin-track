@@ -97,6 +97,18 @@ class TransactionReviewControllerTest {
         verify(service).exportTransactionsCsv(null, null, null, null, null, null, null, null, null, null, group);
     }
 
+    @Test void forwardsAllowlistedAmountSortAndRejectsUnknownSort() throws Exception {
+        when(service.getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(Page.empty(PageRequest.of(0, 10)));
+        mvc.perform(get("/api/v1/transactions").param("sort", "amount,desc")).andExpect(status().isOk());
+        verify(service).getTransactions(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), isNull(),
+                argThat(page -> page.getSort().getOrderFor("amount") != null
+                        && page.getSort().getOrderFor("amount").isDescending()));
+
+        mvc.perform(get("/api/v1/transactions").param("sort", "unknown,desc")).andExpect(status().isBadRequest());
+    }
+
     @Test void rejectsUnknownReviewReasonsBeforeQuerying() throws Exception {
         for (String path : new String[]{"/api/v1/transactions", "/api/v1/transactions/export"}) {
             mvc.perform(get(path).param("pendingReason", "INVALID")).andExpect(status().isBadRequest());

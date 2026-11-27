@@ -67,11 +67,14 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
+export type TransactionSort = 'transactionDate,desc' | 'transactionDate,asc' | 'amount,desc' | 'amount,asc';
+
 export interface TransactionFilterParams {
   categoryGroup?: string;
   merchantName?: string;
   page?: number;
   size?: number;
+  sort?: TransactionSort;
   flowType?: FlowType | '';
   search?: string;
   startDate?: string;
@@ -230,6 +233,7 @@ export const api = {
     const query = new URLSearchParams();
     query.set('page', String(params.page ?? 0));
     query.set('size', String(params.size ?? 10));
+    if (params.sort) query.set('sort', params.sort);
     if (params.merchantName !== undefined) query.set('merchantName', params.merchantName);
     if (params.categoryGroup !== undefined) query.set('categoryGroup', params.categoryGroup);
     if (params.pendingReason) query.set('pendingReason', params.pendingReason);

@@ -17,6 +17,16 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Movements table sorting by amount and date
+
+- November 27, scope: API and dashboard (`TransactionController`, `api.ts`,
+  `TransactionsView`, `TransactionTable`). Added allowlisted `sort` parameter
+  (`transactionDate,desc|asc`, `amount,desc|asc`) on `GET /api/v1/transactions`
+  with `400` rejection for unknown sort keys, and added interactive `Fecha` and
+  `Importe` column sort headers with `aria-sort` in `TransactionTable`.
+- Verified locally: backend `TransactionReviewControllerTest`, UI tests, lint
+  and production build.
+
 ## Current checkpoint: dashboard Block A interactivity improvements
 
 - November 27, scope: dashboard (`HomeView`, `App`, `useFinance`,

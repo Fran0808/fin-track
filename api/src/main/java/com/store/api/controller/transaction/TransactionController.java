@@ -28,11 +28,19 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
 @RequiredArgsConstructor
 public class TransactionController {
+
+    private static final Map<String, Sort> ALLOWED_SORTS = Map.of(
+            "transactionDate,desc", Sort.by(Sort.Order.desc("transactionDate"), Sort.Order.desc("id")),
+            "transactionDate,asc", Sort.by(Sort.Order.asc("transactionDate"), Sort.Order.asc("id")),
+            "amount,desc", Sort.by(Sort.Order.desc("amount"), Sort.Order.desc("transactionDate"), Sort.Order.desc("id")),
+            "amount,asc", Sort.by(Sort.Order.asc("amount"), Sort.Order.desc("transactionDate"), Sort.Order.desc("id"))
+    );
 
     private final TransactionService transactionService;
 
@@ -92,11 +100,17 @@ public class TransactionController {
             @RequestParam(required = false) String merchantName,
             @RequestParam(required = false) String categoryGroup,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "transactionDate,desc") String sort
     ) {
         if (page < 0 || size < 1 || size > 100) throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
                 "La página no puede ser negativa y el tamaño debe estar entre 1 y 100.");
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "transactionDate", "id"));
+        Sort resolvedSort = ALLOWED_SORTS.get(sort);
+        if (resolvedSort == null) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El ordenamiento solicitado no es válido.");
+        }
+        Pageable pageable = PageRequest.of(page, size, resolvedSort);
         Page<TransactionResponse> result = transactionService.getTransactions(
                 startDate, endDate, flowType, search, category, channel, minAmount, maxAmount, pendingReason, merchantName, categoryGroup, pageable
         );

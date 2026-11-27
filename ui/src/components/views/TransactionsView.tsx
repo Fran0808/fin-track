@@ -141,6 +141,7 @@ export function TransactionsView({
                 endDate: undefined,
                 allHistory: false,
                 pendingReason: '',
+                sort: undefined,
               })
             }
           />
@@ -150,9 +151,11 @@ export function TransactionsView({
           selectionDisabled={selectionDisabled}
           pageData={pageData}
           flowType={filters.flowType}
+          sort={filters.sort ?? 'transactionDate,desc'}
           loading={loading}
           periodName={dateScope}
           onPageChange={onPageChange}
+          onSortChange={(sort) => onFilterChange({ sort })}
           onSelectTransaction={onSelectTransaction}
         />
       </section>

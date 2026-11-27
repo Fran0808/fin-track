@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { ArrowDown, ArrowDownLeft, ArrowLeftRight, ArrowUp, ArrowUpDown, ArrowUpRight, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import type { TransactionSort } from '../../services/api';
 import type { Transaction, TransactionPageResponse, FlowType } from '../../types';
 import { formatCurrency, formatTransactionDateParts, getChannelLabel, getTransactionFlowLabel } from '../../utils';
 import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
@@ -9,9 +10,11 @@ interface TransactionTableProps {
   selectionDisabled?: boolean;
   pageData: TransactionPageResponse | null;
   flowType?: FlowType | '';
+  sort?: TransactionSort;
   loading: boolean;
   periodName?: string;
   onPageChange: (page: number) => void;
+  onSortChange?: (sort: TransactionSort) => void;
   onSelectTransaction: (transaction: Transaction, options?: { edit?: boolean }) => void;
 }
 
@@ -56,14 +59,46 @@ function CategoryChip({ category, isTransfer, compact = false }: { category?: st
   );
 }
 
-export function TransactionTable({ pageData, flowType, loading, periodName, onPageChange, onSelectTransaction, selectedTransactionId, selectionDisabled = false }: TransactionTableProps) {
+export function TransactionTable({
+  pageData,
+  flowType,
+  sort = 'transactionDate,desc',
+  loading,
+  periodName,
+  onPageChange,
+  onSortChange,
+  onSelectTransaction,
+  selectedTransactionId,
+  selectionDisabled = false,
+}: TransactionTableProps) {
   const cacheByFlow = useRef<Map<string, TransactionPageResponse>>(new Map());
   const prevPeriodRef = useRef(periodName);
+  const prevSortRef = useRef(sort);
 
-  if (prevPeriodRef.current !== periodName) {
+  if (prevPeriodRef.current !== periodName || prevSortRef.current !== sort) {
     prevPeriodRef.current = periodName;
+    prevSortRef.current = sort;
     cacheByFlow.current.clear();
   }
+
+  const toggleSort = (field: 'transactionDate' | 'amount') => {
+    if (!onSortChange) return;
+    const desc: TransactionSort = `${field},desc`;
+    const asc: TransactionSort = `${field},asc`;
+    onSortChange(sort === desc ? asc : desc);
+  };
+
+  const renderSortIcon = (field: 'transactionDate' | 'amount') => {
+    if (sort === `${field},desc`) return <ArrowDown className="h-3.5 w-3.5 text-brand" aria-hidden="true" />;
+    if (sort === `${field},asc`) return <ArrowUp className="h-3.5 w-3.5 text-brand" aria-hidden="true" />;
+    return <ArrowUpDown className="h-3.5 w-3.5 text-muted/70" aria-hidden="true" />;
+  };
+
+  const getAriaSort = (field: 'transactionDate' | 'amount'): 'ascending' | 'descending' | 'none' => {
+    if (sort === `${field},asc`) return 'ascending';
+    if (sort === `${field},desc`) return 'descending';
+    return 'none';
+  };
 
   const currentFlowKey = flowType || '';
 
@@ -134,9 +169,31 @@ export function TransactionTable({ pageData, flowType, loading, periodName, onPa
             <tr className="border-y border-line bg-canvas/70 text-xs font-semibold uppercase tracking-wider text-muted">
               <th scope="col" className="px-3 py-3 sm:px-6">Comercio o contacto</th>
               <th scope="col" className="hidden px-4 py-3 @4xl:table-cell">Categoría</th>
-              <th scope="col" className="hidden px-4 py-3 @2xl:table-cell">Fecha</th>
+              <th scope="col" aria-sort={onSortChange ? getAriaSort('transactionDate') : undefined} className="hidden px-4 py-3 @2xl:table-cell">
+                {onSortChange ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('transactionDate')}
+                    className="inline-flex items-center gap-1.5 rounded uppercase tracking-wider transition-colors hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                  >
+                    Fecha
+                    {renderSortIcon('transactionDate')}
+                  </button>
+                ) : 'Fecha'}
+              </th>
               <th scope="col" className="hidden px-4 py-3 @2xl:table-cell">Medio</th>
-              <th scope="col" className="w-28 px-2 py-3 text-right @2xl:w-auto sm:px-4">Importe</th>
+              <th scope="col" aria-sort={onSortChange ? getAriaSort('amount') : undefined} className="w-28 px-2 py-3 text-right @2xl:w-auto sm:px-4">
+                {onSortChange ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('amount')}
+                    className="inline-flex items-center justify-end gap-1.5 rounded uppercase tracking-wider transition-colors hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+                  >
+                    Importe
+                    {renderSortIcon('amount')}
+                  </button>
+                ) : 'Importe'}
+              </th>
               <th scope="col" className="w-12 px-1 py-3 text-right @2xl:w-auto sm:px-6"><span className="sr-only">Detalle</span></th>
             </tr>
           </thead>
