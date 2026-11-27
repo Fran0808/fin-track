@@ -162,7 +162,7 @@ export function TransactionTable({
       </div>
 
       <div className="overflow-x-auto [scrollbar-color:var(--color-muted)_transparent] [scrollbar-width:thin]">
-        <div className="@container xl:w-(--movements-table-width)">
+        <div className="@container w-full">
         <table className="w-full table-fixed border-collapse text-left @2xl:table-auto">
           <caption className="sr-only">Movimientos del período seleccionado</caption>
           <thead>
