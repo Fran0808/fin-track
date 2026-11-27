@@ -17,6 +17,31 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android Gradle CI reliability fix
+
+- November 27, scope: Android build configuration (`android/settings.gradle.kts`,
+  `android/gradle/gradle-daemon-jvm.properties`). Removed the unused
+  `org.gradle.toolchains.foojay-resolver-convention` settings plugin (which
+  caused cold CI runs to fail whenever `plugins.gradle.org` had transient errors)
+  and removed `gradle-daemon-jvm.properties` (`toolchainVersion=25`) so Gradle
+  uses the configured JDK directly without external Foojay downloads or Kotlin
+  JVM 25 target fallback warnings.
+- Verified locally: `.\gradlew.bat testDebugUnitTest testReleaseUnitTest`
+  passed without external Foojay toolchain lookups or JDK 25 target warnings.
+
+## Current checkpoint: Analysis view interactivity and pattern breakdowns
+
+- November 27, scope: dashboard (`MyMoneyView`, `ExpenseHighlights`,
+  `ExpenseTrendChart`). Made `Datos destacados` peak cards (`Mayor gasto
+  registrado` and `Día con más gastos registrados`) clickable drill-downs into
+  `Movimientos` and added zero-expense days count; added a dashed daily-average
+  reference line in the `Diario` SVG chart and a new `Lun–Dom` weekday pattern
+  breakdown in `ExpenseTrendChart`; added proportional progress bars and a
+  `Monto | Frecuencia` sort toggle in `¿Dónde gastaste más?`.
+- Verified locally: UI tests (`expense-highlights.test.tsx`,
+  `expense-trend.test.tsx`, `analysis-view.test.tsx`), lint and production
+  build.
+
 ## Current checkpoint: Android in-app self-update via GitHub Releases (1.9.0)
 
 - November 27, scope: GitHub release script (`publish-android-release.sh`) and
