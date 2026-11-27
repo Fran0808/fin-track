@@ -47,11 +47,14 @@ import com.financemanager.listener.service.CaptureStatus
 import com.financemanager.listener.service.SyncPhase
 import com.financemanager.listener.service.YapeNotificationListenerService
 import com.financemanager.listener.ui.theme.*
+import com.financemanager.listener.update.AppUpdateInfo
+import com.financemanager.listener.update.AppUpdater
 import com.financemanager.listener.worker.TransactionSyncWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.math.RoundingMode
 import java.time.*
 import java.time.format.DateTimeFormatter
@@ -84,6 +87,13 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
     var manualSheet by rememberSaveable { mutableStateOf(false) }
     var assigning by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
+    var availableUpdate by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var updateCheckNote by remember { mutableStateOf<String?>(null) }
+    var downloadingUpdate by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf<Float?>(null) }
+    var downloadedApk by remember { mutableStateOf<File?>(null) }
+    var updateError by remember { mutableStateOf<String?>(null) }
     val capture by CaptureStatus.state.collectAsState()
     val inboxFlow = remember(session?.ownerKey) { AppDatabase.getDatabase(context).captureInboxDao().counts(session?.ownerKey) }
     val inboxCounts by key(session?.ownerKey) { inboxFlow.collectAsState(com.financemanager.listener.data.InboxCounts(0, 0)) }
@@ -120,6 +130,66 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
             com.financemanager.listener.service.ListenerHealthCoordinator.foreground(context)
         }
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
+    }
+    fun checkUpdates(userInitiated: Boolean = false) {
+        if (checkingUpdate || downloadingUpdate) return
+        checkingUpdate = true
+        if (userInitiated) {
+            updateError = null
+            updateCheckNote = null
+        }
+        scope.launch {
+            try {
+                val found = withContext(Dispatchers.IO) { AppUpdater.checkForUpdate() }
+                availableUpdate = found
+                if (found == null && userInitiated) {
+                    updateCheckNote = "Ya tienes la última versión instalada."
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                if (userInitiated) {
+                    updateError = "No se pudo comprobar si hay actualizaciones. Revisa tu conexión."
+                }
+            } finally {
+                checkingUpdate = false
+            }
+        }
+    }
+    fun startUpdateInstall(info: AppUpdateInfo) {
+        if (downloadingUpdate) return
+        val existing = downloadedApk
+        if (existing != null && existing.isFile) {
+            val launched = AppUpdater.installApk(context, existing)
+            updateError = if (launched) null else "Permite ‘Instalar apps desconocidas’ para FinTrack y vuelve a tocar Instalar."
+            return
+        }
+        downloadingUpdate = true
+        downloadProgress = null
+        updateError = null
+        scope.launch {
+            try {
+                val apk = withContext(Dispatchers.IO) {
+                    AppUpdater.downloadAndVerifyApk(context, info) { progress ->
+                        scope.launch(Dispatchers.Main) { downloadProgress = progress }
+                    }
+                }
+                downloadedApk = apk
+                val launched = AppUpdater.installApk(context, apk)
+                if (!launched) {
+                    updateError = "Permite ‘Instalar apps desconocidas’ para FinTrack y vuelve a tocar Instalar."
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                updateError = e.message ?: "No se pudo descargar la actualización."
+            } finally {
+                downloadingUpdate = false
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        checkUpdates(userInitiated = false)
     }
     BackHandler(enabled = tab != 0) { tab = 0 }
     fun openMovements(next: MovementStatus = MovementStatus.ALL) {
@@ -207,6 +277,57 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                     }
                 }
                 if (tab == 0) {
+                    availableUpdate?.let { update ->
+                        item {
+                            AppPanel {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        "Nueva versión ${update.versionName}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Ink
+                                    )
+                                    StatusPill(text = "Actualización", contentColor = BrandBlue, containerColor = SoftBrand)
+                                }
+                                Text(
+                                    "Descarga e instala la actualización verificada sin salir de FinTrack. Tus movimientos y vinculación se conservan.",
+                                    fontSize = 13.sp,
+                                    color = Muted
+                                )
+                                if (downloadingUpdate) {
+                                    val progress = downloadProgress
+                                    if (progress != null) {
+                                        LinearProgressIndicator(
+                                            progress = { progress },
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Text("Descargando… ${(progress * 100).toInt()}%", fontSize = 12.sp, color = Muted)
+                                    } else {
+                                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                        Text("Descargando actualización…", fontSize = 12.sp, color = Muted)
+                                    }
+                                }
+                                updateError?.let { Text(it, fontSize = 12.sp, color = Negative) }
+                                Button(
+                                    onClick = { startUpdateInstall(update) },
+                                    enabled = !downloadingUpdate,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        when {
+                                            downloadingUpdate -> "Descargando…"
+                                            downloadedApk != null -> "Instalar versión ${update.versionName}"
+                                            else -> "Actualizar ahora"
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                     if (session == null || !permission) {
                         item {
                             AppPanel {
@@ -697,11 +818,59 @@ fun DashboardScreen(modifier: Modifier = Modifier) {
                         }
                     }
                     item {
-                        Text(
-                            "FinTrack ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                            color = Muted,
-                            fontSize = 12.sp
-                        )
+                        AppPanel {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Actualizaciones", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Ink)
+                                StatusPill(
+                                    text = if (availableUpdate != null) "v${availableUpdate!!.versionName} disponible" else "v${BuildConfig.VERSION_NAME}",
+                                    contentColor = if (availableUpdate != null) BrandBlue else Positive,
+                                    containerColor = if (availableUpdate != null) SoftBrand else SoftGreen
+                                )
+                            }
+                            Text(
+                                "Versión instalada: FinTrack ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                                fontSize = 13.sp,
+                                color = Muted
+                            )
+                            updateCheckNote?.let { Text(it, fontSize = 12.sp, color = Positive) }
+                            updateError?.let { Text(it, fontSize = 12.sp, color = Negative) }
+                            if (downloadingUpdate) {
+                                val progress = downloadProgress
+                                if (progress != null) {
+                                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                                } else {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                }
+                            }
+                            val currentUpdate = availableUpdate
+                            if (currentUpdate != null) {
+                                Button(
+                                    onClick = { startUpdateInstall(currentUpdate) },
+                                    enabled = !downloadingUpdate,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        when {
+                                            downloadingUpdate -> "Descargando…"
+                                            downloadedApk != null -> "Instalar versión ${currentUpdate.versionName}"
+                                            else -> "Descargar e instalar v${currentUpdate.versionName}"
+                                        }
+                                    )
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { checkUpdates(userInitiated = true) },
+                                    enabled = !checkingUpdate,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(if (checkingUpdate) "Buscando…" else "Buscar actualizaciones")
+                                }
+                            }
+                        }
                     }
                 }
             }

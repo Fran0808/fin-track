@@ -48,7 +48,7 @@ if [[ -z "${ANDROID_RELEASE_KEYSTORE_BASE64:-}" || -z "${ANDROID_RELEASE_STORE_P
 fi
 
 work=$(mktemp -d "$RUNNER_TEMP/fintrack-android-release.XXXXXX")
-trap 'rm -f -- "$work/release.keystore" "$work/aligned.apk" "$work/fintrack.apk" "$work/previous.apk"; rmdir -- "$work"' EXIT
+trap 'rm -f -- "$work/release.keystore" "$work/aligned.apk" "$work/fintrack.apk" "$work/version.json" "$work/previous.apk"; rmdir -- "$work"' EXIT
 umask 077
 printf '%s' "$ANDROID_RELEASE_KEYSTORE_BASE64" | base64 --decode > "$work/release.keystore"
 "$build_tools/zipalign" -f -P 16 4 "$unsigned_apk" "$work/aligned.apk"
@@ -94,5 +94,14 @@ elif [[ "$(jq -r '.target_commitish' <<< "$release")" != "$GITHUB_SHA" ]]; then
     exit 1
 fi
 
-gh release upload "$tag" "$work/$asset" --repo "$GITHUB_REPOSITORY" --clobber
+apk_sha256=$(sha256sum "$work/$asset" | awk '{print $1}')
+jq -n \
+    --arg versionName "$version" \
+    --argjson versionCode "$version_code" \
+    --arg downloadUrl "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/$asset" \
+    --arg sha256 "$apk_sha256" \
+    '{versionName: $versionName, versionCode: $versionCode, downloadUrl: $downloadUrl, sha256: $sha256}' \
+    > "$work/version.json"
+
+gh release upload "$tag" "$work/$asset" "$work/version.json" --repo "$GITHUB_REPOSITORY" --clobber
 gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --latest

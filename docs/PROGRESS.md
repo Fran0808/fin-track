@@ -17,6 +17,22 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
 
+## Current checkpoint: Android in-app self-update via GitHub Releases (1.9.0)
+
+- November 27, scope: GitHub release script (`publish-android-release.sh`) and
+  Android (`1.9.0 (29)`). Updated `publish-android-release.sh` to generate and
+  upload `version.json` (`versionName`, `versionCode`, `downloadUrl`, `sha256`)
+  alongside `fintrack.apk` on every release. Added `FileProvider`,
+  `REQUEST_INSTALL_PACKAGES`, `AppUpdater` (checks GitHub Releases CDN directly
+  so updates work even when Render is sleeping, enforces trusted HTTPS GitHub
+  URL and SHA-256 verification before launching the Android package installer),
+  unit tests in `AppUpdaterTest`, an update banner in `Inicio`, and an
+  `Actualizaciones` card in `Ajustes`.
+- Verified locally: `.\gradlew.bat testDebugUnitTest assembleDebug` passed
+  (105 unit tests, `app-debug.apk`, version `1.9.0 (29)`). Release workflow
+  publication (`version.json` + signed `fintrack.apk`) and physical device
+  in-app update test remain pending.
+
 ## Current checkpoint: Android quick manual movement entry (1.8.0)
 
 - November 27, scope: API (`JwtAuthFilter`) and Android (`1.8.0 (28)`). Allowed
