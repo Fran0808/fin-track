@@ -93,6 +93,10 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
   };
 
   const currentMonthName = MONTHS[month - 1] || 'Mes';
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const isCurrentMonth = year === currentYear && month === currentMonth;
 
   return (
     <div ref={containerRef} className="relative inline-block text-left" aria-label="Período seleccionado">
@@ -229,6 +233,21 @@ export function PeriodSelector({ year, month, onChange }: PeriodSelectorProps) {
               );
             })}
           </div>
+
+          {!isCurrentMonth && (
+            <div className="mt-3 border-t border-line pt-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(currentYear, currentMonth);
+                  setIsOpen(false);
+                }}
+                className="w-full rounded-xl bg-canvas py-2 text-xs font-semibold text-brand transition hover:bg-brand/10"
+              >
+                Ir al mes actual
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

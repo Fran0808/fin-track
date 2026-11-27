@@ -102,3 +102,31 @@ it('opens from a cell or the keyboard control once, highlights selection, and bl
   expect(screen.getByRole('button', { name: 'Ver detalle de Synthetic sidebar store' })).toHaveProperty('disabled', true);
   expect(select).toHaveBeenCalledTimes(2);
 });
+
+it('supports previous/next movement navigation via sidebar buttons and keyboard shortcuts', () => {
+  const prev = vi.fn();
+  const next = vi.fn();
+  render(
+    <TransactionDetailModal
+      transaction={tx}
+      presentation="sidebar"
+      onClose={vi.fn()}
+      canNavigatePrevious
+      canNavigateNext
+      onNavigatePrevious={prev}
+      onNavigateNext={next}
+    />
+  );
+
+  fireEvent.click(screen.getByRole('button', { name: 'Movimiento anterior' }));
+  expect(prev).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Siguiente movimiento' }));
+  expect(next).toHaveBeenCalledTimes(1);
+
+  fireEvent.keyDown(window, { key: 'j' });
+  expect(next).toHaveBeenCalledTimes(2);
+
+  fireEvent.keyDown(window, { key: 'ArrowUp', altKey: true });
+  expect(prev).toHaveBeenCalledTimes(2);
+});

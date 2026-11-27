@@ -1,6 +1,6 @@
 ﻿# Project progress
 
-Updated: November 25, 2026. This is the entry point for current work, not a release
+Updated: November 27, 2026. This is the entry point for current work, not a release
 history or a replacement for Git. Validate it against `git status` and the current
 diff before resuming; working copies can contain newer or unrelated changes.
 
@@ -16,6 +16,20 @@ See [README](../README.md), [architecture](architecture/overview.md) and
 | Android capture | FinTrack 1.3.10 (23): provider-extension dispatch, release HTTPS, redirect protection and credential-backup exclusions; 83 JVM tests per debug/captureTest/release variant passed, APK metadata verified and `android-v1.3.10` published on GitHub Releases (`fintrack.apk`). Prior 1.3.2â€“1.3.9 reboot/Doze and cleanup evidence is retained in the detailed record. | Hosted CI for the latest commit, full lifecycle rerun, deployed HTTPS, real backup/transfer and physical/OEM acceptance remain. See [capture progress](android/capture-progress.md). |
 | Backend/dashboard | Ingestion provenance and all three persistence suites passed against isolated PostgreSQL. The local runner and initializer reproduce setup/checks. See [validation evidence](development/persistence-progress.md). | Hosted CI has not run for the current uncommitted changes. No production migration, live OAuth or end-to-end synchronization was performed. |
 | Agent knowledge | Shared root/module instructions and this progress index are intended to travel with the repository. | Local skills remain ignored pending selective review. Agent restart evaluations are not automated. |
+
+## Current checkpoint: dashboard Block A interactivity improvements
+
+- November 27, scope: dashboard (`HomeView`, `App`, `useFinance`,
+  `TransactionDetailModal`, `PeriodSelector`). Made Home summary cards
+  (`Gastos del mes`, `Entradas del mes`) and `Mayor rubro` clickable drill-downs
+  into `Movimientos`, added an actionable uncategorized-expenses banner on Home,
+  added a quick `Agregar movimiento` button in Home opening
+  `ManualTransactionModal`, added previous/next movement navigation buttons and
+  `Alt+↑/↓` + `J/K` shortcuts in the `Movimientos` detail sidebar, and added an
+  `Ir al mes actual` shortcut inside `PeriodSelector`.
+- Verified locally: UI tests (including new regression tests in
+  `home-interactivity.test.tsx`, `transaction-sidebar.test.tsx` and
+  `navigation-accessibility.test.tsx`), lint and production build.
 
 ## Current checkpoint: Android UI/UX refresh and reliability controls (1.7.0)
 

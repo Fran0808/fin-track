@@ -84,4 +84,9 @@ it('groups sidebar navigation into Seguimiento and Gestión and steps months wit
   periodView.rerender(<PeriodSelector year={2026} month={12} onChange={onChange} />);
   fireEvent.click(screen.getByRole('button', { name: 'Mes siguiente' }));
   expect(onChange).toHaveBeenCalledWith(2027, 1);
+
+  fireEvent.click(screen.getByRole('button', { name: /Diciembre/i }));
+  fireEvent.click(screen.getByRole('button', { name: 'Ir al mes actual' }));
+  const now = new Date();
+  expect(onChange).toHaveBeenLastCalledWith(now.getFullYear(), now.getMonth() + 1);
 });

@@ -3,6 +3,7 @@ import { SidebarNavigation, PeriodSelector } from './components/layout';
 import type { NavView } from './components/layout';
 import { HomeView, MyMoneyView, TransactionsView, SettingsView, CategoriesView, ClassificationRulesView } from './components/views';
 import { TransactionDetailModal } from './components/transactions';
+import { ManualTransactionModal } from './components/transactions/ManualTransactionModal';
 import { CreateClassificationRuleModal } from './components/transactions/CreateClassificationRuleModal';
 import { LoginView } from './components/auth';
 import { PairDeviceModal } from './components/auth/PairDeviceModal';
@@ -66,6 +67,7 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
     showCategoryTransactions,
     showDayTransactions,
     showChannelTransactions,
+    showFlowTransactions,
     refreshAll,
   } = useFinance(user.id);
 
@@ -77,8 +79,13 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
   const [ruleDraft, setRuleDraft] = useState<ClassificationRuleDraft | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pairingOpen, setPairingOpen] = useState(false);
+  const [homeManualOpen, setHomeManualOpen] = useState(false);
   const [introCompletedFor, setIntroCompletedFor] = useState<number | null>(null);
   const showMovementDetail = activeView === 'movimientos' && selectedTransaction !== null;
+  const movementRows = transactionsPage?.content ?? [];
+  const selectedMovementIndex = activeView === 'movimientos' && selectedTransaction
+    ? movementRows.findIndex(item => item.id === selectedTransaction.id)
+    : -1;
   const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
   const navigateView = (view: NavView) => {
     if (detailBusy) return;
@@ -179,6 +186,19 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
                 showChannelTransactions(channel);
                 setActiveView('movimientos');
               }}
+              onSelectFlow={(flow) => {
+                showFlowTransactions(flow);
+                setActiveView('movimientos');
+              }}
+              onSelectCategory={(category) => {
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const lastDay = new Date(selectedPeriod.year, selectedPeriod.month, 0).getDate();
+                const start = periodAnalytics?.periodStart ?? `${selectedPeriod.year}-${pad(selectedPeriod.month)}-01T00:00:00`;
+                const end = periodAnalytics?.periodEnd ?? `${selectedPeriod.year}-${pad(selectedPeriod.month)}-${pad(lastDay)}T23:59:59.999999`;
+                showCategoryTransactions(category, start, end);
+                setActiveView('movimientos');
+              }}
+              onOpenManualTransaction={() => setHomeManualOpen(true)}
               selectedYear={selectedPeriod.year}
               selectedMonth={selectedPeriod.month}
               animateIntro={introCompletedFor !== user.id}
@@ -258,11 +278,46 @@ function AuthenticatedDashboard({ user, logout }: { user: UserProfile; logout: (
         </main>
       </div>
 
-      <TransactionDetailModal transaction={selectedTransaction} presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'} startEditing={editingSelection} closing={sidebarClosing} onBusyChange={setDetailBusy} onClosing={() => setSidebarClosing(true)} onClose={() => { setSelectedTransaction(null); setSidebarClosing(false); }} onCreateRule={setRuleDraft} onUpdated={transaction => {
-        setEditingSelection(false);
-        setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
-        void refreshAll();
-      }} />
+      <TransactionDetailModal
+        transaction={selectedTransaction}
+        presentation={activeView === 'movimientos' ? 'sidebar' : 'modal'}
+        startEditing={editingSelection}
+        closing={sidebarClosing}
+        onBusyChange={setDetailBusy}
+        onClosing={() => setSidebarClosing(true)}
+        onClose={() => { setSelectedTransaction(null); setSidebarClosing(false); }}
+        onCreateRule={setRuleDraft}
+        canNavigatePrevious={selectedMovementIndex > 0}
+        canNavigateNext={selectedMovementIndex >= 0 && selectedMovementIndex < movementRows.length - 1}
+        onNavigatePrevious={activeView === 'movimientos' ? () => {
+          if (selectedMovementIndex > 0 && !detailBusy) {
+            setSidebarClosing(false);
+            setSelectedTransaction(movementRows[selectedMovementIndex - 1]);
+          }
+        } : undefined}
+        onNavigateNext={activeView === 'movimientos' ? () => {
+          if (selectedMovementIndex >= 0 && selectedMovementIndex < movementRows.length - 1 && !detailBusy) {
+            setSidebarClosing(false);
+            setSelectedTransaction(movementRows[selectedMovementIndex + 1]);
+          }
+        } : undefined}
+        onUpdated={transaction => {
+          setEditingSelection(false);
+          setSelectedTransaction(current => current?.id === selectedTransaction?.id ? transaction : current);
+          void refreshAll();
+        }}
+      />
+      {homeManualOpen && (
+        <ManualTransactionModal
+          onClose={() => setHomeManualOpen(false)}
+          onCreated={transaction => {
+            setHomeManualOpen(false);
+            setEditingSelection(false);
+            setSelectedTransaction(transaction);
+            void refreshAll();
+          }}
+        />
+      )}
       {ruleDraft && <CreateClassificationRuleModal draft={ruleDraft} onClose={() => setRuleDraft(null)} />}
       <PairDeviceModal isOpen={pairingOpen} onClose={() => setPairingOpen(false)} />
     </div>

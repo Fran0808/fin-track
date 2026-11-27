@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Check, X, ChevronRight, Loader2, Pencil, History, ListPlus } from 'lucide-react';
+import { Check, X, ChevronDown, ChevronRight, ChevronUp, Loader2, Pencil, History, ListPlus } from 'lucide-react';
 import { animate } from 'animejs';
 import type { ClassificationRuleDraft, Transaction } from '../../types';
 import { formatCurrency, formatDate, getChannelLabel, getTransactionFlowLabel, isOwnCardPayment } from '../../utils';
@@ -20,6 +20,10 @@ interface TransactionDetailModalProps {
   onClose: () => void;
   onUpdated?: (transaction: Transaction) => void;
   onCreateRule?: (draft: ClassificationRuleDraft) => void;
+  onNavigatePrevious?: () => void;
+  onNavigateNext?: () => void;
+  canNavigatePrevious?: boolean;
+  canNavigateNext?: boolean;
 }
 
 const isInstantMotion = typeof window !== 'undefined' && (
@@ -31,7 +35,21 @@ export function TransactionDetailModal(props: TransactionDetailModalProps) {
   return props.transaction ? <TransactionDetailContent {...props} transaction={props.transaction} /> : null;
 }
 
-function TransactionDetailContent({ transaction, closing = false, onClosing, onClose, onUpdated, onCreateRule, presentation = 'modal', startEditing = false, onBusyChange }: TransactionDetailModalProps & { transaction: Transaction }) {
+function TransactionDetailContent({
+  transaction,
+  closing = false,
+  onClosing,
+  onClose,
+  onUpdated,
+  onCreateRule,
+  presentation = 'modal',
+  startEditing = false,
+  onBusyChange,
+  onNavigatePrevious,
+  onNavigateNext,
+  canNavigatePrevious = false,
+  canNavigateNext = false,
+}: TransactionDetailModalProps & { transaction: Transaction }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openedAs = useRef<'modal' | 'sidebar' | null>(null);
   const isClosing = useRef(false);
@@ -145,6 +163,33 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
   }, [busy, onBusyChange]);
 
   useEffect(() => {
+    if (presentation !== 'sidebar' || (!onNavigatePrevious && !onNavigateNext)) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (busy || event.defaultPrevented || event.ctrlKey || event.metaKey) return;
+      const activeEl = document.activeElement;
+      const isTyping =
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl instanceof HTMLSelectElement ||
+        activeEl?.getAttribute('contenteditable') === 'true';
+
+      if ((event.altKey && event.key === 'ArrowUp') || (!event.altKey && !isTyping && (event.key === 'k' || event.key === 'K'))) {
+        if (canNavigatePrevious && onNavigatePrevious) {
+          event.preventDefault();
+          onNavigatePrevious();
+        }
+      } else if ((event.altKey && event.key === 'ArrowDown') || (!event.altKey && !isTyping && (event.key === 'j' || event.key === 'J'))) {
+        if (canNavigateNext && onNavigateNext) {
+          event.preventDefault();
+          onNavigateNext();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [presentation, busy, canNavigatePrevious, canNavigateNext, onNavigatePrevious, onNavigateNext]);
+
+  useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     const mode = docked ? 'sidebar' : 'modal';
@@ -241,6 +286,30 @@ function TransactionDetailContent({ transaction, closing = false, onClosing, onC
           {correctionMode && <p className="mt-1 text-xs text-muted">{transaction.contactName}</p>}
         </div>
         <div className="flex items-center gap-1">
+          {presentation === 'sidebar' && (onNavigatePrevious || onNavigateNext) && (
+            <div className="mr-1 inline-flex items-center rounded-lg border border-line bg-canvas/50 p-0.5">
+              <button
+                type="button"
+                disabled={busy || !canNavigatePrevious}
+                onClick={onNavigatePrevious}
+                aria-label="Movimiento anterior"
+                title="Movimiento anterior (Alt+↑ o K)"
+                className="rounded-md p-1 text-muted transition-colors hover:bg-white hover:text-ink disabled:opacity-35"
+              >
+                <ChevronUp className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                disabled={busy || !canNavigateNext}
+                onClick={onNavigateNext}
+                aria-label="Siguiente movimiento"
+                title="Siguiente movimiento (Alt+↓ o J)"
+                className="rounded-md p-1 text-muted transition-colors hover:bg-white hover:text-ink disabled:opacity-35"
+              >
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           {presentation !== 'sidebar' && onUpdated && !readOnly && <button type="button" disabled={busy} onClick={() => setCorrectionMode('edit')} aria-label="Corregir movimiento" title="Corregir movimiento" className="rounded-lg p-2 text-brand hover:bg-canvas disabled:opacity-50"><Pencil className="h-5 w-5" /></button>}
           <button type="button" disabled={busy} onClick={() => setCorrectionMode('history')} aria-label="Historial de correcciones" title="Historial de correcciones" className="rounded-lg p-2 text-muted hover:bg-canvas disabled:opacity-50"><History className="h-5 w-5" /></button>
           <button type="button" onClick={triggerClose} disabled={busy} aria-label="Cerrar detalle" title="Cerrar detalle" className="rounded-lg p-1.5 text-muted hover:bg-canvas hover:text-ink">

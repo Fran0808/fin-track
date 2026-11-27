@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Smartphone, Scale } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, ArrowLeftRight, CreditCard, Plus, Smartphone, Scale, Tag } from 'lucide-react';
 import type { PeriodAnalytics, Transaction } from '../../types';
 import { formatCurrency, formatRelativeDate, getChannelLabel } from '../../utils';
 import { getCategoryColor, getCategoryLabel } from '../../utils/categoryColors';
@@ -12,6 +12,9 @@ interface HomeViewProps {
   onNavigateToTransactions: () => void;
   onSelectTransaction: (transaction: Transaction) => void;
   onSelectChannel?: (channel: string) => void;
+  onSelectFlow?: (flow: 'EXPENSE' | 'INCOME') => void;
+  onSelectCategory?: (category: string | null) => void;
+  onOpenManualTransaction?: () => void;
   selectedYear: number;
   selectedMonth: number;
   animateIntro: boolean;
@@ -49,6 +52,9 @@ export function HomeView({
   onNavigateToTransactions,
   onSelectTransaction,
   onSelectChannel,
+  onSelectFlow,
+  onSelectCategory,
+  onOpenManualTransaction,
   selectedYear,
   selectedMonth,
   animateIntro,
@@ -64,6 +70,9 @@ export function HomeView({
   const daysElapsed = analytics?.dailyExpenses?.length ?? 0;
   const dailyAverage = daysElapsed > 0 ? expense / daysElapsed : 0;
   const topCategory = analytics?.categoryBreakdown?.[0] ?? null;
+  const uncategorizedGroup = analytics?.categoryBreakdown?.find(
+    (item) => item.category === null || item.category === ''
+  ) ?? null;
   const totalMovements = analytics?.totalMovements ?? 0;
 
   const netCents = Math.round(income * 100) - Math.round(expense * 100);
@@ -78,9 +87,21 @@ export function HomeView({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Resumen mensual</h1>
-        <p className="mt-1.5 text-sm capitalize text-muted">{period}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Resumen mensual</h1>
+          <p className="mt-1.5 text-sm capitalize text-muted">{period}</p>
+        </div>
+        {onOpenManualTransaction && (
+          <button
+            type="button"
+            onClick={onOpenManualTransaction}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand/90"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Agregar movimiento
+          </button>
+        )}
       </div>
 
       <section
@@ -93,72 +114,101 @@ export function HomeView({
       >
         <div className="grid divide-y divide-line md:grid-cols-3 md:divide-x md:divide-y-0">
           <div className="p-6 sm:p-7">
-            <div className="flex min-h-6 items-center justify-between gap-3 max-[360px]:min-h-9">
-              <div className="flex items-center gap-2 text-ink">
-                <ArrowUpRight className="h-4 w-4 text-negative" />
-                <p className="eyebrow">Gastos del mes</p>
+            <button
+              type="button"
+              disabled={!onSelectFlow || loadingSummary || !analytics}
+              onClick={() => onSelectFlow?.('EXPENSE')}
+              aria-label="Ver gastos del mes"
+              className="group block w-full rounded-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand disabled:cursor-default"
+            >
+              <div className="flex min-h-6 items-center justify-between gap-3 max-[360px]:min-h-9">
+                <div className="flex items-center gap-2 text-ink">
+                  <ArrowUpRight className="h-4 w-4 text-negative" />
+                  <p className="eyebrow group-hover:text-brand">Gastos del mes</p>
+                </div>
+                {analytics && expenseVar && (
+                  <span
+                    className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      expenseVar.pct > 0
+                        ? 'bg-negative/10 text-negative'
+                        : expenseVar.pct < 0
+                        ? 'bg-positive/10 text-positive'
+                        : 'bg-canvas text-muted'
+                    }`}
+                  >
+                    {expenseVar.label}
+                  </span>
+                )}
               </div>
-              {analytics && expenseVar && (
-                <span
-                  className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    expenseVar.pct > 0
-                      ? 'bg-negative/10 text-negative'
-                      : expenseVar.pct < 0
-                      ? 'bg-positive/10 text-positive'
-                      : 'bg-canvas text-muted'
-                  }`}
-                >
-                  {expenseVar.label}
-                </span>
-              )}
-            </div>
-            <p className="font-display font-num mt-3 min-h-8 text-2xl font-semibold tracking-tight text-ink sm:min-h-9 sm:text-3xl">
-              {loadingSummary ? <LoadingBar className="h-6 w-28" /> : analytics ? formatCurrency(expense) : '—'}
-            </p>
-            <p className="font-num mt-1.5 min-h-4 text-xs text-muted">
-              {loadingSummary ? <LoadingBar className="h-2.5 w-32" /> : analytics?.previousPeriodExpense != null
-                ? `Mes anterior: ${formatCurrency(analytics.previousPeriodExpense)}`
-                : analytics ? 'Salidas registradas en el período' : 'Resumen no disponible'}
-            </p>
+              <p className="font-display font-num mt-3 min-h-8 text-2xl font-semibold tracking-tight text-ink transition-colors group-hover:text-brand sm:min-h-9 sm:text-3xl">
+                {loadingSummary ? <LoadingBar className="h-6 w-28" /> : analytics ? formatCurrency(expense) : '—'}
+              </p>
+              <p className="font-num mt-1.5 min-h-4 text-xs text-muted">
+                {loadingSummary ? <LoadingBar className="h-2.5 w-32" /> : analytics?.previousPeriodExpense != null
+                  ? `Mes anterior: ${formatCurrency(analytics.previousPeriodExpense)}`
+                  : analytics ? 'Salidas registradas en el período' : 'Resumen no disponible'}
+              </p>
+            </button>
             <div className="font-num mt-4 flex min-h-[3.125rem] flex-wrap content-start items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
               {loadingSummary && <LoadingBar className="my-[3px] h-2.5 w-36" />}
               {analytics && daysElapsed > 0 && (
                 <span>Promedio diario: <strong className="font-semibold text-ink">{formatCurrency(dailyAverage)}</strong></span>
               )}
               {topCategory && (
-                <span>Mayor rubro: <strong className="font-semibold text-ink">{getCategoryLabel(topCategory.category)} ({topCategory.percentage.toFixed(0)}%)</strong></span>
+                onSelectCategory ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCategory(topCategory.category)}
+                    className="rounded text-left text-xs text-muted transition-colors hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    Mayor rubro:{' '}
+                    <strong className="font-semibold text-ink underline decoration-line underline-offset-2 hover:text-brand hover:decoration-brand">
+                      {getCategoryLabel(topCategory.category)} ({topCategory.percentage.toFixed(0)}%)
+                    </strong>
+                  </button>
+                ) : (
+                  <span>Mayor rubro: <strong className="font-semibold text-ink">{getCategoryLabel(topCategory.category)} ({topCategory.percentage.toFixed(0)}%)</strong></span>
+                )
               )}
             </div>
           </div>
 
           <div className="p-6 sm:p-7">
-            <div className="flex min-h-6 items-center justify-between gap-3 max-[360px]:min-h-9">
-              <div className="flex items-center gap-2 text-positive">
-                <ArrowDownLeft className="h-4 w-4" />
-                <p className="eyebrow !text-positive">Entradas del mes</p>
+            <button
+              type="button"
+              disabled={!onSelectFlow || loadingSummary || !analytics}
+              onClick={() => onSelectFlow?.('INCOME')}
+              aria-label="Ver entradas del mes"
+              className="group block w-full rounded-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand disabled:cursor-default"
+            >
+              <div className="flex min-h-6 items-center justify-between gap-3 max-[360px]:min-h-9">
+                <div className="flex items-center gap-2 text-positive">
+                  <ArrowDownLeft className="h-4 w-4" />
+                  <p className="eyebrow !text-positive">Entradas del mes</p>
+                </div>
+                {analytics && incomeVar && (
+                  <span
+                    className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      incomeVar.pct > 0
+                        ? 'bg-positive/10 text-positive'
+                        : incomeVar.pct < 0
+                        ? 'bg-negative/10 text-negative'
+                        : 'bg-canvas text-muted'
+                    }`}
+                  >
+                    {incomeVar.label}
+                  </span>
+                )}
               </div>
-              {analytics && incomeVar && (
-                <span
-                  className={`font-num inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    incomeVar.pct > 0
-                      ? 'bg-positive/10 text-positive'
-                      : incomeVar.pct < 0
-                      ? 'bg-negative/10 text-negative'
-                      : 'bg-canvas text-muted'
-                  }`}
-                >
-                  {incomeVar.label}
-                </span>
-              )}
-            </div>
-            <p className="font-display font-num mt-3 min-h-8 text-2xl font-semibold tracking-tight text-positive sm:min-h-9 sm:text-3xl">
-              {loadingSummary ? <LoadingBar className="h-6 w-28" /> : analytics ? formatCurrency(income) : '—'}
-            </p>
-            <p className="font-num mt-1.5 min-h-4 text-xs text-muted">
-              {loadingSummary ? <LoadingBar className="h-2.5 w-32" /> : analytics?.previousPeriodIncome != null
-                ? `Mes anterior: ${formatCurrency(analytics.previousPeriodIncome)}`
-                : analytics ? 'Entradas registradas en el período' : null}
-            </p>
+              <p className="font-display font-num mt-3 min-h-8 text-2xl font-semibold tracking-tight text-positive transition-opacity group-hover:opacity-80 sm:min-h-9 sm:text-3xl">
+                {loadingSummary ? <LoadingBar className="h-6 w-28" /> : analytics ? formatCurrency(income) : '—'}
+              </p>
+              <p className="font-num mt-1.5 min-h-4 text-xs text-muted">
+                {loadingSummary ? <LoadingBar className="h-2.5 w-32" /> : analytics?.previousPeriodIncome != null
+                  ? `Mes anterior: ${formatCurrency(analytics.previousPeriodIncome)}`
+                  : analytics ? 'Entradas registradas en el período' : null}
+              </p>
+            </button>
             <div className="font-num mt-4 flex min-h-[3.125rem] flex-wrap content-start items-center gap-x-4 gap-y-1 border-t border-line/70 pt-3 text-xs text-muted">
               {loadingSummary ? <LoadingBar className="my-[3px] h-2.5 w-36" /> : analytics && (
                 <span><strong className="font-semibold text-ink">{totalMovements}</strong> {totalMovements === 1 ? 'movimiento en el mes' : 'movimientos en el mes'}</span>
@@ -212,6 +262,26 @@ export function HomeView({
         </div>
         <div className="h-1.5 w-full bg-brand" aria-hidden="true" />
       </section>
+
+      {!loadingSummary && uncategorizedGroup && uncategorizedGroup.count > 0 && onSelectCategory && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/8 px-5 py-3.5 text-sm">
+          <div className="flex items-center gap-2.5 text-ink">
+            <Tag className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+            <span>
+              Tienes <strong className="font-num font-semibold">{uncategorizedGroup.count}</strong>{' '}
+              {uncategorizedGroup.count === 1 ? 'gasto sin categoría' : 'gastos sin categoría'} en este período.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSelectCategory(null)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand shadow-2xs ring-1 ring-line transition-colors hover:bg-canvas"
+          >
+            Clasificar ahora
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)]">
         <section className="surface min-w-0" aria-labelledby="recent-heading" aria-busy={loadingRecent}>
